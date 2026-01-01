@@ -38,13 +38,16 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+const rawDatabaseUrl = process.env.DATABASE_URL || '';
+const databaseUrlSeparator = rawDatabaseUrl.includes('?') ? '&' : '?';
+
 const basePrisma =
   globalForPrisma.prisma ??
   new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
     datasources: {
       db: {
-        url: process.env.DATABASE_URL + '&options=-c%20client_encoding=UTF8',
+        url: rawDatabaseUrl + databaseUrlSeparator + 'options=-c%20client_encoding=UTF8',
       },
     },
   });
