@@ -32,6 +32,18 @@ const nextConfig = {
   // تم تمكين output file tracing لتجنب مشاكل في تجميع الملفات الداخلية على Vercel
   outputFileTracing: true,
 
+  // Monorepo: اجعل tracing root هو جذر المستودع لتجنّب فقدان ملفات runtime عند النشر على Vercel
+  outputFileTracingRoot: path.join(__dirname, '../../'),
+
+  // Fix: بعض إصدارات Next/Vercel قد تفشل في تتبع require داخلي لـ amp-context
+  // مما يؤدي إلى MODULE_NOT_FOUND في بيئة serverless على Vercel
+  outputFileTracingIncludes: {
+    '*': [
+      'node_modules/next/dist/server/future/route-modules/pages/vendored/contexts/amp-context.js',
+      'node_modules/next/dist/server/future/route-modules/pages/vendored/contexts/module.compiled.js',
+    ],
+  },
+
   images: {
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost' },
