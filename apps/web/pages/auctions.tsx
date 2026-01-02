@@ -2985,11 +2985,17 @@ export const getServerSideProps: GetServerSideProps<AuctionsPageProps> = async (
       total: formattedAuctions.length,
     };
 
+    // تعقيم الكائن للتأكد من أن جميع القيم قابلة للتسلسل في Next.js
+    // نفس الأسلوب المستخدم في صفحة marketplace لتجنب أخطاء 500 في /_next/data
+    const propsPayload: AuctionsPageProps = {
+      auctions: formattedAuctions,
+      stats,
+    };
+
+    const sanitizedProps = JSON.parse(JSON.stringify(propsPayload));
+
     return {
-      props: {
-        auctions: formattedAuctions,
-        stats,
-      },
+      props: sanitizedProps,
     };
   } catch (error) {
     console.error('[🚨 SSR Error] خطأ في جلب المزادات:', error);
