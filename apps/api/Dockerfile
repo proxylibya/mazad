@@ -14,7 +14,7 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY apps/api/ ./
-COPY apps/api/../prisma ./prisma/
+COPY ../prisma ./prisma/
 
 # Generate Prisma client
 RUN npx prisma generate
