@@ -2818,6 +2818,25 @@ export const getServerSideProps: GetServerSideProps<AuctionsPageProps> = async (
     // ✅ تحويل البيانات للتوافق مع الواجهة الأمامية
     let formattedAuctions: AuctionWithDetails[];
     try {
+      // Vercel/Next.js: props must be JSON-serializable.
+      // Prisma قد يُرجع BigInt/Decimal لبعض الحقول (خصوصاً ids والأسعار) وهذا يسبب 500 في /_next/data.
+      const toSafeId = (v: unknown): string => {
+        if (typeof v === 'bigint') return v.toString();
+        if (v === null || v === undefined) return '';
+        return String(v);
+      };
+      const toSafeNumber = (v: unknown, fallback = 0): number => {
+        if (v === null || v === undefined) return fallback;
+        if (typeof v === 'bigint') {
+          const n = Number(v);
+          return Number.isFinite(n) ? n : fallback;
+        }
+        if (typeof v === 'number') return Number.isFinite(v) ? v : fallback;
+        // Prisma.Decimal أو string
+        const n = Number(v as any);
+        return Number.isFinite(n) ? n : fallback;
+      };
+
       formattedAuctions = auctions.map((auction: any) => {
         // استخراج روابط الصور من car_images (الجديد) أو images (القديم)
         const carImagesArray = auction.cars?.car_images || [];
@@ -2883,10 +2902,10 @@ export const getServerSideProps: GetServerSideProps<AuctionsPageProps> = async (
         }
 
         return {
-          id: auction.id,
+          id: toSafeId(auction.id),
           title: auction.title || '',
-          startingPrice: auction.startPrice || 0, // ✅ الاسم الصحيح
-          currentPrice: auction.currentPrice || 0,
+          startingPrice: toSafeNumber(auction.startPrice, 0), // ✅ الاسم الصحيح
+          currentPrice: toSafeNumber(auction.currentPrice, 0),
           reservePrice: null, // غير موجود في schema
           startTime: auction.startDate ? auction.startDate.toISOString() : null, // ✅ الاسم الصحيح
           endTime: auction.endDate ? auction.endDate.toISOString() : new Date().toISOString(), // ✅ الاسم الصحيح
@@ -2895,11 +2914,14 @@ export const getServerSideProps: GetServerSideProps<AuctionsPageProps> = async (
           createdAt: auction.createdAt ? auction.createdAt.toISOString() : new Date().toISOString(),
           updatedAt: auction.updatedAt ? auction.updatedAt.toISOString() : new Date().toISOString(),
           car: {
-            id: auction.cars?.id || '',
+            id: toSafeId(auction.cars?.id),
             brand: auction.cars?.brand || '',
             model: auction.cars?.model || '',
             year: auction.cars?.year || null,
-            price: auction.cars?.price || null,
+            price:
+              auction.cars?.price === null || auction.cars?.price === undefined
+                ? null
+                : toSafeNumber(auction.cars?.price, 0),
             description: auction.cars?.description || '',
             location: auction.cars?.location || 'طرابلس',
             area: '', // سيتم معالجته لاحقاً
@@ -2910,7 +2932,7 @@ export const getServerSideProps: GetServerSideProps<AuctionsPageProps> = async (
             color: auction.cars?.color,
             // توحيد البائع - ✅ الاسم الصحيح
             user: {
-              id: auction.cars?.users?.id || '',
+              id: toSafeId(auction.cars?.users?.id),
               name: auction.cars?.users?.name || 'غير معروف',
               verified: !!auction.cars?.users?.verified,
               phone: auction.cars?.users?.phone || null,
@@ -2932,17 +2954,19 @@ export const getServerSideProps: GetServerSideProps<AuctionsPageProps> = async (
           image: imageUrls[0] || '/images/cars/default-car.svg',
           imageList: imageUrls,
           bids: (auction.bids || []).map((bid: any) => ({
-            id: bid.id,
-            amount: bid.amount,
-            user: bid.users || { id: 0, name: 'غير معروف' }, // ✅ الاسم الصحيح
+            id: toSafeId(bid.id),
+            amount: toSafeNumber(bid.amount, 0),
+            user: bid.users
+              ? { id: toSafeId(bid.users.id), name: bid.users.name || 'غير معروف' }
+              : { id: '0', name: 'غير معروف' }, // ✅ الاسم الصحيح
             createdAt: bid.createdAt ? bid.createdAt.toISOString() : new Date().toISOString(),
           })),
           winner: null,
           // ✅ بيانات الترويج والتمييز - مهمة للشارات الذهبية
           featured: auction.featured || false,
           promotionPackage: auction.promotionPackage || 'free',
-          promotionDays: auction.promotionDays || 0,
-          promotionPriority: auction.promotionPriority || 0,
+          promotionDays: toSafeNumber(auction.promotionDays, 0),
+          promotionPriority: toSafeNumber(auction.promotionPriority, 0),
           promotionEndDate: auction.promotionEndDate
             ? auction.promotionEndDate.toISOString()
             : null,
