@@ -2,7 +2,11 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-COPY package*.json ./
+# Copy the entire monorepo to access local packages
+COPY .. /workspace
+WORKDIR /workspace/apps/api
+
+COPY apps/api/.npmrc ./
 RUN npm install --legacy-peer-deps
 
 COPY . .
