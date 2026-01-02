@@ -106,8 +106,8 @@ io.on('connection', (socket) => {
 });
 
 // Start server
-const PORT = process.env.API_PORT || 3020;
-httpServer.listen(PORT, () => {
+const PORT = Number(process.env.PORT || process.env.API_PORT || 3020);
+httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 API Server running on http://localhost:${PORT}`);
 });
 
