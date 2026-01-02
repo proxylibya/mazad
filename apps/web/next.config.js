@@ -29,8 +29,8 @@ const nextConfig = {
     cpus: 1,
   },
 
-  // تعطيل output file tracing لتجنب مشاكل filesystem
-  outputFileTracing: false,
+  // تم تمكين output file tracing لتجنب مشاكل في تجميع الملفات الداخلية على Vercel
+  outputFileTracing: true,
 
   images: {
     remotePatterns: [
