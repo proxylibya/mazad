@@ -44,6 +44,7 @@ const nextConfig = {
       // وتشير أنماط include دائماً لمسارات نسبية من مجلد المشروع (apps/web)
       // لذلك نعود بخطوتين للوصول إلى node_modules في جذر المستودع،
       // ثم ندرج مجلد route-modules بالكامل لتغطية amp-context وجميع المتغيّرات ذات الصلة
+      './node_modules/next/dist/server/future/route-modules/**/*',
       '../../node_modules/next/dist/server/future/route-modules/**/*',
     ],
   },
