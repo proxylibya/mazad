@@ -9,6 +9,7 @@ const nextConfig = {
   swcMinify: true,
   poweredByHeader: false,
   compress: true,
+  outputFileTracing: true,
 
   // إزالة console.log في الإنتاج تلقائياً
   compiler: {
@@ -27,26 +28,23 @@ const nextConfig = {
     // تقليل عدد workers لتجنب race conditions على Windows
     workerThreads: false,
     cpus: 1,
-  },
 
-  // تم تمكين output file tracing لتجنب مشاكل في تجميع الملفات الداخلية على Vercel
-  outputFileTracing: true,
+    // Monorepo: اجعل tracing root هو جذر المستودع لتجنّب فقدان ملفات runtime عند النشر على Vercel
+    outputFileTracingRoot: path.join(__dirname, '../../'),
 
-  // Monorepo: اجعل tracing root هو جذر المستودع لتجنّب فقدان ملفات runtime عند النشر على Vercel
-  outputFileTracingRoot: path.join(__dirname, '../../'),
-
-  // Fix: بعض إصدارات Next/Vercel قد تفشل في تتبع require داخلي لـ amp-context
-  // مما يؤدي إلى MODULE_NOT_FOUND في بيئة serverless على Vercel
-  // نستخدم مفتاح '/*' ليتم تطبيق include على جميع الصفحات والـ API routes
-  outputFileTracingIncludes: {
-    '/*': [
-      // في إعداد monorepo يتم تثبيت next في node_modules على جذر المستودع،
-      // وتشير أنماط include دائماً لمسارات نسبية من مجلد المشروع (apps/web)
-      // لذلك نعود بخطوتين للوصول إلى node_modules في جذر المستودع،
-      // ثم ندرج مجلد route-modules بالكامل لتغطية amp-context وجميع المتغيّرات ذات الصلة
-      './node_modules/next/dist/server/future/route-modules/**/*',
-      '../../node_modules/next/dist/server/future/route-modules/**/*',
-    ],
+    // Fix: بعض إصدارات Next/Vercel قد تفشل في تتبع require داخلي لـ amp-context
+    // مما يؤدي إلى MODULE_NOT_FOUND في بيئة serverless على Vercel
+    // نستخدم مفتاح '/*' ليتم تطبيق include على جميع الصفحات والـ API routes
+    outputFileTracingIncludes: {
+      '/*': [
+        // في إعداد monorepo يتم تثبيت next في node_modules على جذر المستودع،
+        // وتشير أنماط include دائماً لمسارات نسبية من مجلد المشروع (apps/web)
+        // لذلك نعود بخطوتين للوصول إلى node_modules في جذر المستودع،
+        // ثم ندرج مجلد route-modules بالكامل لتغطية amp-context وجميع المتغيّرات ذات الصلة
+        './node_modules/next/dist/server/future/route-modules/**/*',
+        '../../node_modules/next/dist/server/future/route-modules/**/*',
+      ],
+    },
   },
 
   images: {
