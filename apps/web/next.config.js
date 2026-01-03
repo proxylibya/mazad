@@ -4,6 +4,23 @@ const path = require('path');
 
 const ADMIN_APP_URL = process.env.ADMIN_APP_URL || 'http://localhost:3022';
 
+const OUTPUT_TRACE_ROOT = path.join(__dirname, '../../');
+const NEXT_VENDORED_AMP_CONTEXT_GLOBS = [
+  path.join(
+    __dirname,
+    'node_modules/next/dist/server/future/route-modules/**/vendored/contexts/amp-context.js',
+  ),
+  path.join(
+    OUTPUT_TRACE_ROOT,
+    'node_modules/next/dist/server/future/route-modules/**/vendored/contexts/amp-context.js',
+  ),
+  path.join(__dirname, 'node_modules/next/dist/server/future/route-modules/**/module.compiled.*'),
+  path.join(
+    OUTPUT_TRACE_ROOT,
+    'node_modules/next/dist/server/future/route-modules/**/module.compiled.*',
+  ),
+];
+
 const nextConfig = {
   reactStrictMode: false,
   swcMinify: true,
@@ -30,7 +47,7 @@ const nextConfig = {
     cpus: 1,
 
     // Monorepo: اجعل tracing root هو جذر المستودع لتجنّب فقدان ملفات runtime عند النشر على Vercel
-    outputFileTracingRoot: path.join(__dirname, '../../'),
+    outputFileTracingRoot: OUTPUT_TRACE_ROOT,
 
     // Fix: بعض إصدارات Next/Vercel قد تفشل في تتبع require داخلي لـ amp-context
     // مما يؤدي إلى MODULE_NOT_FOUND في بيئة serverless على Vercel
@@ -41,12 +58,14 @@ const nextConfig = {
         // وتشير أنماط include دائماً لمسارات نسبية من مجلد المشروع (apps/web)
         // لذلك نعود بخطوتين للوصول إلى node_modules في جذر المستودع،
         // ثم ندرج مجلد route-modules بالكامل لتغطية amp-context وجميع المتغيّرات ذات الصلة
+        ...NEXT_VENDORED_AMP_CONTEXT_GLOBS,
         'node_modules/next/dist/server/future/route-modules/**/vendored/contexts/**/*',
         'node_modules/next/dist/server/future/route-modules/**/*',
         '../../node_modules/next/dist/server/future/route-modules/**/vendored/contexts/**/*',
         '../../node_modules/next/dist/server/future/route-modules/**/*',
       ],
       '**': [
+        ...NEXT_VENDORED_AMP_CONTEXT_GLOBS,
         'node_modules/next/dist/server/future/route-modules/**/vendored/contexts/**/*',
         'node_modules/next/dist/server/future/route-modules/**/*',
         '../../node_modules/next/dist/server/future/route-modules/**/vendored/contexts/**/*',
