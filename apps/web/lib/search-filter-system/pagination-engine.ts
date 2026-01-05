@@ -13,7 +13,9 @@
  * - Cache-friendly pagination
  */
 
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
+
+import prisma from '@/lib/prisma';
 
 // ============================================
 // TYPES
@@ -90,7 +92,7 @@ export class UnifiedPaginationEngine {
 
     constructor(config: Partial<PaginationConfig> = {}, prismaClient?: PrismaClient) {
         this.config = { ...DEFAULT_CONFIG, ...config };
-        this.prisma = prismaClient || new PrismaClient();
+        this.prisma = prismaClient || prisma;
     }
 
     /**

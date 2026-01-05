@@ -1,9 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import type { NextApiRequest, NextApiResponse } from 'next';
-
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
-const prisma = globalForPrisma.prisma ?? new PrismaClient();
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 const DEFAULT_BRANDING_SETTINGS = {
   logoType: 'text' as 'text' | 'image',
@@ -22,7 +18,7 @@ type BrandingSettings = typeof DEFAULT_BRANDING_SETTINGS;
 
 async function verifyAuth(
   req: NextApiRequest,
-): Promise<{ adminId: string; role: string } | null> {
+): Promise<{ adminId: string; role: string; } | null> {
   const token = req.cookies[COOKIE_NAME] || req.cookies.admin_token;
   if (!token) return null;
 

@@ -75,7 +75,7 @@ const ContactPage = () => {
   return (
     <>
       <Head>
-        <title>تواصل معنا | موقع مزاد السيارات</title>
+        <title>تواصل معنا | سوق المزاد</title>
         <meta
           name="description"
           content="تواصل مع فريق دعم موقع مزاد السيارات للحصول على المساعدة والدعم"

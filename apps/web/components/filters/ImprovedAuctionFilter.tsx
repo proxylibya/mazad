@@ -1,8 +1,8 @@
 import MagnifyingGlassIcon from '@heroicons/react/24/outline/MagnifyingGlassIcon';
 import XMarkIcon from '@heroicons/react/24/outline/XMarkIcon';
 import React from 'react';
+import YearRangeSelector from '../YearRangeSelector';
 import SelectField from '../ui/SelectField';
-import YearRangeSelector from './YearRangeSelector';
 
 interface ImprovedAuctionFilterProps {
   filters: {

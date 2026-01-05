@@ -16,7 +16,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import AdminLayout from '../../../components/AdminLayout';
-import { parseImages } from '../../../components/unified';
+import { parseImages, truncateText } from '../../../components/unified';
 
 interface Auction {
   id: string;
@@ -284,10 +284,12 @@ export default function EndedAuctionsPage() {
                   </td>
                   <td className="px-4 py-4">
                     <div>
-                      <p className="font-medium text-white">{auction.title}</p>
+                      <p className="font-medium text-white" title={auction.title}>
+                        {truncateText(auction.title)}
+                      </p>
                       {auction.car && (
-                        <p className="text-sm text-slate-400">
-                          {auction.car.title} - {auction.car.year}
+                        <p className="text-sm text-slate-400" title={auction.car.title}>
+                          {truncateText(auction.car.title)} - {auction.car.year}
                         </p>
                       )}
                     </div>
@@ -312,7 +314,9 @@ export default function EndedAuctionsPage() {
                     {auction.views}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-slate-300">
-                    {auction.seller?.name || '-'}
+                    <span title={auction.seller?.name || '-'}>
+                      {truncateText(auction.seller?.name || '-')}
+                    </span>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">
                     <div>

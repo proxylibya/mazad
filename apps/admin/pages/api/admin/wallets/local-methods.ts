@@ -2,11 +2,10 @@
  * API إدارة وسائل الدفع المحلية - متكامل مع قاعدة البيانات
  * Local Payment Methods Management API - Database Integrated
  */
-import { PrismaClient } from '@prisma/client';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { NextApiRequest, NextApiResponse } from 'next';
 
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 const JWT_SECRET = process.env.JWT_SECRET || 'sooq-mazad-admin-secret-key-min-32-chars!';
 
 // التحقق من صلاحيات المدير

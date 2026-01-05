@@ -7,17 +7,14 @@
  * @endpoint POST /api/upload/unified-image
  */
 
-import {
-    IMAGE_CONFIG,
-    ImageCategory,
-    ImageOptimizationResult,
-    ImageSystem,
-    UploadOptions,
-} from '@/lib/image-system';
 import { File as FormidableFile, IncomingForm } from 'formidable';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import os from 'os';
+import path from 'path';
+import sharp from 'sharp';
+import { uploadBufferToBlob } from '../../../lib/blob';
 
 // تعطيل parser الافتراضي
 export const config = {
@@ -32,6 +29,44 @@ type ApiResponse = {
     data?: ImageOptimizationResult;
     error?: string;
     code?: string;
+};
+
+type ImageCategory = 'cars' | 'profiles' | 'transport' | 'messages' | 'showrooms' | 'general';
+
+type UploadedImage = {
+    url: string;
+    path: string;
+    size: number;
+    width: number;
+    height: number;
+    format: string;
+};
+
+type ImageOptimizationResult = {
+    success: boolean;
+    original: UploadedImage;
+    optimized?: UploadedImage;
+    sizes?: Record<string, UploadedImage>;
+    formats?: Record<string, UploadedImage>;
+    placeholder?: string;
+    savings?: {
+        bytes: number;
+        percentage: number;
+    };
+    error?: string;
+};
+
+type UploadOptions = {
+    category: ImageCategory;
+    userId?: string;
+    entityId?: string;
+    optimize?: boolean;
+    generateSizes?: boolean;
+    generateFormats?: boolean;
+    quality?: number;
+    maxWidth?: number;
+    maxHeight?: number;
+    generatePlaceholder?: boolean;
 };
 
 /**
@@ -68,7 +103,7 @@ async function parseForm(req: NextApiRequest): Promise<{
     files: Record<string, FormidableFile | FormidableFile[]>;
 }> {
     return new Promise((resolve, reject) => {
-        const uploadDir = `${process.cwd()}/${IMAGE_CONFIG.PATHS.temp}`;
+        const uploadDir = path.join(os.tmpdir(), 'sooq-mazad', 'uploads', 'temp');
 
         // إنشاء مجلد مؤقت
         if (!fs.existsSync(uploadDir)) {
@@ -78,7 +113,7 @@ async function parseForm(req: NextApiRequest): Promise<{
         const form = new IncomingForm({
             uploadDir,
             keepExtensions: true,
-            maxFileSize: IMAGE_CONFIG.MAX_FILE_SIZE,
+            maxFileSize: 10 * 1024 * 1024,
             multiples: true,
             allowEmptyFiles: false,
             minFileSize: 1,
@@ -88,7 +123,7 @@ async function parseForm(req: NextApiRequest): Promise<{
             if (err) {
                 console.error('[UnifiedUpload] خطأ في تحليل النموذج:', err);
                 reject(new Error(err.message.includes('maxFileSize')
-                    ? `حجم الملف كبير جداً. الحد الأقصى ${IMAGE_CONFIG.MAX_FILE_SIZE / 1024 / 1024} ميجابايت`
+                    ? 'حجم الملف كبير جداً. الحد الأقصى 10 ميجابايت'
                     : 'خطأ في معالجة الطلب'));
             } else {
                 // تحويل الحقول
@@ -206,12 +241,131 @@ async function handler(
             userId,
         });
 
-        // معالجة الصورة
-        const result = await ImageSystem.processAndSaveImage(
+        const folderBase = `uploads/${options.category}`;
+        const baseName = `${options.category}_${options.userId || 'anon'}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+
+        const originalMetadata = await sharp(buffer).metadata();
+        const originalExt = path.extname(file.originalFilename || '') || '.jpg';
+        const originalName = `${baseName}${originalExt}`;
+        const originalUploaded = await uploadBufferToBlob({
             buffer,
-            file.originalFilename || 'image.jpg',
-            options
-        );
+            filename: originalName,
+            contentType: file.mimetype || 'application/octet-stream',
+            folder: folderBase,
+        });
+
+        const result: ImageOptimizationResult = {
+            success: true,
+            original: {
+                url: originalUploaded.url,
+                path: originalUploaded.pathname,
+                size: buffer.length,
+                width: originalMetadata.width || 0,
+                height: originalMetadata.height || 0,
+                format: originalMetadata.format || 'unknown',
+            },
+        };
+
+        let optimizedBuffer: Buffer | null = null;
+        if (options.optimize) {
+            const targetFormat = 'webp';
+            const resized = sharp(buffer).rotate();
+            const resized2 = (options.maxWidth || options.maxHeight)
+                ? resized.resize(options.maxWidth, options.maxHeight, { fit: 'inside', withoutEnlargement: true })
+                : resized;
+            optimizedBuffer = await resized2.webp({ quality: options.quality || 82 }).toBuffer();
+
+            const optimizedName = `${baseName}.${targetFormat}`;
+            const optimizedUploaded = await uploadBufferToBlob({
+                buffer: optimizedBuffer,
+                filename: optimizedName,
+                contentType: 'image/webp',
+                folder: folderBase,
+            });
+
+            const optimizedMeta = await sharp(optimizedBuffer).metadata();
+            result.optimized = {
+                url: optimizedUploaded.url,
+                path: optimizedUploaded.pathname,
+                size: optimizedBuffer.length,
+                width: optimizedMeta.width || 0,
+                height: optimizedMeta.height || 0,
+                format: optimizedMeta.format || 'webp',
+            };
+
+            result.savings = {
+                bytes: buffer.length - optimizedBuffer.length,
+                percentage: buffer.length ? Math.round(((buffer.length - optimizedBuffer.length) / buffer.length) * 100) : 0,
+            };
+        }
+
+        if (options.generateSizes) {
+            const sizes = {
+                thumbnail: { width: 150, height: 150 },
+                small: { width: 320, height: 240 },
+                medium: { width: 640, height: 480 },
+                large: { width: 1024, height: 768 },
+            };
+            result.sizes = {};
+            for (const [key, dims] of Object.entries(sizes)) {
+                const sizedBuffer = await sharp(optimizedBuffer || buffer)
+                    .rotate()
+                    .resize(dims.width, dims.height, { fit: 'inside', withoutEnlargement: true })
+                    .webp({ quality: 80 })
+                    .toBuffer();
+                const sizedName = `${baseName}_${key}.webp`;
+                const uploaded = await uploadBufferToBlob({
+                    buffer: sizedBuffer,
+                    filename: sizedName,
+                    contentType: 'image/webp',
+                    folder: folderBase,
+                });
+                const meta = await sharp(sizedBuffer).metadata();
+                result.sizes[key] = {
+                    url: uploaded.url,
+                    path: uploaded.pathname,
+                    size: sizedBuffer.length,
+                    width: meta.width || 0,
+                    height: meta.height || 0,
+                    format: meta.format || 'webp',
+                };
+            }
+        }
+
+        if (options.generateFormats) {
+            const formats: Array<'webp' | 'avif'> = ['webp', 'avif'];
+            result.formats = {};
+            for (const fmt of formats) {
+                const out = fmt === 'webp'
+                    ? await sharp(buffer).rotate().webp({ quality: options.quality || 82 }).toBuffer()
+                    : await sharp(buffer).rotate().avif({ quality: 75 }).toBuffer();
+                const name = `${baseName}.${fmt}`;
+                const uploaded = await uploadBufferToBlob({
+                    buffer: out,
+                    filename: name,
+                    contentType: fmt === 'webp' ? 'image/webp' : 'image/avif',
+                    folder: folderBase,
+                });
+                const meta = await sharp(out).metadata();
+                result.formats[fmt] = {
+                    url: uploaded.url,
+                    path: uploaded.pathname,
+                    size: out.length,
+                    width: meta.width || 0,
+                    height: meta.height || 0,
+                    format: meta.format || fmt,
+                };
+            }
+        }
+
+        if (options.generatePlaceholder) {
+            const placeholderBuf = await sharp(buffer)
+                .rotate()
+                .resize(24, 24, { fit: 'inside', withoutEnlargement: true })
+                .webp({ quality: 50 })
+                .toBuffer();
+            result.placeholder = `data:image/webp;base64,${placeholderBuf.toString('base64')}`;
+        }
 
         // تنظيف الملف المؤقت
         cleanupFile(file.filepath);

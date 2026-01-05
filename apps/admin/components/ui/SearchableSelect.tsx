@@ -8,6 +8,7 @@
 
 import { ChevronDownIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatedPresence } from '../unified/UnifiedAnimation';
 
 export interface SelectOption {
   value: string;
@@ -166,54 +167,55 @@ export default function SearchableSelect({
         </button>
 
         {/* القائمة المنسدلة */}
-        {isOpen && (
-          <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border border-slate-600 bg-slate-800 shadow-xl">
-            {/* حقل البحث */}
-            {searchable && (
-              <div className="sticky top-0 border-b border-slate-600 bg-slate-800 p-2">
-                <div className="relative">
-                  <MagnifyingGlassIcon className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="ابحث..."
-                    className="w-full rounded-md border border-slate-600 bg-slate-700 py-2 pl-3 pr-9 text-sm text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none"
-                  />
-                </div>
+        <AnimatedPresence
+          show={isOpen}
+          className="absolute z-50 mt-1 w-full origin-top-right overflow-hidden rounded-lg border border-slate-600 bg-slate-800 shadow-xl"
+        >
+          {/* حقل البحث */}
+          {searchable && (
+            <div className="sticky top-0 border-b border-slate-600 bg-slate-800 p-2">
+              <div className="relative">
+                <MagnifyingGlassIcon className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="ابحث..."
+                  className="w-full rounded-md border border-slate-600 bg-slate-700 py-2 pl-3 pr-9 text-sm text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none"
+                />
               </div>
-            )}
-
-            {/* قائمة الخيارات */}
-            <div className={`${maxHeight} overflow-auto`}>
-              {filteredOptions.length > 0 ? (
-                filteredOptions.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => handleSelect(opt.value)}
-                    className={`w-full px-4 py-2.5 text-right text-sm transition-colors hover:bg-slate-700 ${
-                      value === opt.value ? 'bg-blue-600 text-white' : 'text-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      {opt.icon && <span>{opt.icon}</span>}
-                      <div>
-                        <div>{opt.label}</div>
-                        {opt.description && (
-                          <div className="text-xs text-slate-400">{opt.description}</div>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                ))
-              ) : (
-                <div className="px-4 py-4 text-center text-sm text-slate-400">لا توجد نتائج</div>
-              )}
             </div>
+          )}
+
+          {/* قائمة الخيارات */}
+          <div className={`${maxHeight} overflow-auto`}>
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => handleSelect(opt.value)}
+                  className={`w-full px-4 py-2.5 text-right text-sm transition-colors hover:bg-slate-700 ${
+                    value === opt.value ? 'bg-blue-600 text-white' : 'text-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {opt.icon && <span>{opt.icon}</span>}
+                    <div>
+                      <div>{opt.label}</div>
+                      {opt.description && (
+                        <div className="text-xs text-slate-400">{opt.description}</div>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))
+            ) : (
+              <div className="px-4 py-4 text-center text-sm text-slate-400">لا توجد نتائج</div>
+            )}
           </div>
-        )}
+        </AnimatedPresence>
       </div>
 
       {error && <p className="text-sm text-red-400">{error}</p>}
@@ -320,69 +322,70 @@ export function MultiSearchableSelect({
           />
         </button>
 
-        {isOpen && (
-          <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border border-slate-600 bg-slate-800 shadow-xl">
-            {/* حقل البحث */}
-            {searchable && (
-              <div className="sticky top-0 border-b border-slate-600 bg-slate-800 p-2">
-                <div className="relative">
-                  <MagnifyingGlassIcon className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="ابحث..."
-                    className="w-full rounded-md border border-slate-600 bg-slate-700 py-2 pl-3 pr-9 text-sm text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none"
-                  />
-                </div>
+        <AnimatedPresence
+          show={isOpen}
+          className="absolute z-50 mt-1 w-full origin-top-right overflow-hidden rounded-lg border border-slate-600 bg-slate-800 shadow-xl"
+        >
+          {/* حقل البحث */}
+          {searchable && (
+            <div className="sticky top-0 border-b border-slate-600 bg-slate-800 p-2">
+              <div className="relative">
+                <MagnifyingGlassIcon className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="ابحث..."
+                  className="w-full rounded-md border border-slate-600 bg-slate-700 py-2 pl-3 pr-9 text-sm text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none"
+                />
               </div>
-            )}
-
-            {/* أزرار التحكم */}
-            <div className="flex gap-2 border-b border-slate-600 p-2">
-              <button
-                type="button"
-                onClick={handleSelectAll}
-                className="flex-1 rounded-md bg-blue-600/20 px-2 py-1.5 text-xs text-blue-400 hover:bg-blue-600/30"
-              >
-                تحديد الكل
-              </button>
-              <button
-                type="button"
-                onClick={handleClearAll}
-                className="flex-1 rounded-md bg-slate-600/50 px-2 py-1.5 text-xs text-slate-300 hover:bg-slate-600"
-              >
-                إلغاء الكل
-              </button>
             </div>
+          )}
 
-            {/* قائمة الخيارات */}
-            <div className={`${maxHeight} overflow-auto`}>
-              {filteredOptions.length > 0 ? (
-                filteredOptions.map((opt) => (
-                  <label
-                    key={opt.value}
-                    className={`flex cursor-pointer items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-slate-700 ${
-                      values.includes(opt.value) ? 'bg-blue-600/20 text-blue-400' : 'text-slate-300'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={values.includes(opt.value)}
-                      onChange={() => handleToggle(opt.value)}
-                      className="h-4 w-4 rounded border-slate-500 bg-slate-600 text-blue-500"
-                    />
-                    {opt.icon && <span>{opt.icon}</span>}
-                    {opt.label}
-                  </label>
-                ))
-              ) : (
-                <div className="px-4 py-4 text-center text-sm text-slate-400">لا توجد نتائج</div>
-              )}
-            </div>
+          {/* أزرار التحكم */}
+          <div className="flex gap-2 border-b border-slate-600 p-2">
+            <button
+              type="button"
+              onClick={handleSelectAll}
+              className="flex-1 rounded-md bg-blue-600/20 px-2 py-1.5 text-xs text-blue-400 hover:bg-blue-600/30"
+            >
+              تحديد الكل
+            </button>
+            <button
+              type="button"
+              onClick={handleClearAll}
+              className="flex-1 rounded-md bg-slate-600/50 px-2 py-1.5 text-xs text-slate-300 hover:bg-slate-600"
+            >
+              إلغاء الكل
+            </button>
           </div>
-        )}
+
+          {/* قائمة الخيارات */}
+          <div className={`${maxHeight} overflow-auto`}>
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((opt) => (
+                <label
+                  key={opt.value}
+                  className={`flex cursor-pointer items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-slate-700 ${
+                    values.includes(opt.value) ? 'bg-blue-600/20 text-blue-400' : 'text-slate-300'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={values.includes(opt.value)}
+                    onChange={() => handleToggle(opt.value)}
+                    className="h-4 w-4 rounded border-slate-500 bg-slate-600 text-blue-500"
+                  />
+                  {opt.icon && <span>{opt.icon}</span>}
+                  {opt.label}
+                </label>
+              ))
+            ) : (
+              <div className="px-4 py-4 text-center text-sm text-slate-400">لا توجد نتائج</div>
+            )}
+          </div>
+        </AnimatedPresence>
       </div>
 
       {/* عرض العناصر المختارة */}

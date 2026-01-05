@@ -2,7 +2,9 @@ import formidable from 'formidable';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import os from 'os';
 import path from 'path';
+import { uploadBufferToBlob } from '../../../../lib/blob';
 
 const JWT_SECRET =
   process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET || 'sooq-mazad-admin-secret-key-min-32-chars!';
@@ -15,7 +17,7 @@ export const config = {
   },
 };
 
-async function verifyAuth(req: NextApiRequest): Promise<{ adminId: string; role: string } | null> {
+async function verifyAuth(req: NextApiRequest): Promise<{ adminId: string; role: string; } | null> {
   const token = req.cookies[COOKIE_NAME] || req.cookies.admin_token;
   if (!token) return null;
 
@@ -53,19 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ success: false, message: 'غير مصرح - سجل الدخول' });
     }
 
-    const rootDir = path.resolve(process.cwd(), '..', '..');
-
-    const uploadDir = path.join(rootDir, 'public', 'uploads', 'branding');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
-    const webUploadDir = path.join(rootDir, 'apps', 'web', 'public', 'uploads', 'branding');
-    if (!fs.existsSync(webUploadDir)) {
-      fs.mkdirSync(webUploadDir, { recursive: true });
-    }
-
-    const tempDir = path.join(rootDir, 'uploads', 'temp');
+    const tempDir = path.join(os.tmpdir(), 'sooq-mazad', 'admin', 'uploads', 'temp');
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
@@ -115,25 +105,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const timestamp = Date.now();
     const ext = path.extname(imageFile.originalFilename || '.png');
     const newFileName = `branding_${category}_${timestamp}${ext}`;
-    const newFilePath = path.join(uploadDir, newFileName);
 
-    fs.renameSync(imageFile.filepath, newFilePath);
+    const buffer = await fs.promises.readFile(imageFile.filepath);
+    const contentType = imageFile.mimetype || 'application/octet-stream';
+    const uploaded = await uploadBufferToBlob({
+      buffer,
+      filename: newFileName,
+      contentType,
+      folder: 'uploads/branding',
+    });
+    await fs.promises.unlink(imageFile.filepath).catch(() => { });
 
-    if (!fs.existsSync(newFilePath)) {
-      return res.status(500).json({ success: false, message: 'فشل في حفظ الصورة' });
-    }
-
-    const webFilePath = path.join(webUploadDir, newFileName);
-    try {
-      fs.copyFileSync(newFilePath, webFilePath);
-    } catch {
-      try {
-        fs.renameSync(newFilePath, webFilePath);
-      } catch {
-      }
-    }
-
-    const fileUrl = `/uploads/branding/${newFileName}`;
+    const fileUrl = uploaded.url;
 
     return res.status(200).json({
       success: true,

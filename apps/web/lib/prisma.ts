@@ -1,6 +1,7 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 import { getOrSetCache } from './cache';
 import logger from './utils/logger';
+import { generateUniqueId } from './wallet/wallet-utils';
 
 // ملاحظة: تم تعطيل Extensions & Metrics مؤقتاً لضمان استقرار الاتصال
 // الاستيرادات التالية معطلة حالياً:
@@ -65,6 +66,8 @@ if (process.env.NODE_ENV !== 'production') {
 // ملاحظة: تم تعطيل Extensions مؤقتاً لحل "User was denied access" error
 // سيتم إعادة تفعيل Metrics & Monitoring بعد استقرار الاتصال
 export const prisma = basePrisma;
+
+export default prisma;
 
 // مساعدات قاعدة البيانات
 export const dbHelpers = {
@@ -739,29 +742,40 @@ export const dbHelpers = {
 
   // إنشاء محفظة مستخدم
   async createUserWallet(userId: string) {
+    const now = new Date();
+    const walletId = generateUniqueId('wallet');
+
     return await prisma.wallets.create({
       data: {
+        id: walletId,
         userId,
         local_wallets: {
           create: {
+            id: generateUniqueId('local'),
             balance: 0.0,
             currency: 'LYD',
+            updatedAt: now,
           },
         },
         global_wallets: {
           create: {
+            id: generateUniqueId('global'),
             balance: 0.0,
             currency: 'USD',
+            updatedAt: now,
           },
         },
         crypto_wallets: {
           create: {
+            id: generateUniqueId('crypto'),
             balance: 0.0,
             currency: 'USDT-TRC20',
             network: 'TRC20',
+            updatedAt: now,
           },
         },
-      } as any,
+        updatedAt: now,
+      },
     });
   },
 
@@ -2071,5 +2085,3 @@ export const dbHelpers = {
     return true;
   },
 };
-
-export default prisma;

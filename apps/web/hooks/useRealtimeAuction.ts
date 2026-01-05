@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Socket, io } from 'socket.io-client';
 
 export interface AuctionBid {
   bidId: string;
@@ -92,10 +92,10 @@ export function useRealtimeAuction(auctionId: string, userToken: string) {
         recentBids: [bid, ...prev.recentBids.slice(0, 19)],
         auction: prev.auction
           ? {
-              ...prev.auction,
-              currentPrice: bid.currentPrice,
-              totalBids: bid.totalBids,
-            }
+            ...prev.auction,
+            currentPrice: bid.currentPrice,
+            totalBids: bid.totalBids,
+          }
           : null,
       }));
     });
@@ -117,13 +117,12 @@ export function useRealtimeAuction(auctionId: string, userToken: string) {
     socket.on('auction_ended', (data) => {
       setState((prev) => ({
         ...prev,
-        auction: (prevAuction) =>
-          prevAuction
-            ? {
-                ...prevAuction,
-                status: 'ENDED',
-              }
-            : null,
+        auction: prev.auction
+          ? {
+            ...prev.auction,
+            status: 'ENDED',
+          }
+          : null,
         timeRemaining: 0,
       }));
     });
@@ -180,7 +179,7 @@ export function useRealtimeAuction(auctionId: string, userToken: string) {
 
       setState((prev) => ({ ...prev, isPlacingBid: true, error: null }));
 
-      return new Promise<{ success: boolean; error?: string }>((resolve) => {
+      return new Promise<{ success: boolean; error?: string; }>((resolve) => {
         const timeout = setTimeout(() => {
           setState((prev) => ({ ...prev, isPlacingBid: false }));
           resolve({ success: false, error: 'انتهت مهلة الاستجابة' });
@@ -194,7 +193,7 @@ export function useRealtimeAuction(auctionId: string, userToken: string) {
           resolve({ success: true });
         };
 
-        const handleBidFailure = (data: { message: string }) => {
+        const handleBidFailure = (data: { message: string; }) => {
           clearTimeout(timeout);
           setState((prev) => ({
             ...prev,

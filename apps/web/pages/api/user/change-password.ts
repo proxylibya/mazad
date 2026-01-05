@@ -1,6 +1,6 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import bcrypt from 'bcryptjs';
+import { NextApiRequest, NextApiResponse } from 'next';
 
 interface ChangePasswordRequest {
   userId: string;
@@ -53,7 +53,7 @@ export default async function handler(
     // جلب المستخدم من قاعدة البيانات
     const user = await prisma.users.findUnique({
       where: { id: userId },
-      include: { password: true },
+      include: { user_passwords: true },
     });
 
     if (!user) {
@@ -63,7 +63,7 @@ export default async function handler(
       });
     }
 
-    if (!user.password) {
+    if (!user.user_passwords) {
       return res.status(400).json({
         success: false,
         message: 'لم يتم تعيين كلمة مرور لهذا الحساب',
@@ -73,7 +73,7 @@ export default async function handler(
     // التحقق من كلمة المرور الحالية
     const isCurrentPasswordValid = await bcrypt.compare(
       currentPassword,
-      user.password.hashedPassword,
+      user.user_passwords.hashedPassword,
     );
 
     if (!isCurrentPasswordValid) {
@@ -95,11 +95,10 @@ export default async function handler(
     const hashedNewPassword = await bcrypt.hash(newPassword, 12);
 
     // تحديث كلمة المرور في قاعدة البيانات
-    await prisma.userPassword.update({
-      where: { userId: userId },
+    await prisma.user_passwords.update({
+      where: { userId },
       data: {
         hashedPassword: hashedNewPassword,
-        updatedAt: new Date(),
       },
     });
 
@@ -126,7 +125,5 @@ export default async function handler(
       message: 'حدث خطأ في الخادم',
       error: error instanceof Error ? error.message : 'خطأ غير معروف',
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }

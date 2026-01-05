@@ -1,7 +1,7 @@
 // Notification Manager - نظام إدارة الإشعارات والاشتراكات
+import crypto from 'crypto';
 import logger from '../logger';
 import { prisma } from '../prisma';
-import crypto from 'crypto';
 
 // دالة لإنشاء مفتاح فريد من endpoint
 function createEndpointKey(endpoint: string): string {
@@ -20,7 +20,7 @@ export const subscribeToPush = async (subscription: unknown, userId?: string) =>
       throw new Error('Invalid subscription object');
     }
 
-    const sub = subscription as { endpoint: string; keys?: Record<string, unknown> };
+    const sub = subscription as { endpoint: string; keys?: Record<string, unknown>; };
     if (!sub.endpoint) {
       throw new Error('Subscription endpoint is required');
     }
@@ -54,9 +54,9 @@ export const subscribeToPush = async (subscription: unknown, userId?: string) =>
       const existing = await prisma.system_settings.findUnique({
         where: { key: userKey },
       });
-      const list: string[] = Array.isArray(existing?.value?.endpoints)
-        ? (existing!.value!.endpoints as string[])
-        : [];
+      const existingValue = (existing?.value as unknown as Record<string, unknown> | null) || null;
+      const endpointsVal = existingValue ? (existingValue['endpoints'] as unknown) : undefined;
+      const list: string[] = Array.isArray(endpointsVal) ? (endpointsVal as string[]) : [];
       if (!list.includes(key)) list.push(key);
 
       if (existing) {
@@ -105,8 +105,11 @@ export const unsubscribeFromPush = async (endpoint: string, userId?: string) => 
         where: { key: userKey },
       });
 
-      if (existing && Array.isArray(existing.value?.endpoints)) {
-        const list = (existing.value.endpoints as string[]).filter((k) => k !== key);
+      const existingValue = (existing?.value as unknown as Record<string, unknown> | null) || null;
+      const endpointsVal = existingValue ? (existingValue['endpoints'] as unknown) : undefined;
+
+      if (existing && Array.isArray(endpointsVal)) {
+        const list = (endpointsVal as string[]).filter((k) => k !== key);
         await prisma.system_settings.update({
           where: { key: userKey },
           data: {
@@ -132,11 +135,14 @@ export const getUserPushSubscriptions = async (userId: string) => {
       where: { key: userKey },
     });
 
-    if (!userData || !Array.isArray(userData.value?.endpoints)) {
+    const userValue = (userData?.value as unknown as Record<string, unknown> | null) || null;
+    const endpointsVal = userValue ? (userValue['endpoints'] as unknown) : undefined;
+
+    if (!userData || !Array.isArray(endpointsVal)) {
       return [];
     }
 
-    const endpoints = userData.value.endpoints as string[];
+    const endpoints = endpointsVal as string[];
     const subscriptions = await prisma.system_settings.findMany({
       where: {
         key: { in: endpoints },
@@ -144,7 +150,10 @@ export const getUserPushSubscriptions = async (userId: string) => {
     });
 
     return subscriptions
-      .map((s) => s.value?.subscription)
+      .map((s) => {
+        const v = (s.value as unknown as Record<string, unknown> | null) || null;
+        return v ? (v['subscription'] as unknown) : undefined;
+      })
       .filter((s): s is NonNullable<typeof s> => s !== null && s !== undefined);
   } catch (error) {
     logger.error('Error getting user push subscriptions', { error, userId });
@@ -172,8 +181,11 @@ export const notificationManager = {
         where: { key: userKey },
       });
 
-      if (userData && Array.isArray(userData.value?.endpoints)) {
-        const endpoints = userData.value.endpoints as string[];
+      const userValue = (userData?.value as unknown as Record<string, unknown> | null) || null;
+      const endpointsVal = userValue ? (userValue['endpoints'] as unknown) : undefined;
+
+      if (userData && Array.isArray(endpointsVal)) {
+        const endpoints = endpointsVal as string[];
         await prisma.system_settings.deleteMany({
           where: { key: { in: endpoints } },
         });
@@ -206,7 +218,8 @@ export const notificationManager = {
 
       let deletedCount = 0;
       for (const setting of allPushKeys) {
-        const lastSeen = setting.value?.lastSeenAt;
+        const v = (setting.value as unknown as Record<string, unknown> | null) || null;
+        const lastSeen = v ? (v['lastSeenAt'] as unknown) : undefined;
         if (lastSeen && new Date(lastSeen as string) < cutoffDate) {
           await prisma.system_settings.delete({ where: { key: setting.key } });
           deletedCount++;

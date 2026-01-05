@@ -33,9 +33,9 @@ export default async function handler(
       select: {
         id: true,
         currentPrice: true,
-        startingPrice: true,
-        startTime: true,
-        endTime: true,
+        startPrice: true,
+        startDate: true,
+        endDate: true,
         status: true,
         _count: {
           select: {
@@ -57,8 +57,8 @@ export default async function handler(
     // تحويل البيانات
     const liveData = auctions.map((auction) => {
       const currentTime = new Date();
-      const startTime = auction.startTime ? new Date(auction.startTime) : null;
-      const endTime = auction.endTime ? new Date(auction.endTime) : null;
+      const startTime = auction.startDate ? new Date(auction.startDate) : null;
+      const endTime = auction.endDate ? new Date(auction.endDate) : null;
 
       // تحديد حالة المزاد
       let auctionType: 'upcoming' | 'live' | 'ended' = 'live';
@@ -70,7 +70,8 @@ export default async function handler(
       }
 
       // السعر الحالي
-      const currentBid = auction.bids[0]?.amount || auction.currentPrice || auction.startingPrice || 0;
+      const currentBid =
+        auction.bids[0]?.amount || auction.currentPrice || auction.startPrice || 0;
 
       return {
         id: auction.id,

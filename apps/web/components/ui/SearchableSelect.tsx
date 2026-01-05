@@ -10,6 +10,8 @@ interface Option {
 }
 
 interface SelectFieldProps {
+  id?: string;
+  name?: string;
   options: Option[] | string[];
   value: string;
   onChange: (value: string) => void;
@@ -21,12 +23,15 @@ interface SelectFieldProps {
   required?: boolean;
   clearable?: boolean;
   searchable?: boolean;
+  searchPlaceholder?: string;
   size?: 'sm' | 'md' | 'lg';
   /** تصميم موحد مع حقول البحث الأخرى */
   unified?: boolean;
 }
 
 const SelectField: React.FC<SelectFieldProps> = ({
+  id,
+  name,
   options,
   value,
   onChange,
@@ -38,6 +43,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
   required = false,
   clearable = true,
   searchable = true,
+  searchPlaceholder = 'ابحث...',
   size = 'md',
   unified = false,
 }) => {
@@ -155,8 +161,11 @@ const SelectField: React.FC<SelectFieldProps> = ({
 
       {/* الحاوية الرئيسية للزر */}
       <div className="relative">
+        {name && <input type="hidden" name={name} value={value} />}
         <button
           ref={buttonRef}
+          id={id}
+          name={name}
           type="button"
           onClick={handleToggleOpen}
           disabled={disabled}
@@ -218,7 +227,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="ابحث..."
+                  placeholder={searchPlaceholder}
                   className={`w-full py-2.5 pl-3 pr-10 focus:outline-none ${
                     unified
                       ? 'rounded-lg border-2 border-gray-200 bg-gray-50 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10'

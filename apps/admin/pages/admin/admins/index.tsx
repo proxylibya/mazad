@@ -11,6 +11,7 @@ import UnifiedActionsColumn, {
   ActionPresets,
 } from '../../../components/tables/UnifiedActionsColumn';
 import {
+  AnimatedSection,
   SimpleToast,
   UnifiedSearch,
   UnifiedStats,
@@ -287,61 +288,66 @@ export default function AdminsManagement() {
 
   return (
     <AdminLayout title="إدارة المديرين">
-      {/* Toast */}
-      <SimpleToast
-        message={toast?.text || null}
-        type={toast?.type}
-        onClose={() => setToast(null)}
-      />
+      <AnimatedSection delay={50}>
+        <SimpleToast
+          message={toast?.text || null}
+          type={toast?.type}
+          onClose={() => setToast(null)}
+        />
+      </AnimatedSection>
 
-      {/* Stats - النظام الموحد */}
-      <UnifiedStats stats={stats} columns={4} className="mb-6" />
+      <AnimatedSection delay={100}>
+        <UnifiedStats stats={stats} columns={4} className="mb-6" />
+      </AnimatedSection>
 
-      {/* Header with Add Button */}
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">قائمة المديرين</h2>
-        <Link
-          href="/admin/admins/add"
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
-        >
-          <PlusIcon className="h-5 w-5" />
-          إضافة مدير
-        </Link>
-      </div>
+      <AnimatedSection delay={150}>
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-white">قائمة المديرين</h2>
+          <Link
+            href="/admin/admins/add"
+            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
+          >
+            <PlusIcon className="h-5 w-5" />
+            إضافة مدير
+          </Link>
+        </div>
+      </AnimatedSection>
 
-      {/* Search & Filter - النظام الموحد */}
-      <UnifiedSearch
-        searchValue={searchValue}
-        onSearchChange={setSearchValue}
-        searchPlaceholder="البحث بالاسم أو اسم المستخدم..."
-        filters={[
-          {
-            id: 'status',
-            label: 'الحالة',
-            value: filters.status || 'all',
-            onChange: (v) => setFilter('status', v),
-            options: statusOptions,
-          },
-          {
-            id: 'role',
-            label: 'الدور',
-            value: filters.role || 'all',
-            onChange: (v) => setFilter('role', v),
-            options: roleOptions,
-          },
-        ]}
-        onRefresh={fetchAdmins}
-        className="mb-6"
-      />
+      <AnimatedSection delay={200}>
+        <UnifiedSearch
+          searchValue={searchValue}
+          onSearchChange={setSearchValue}
+          searchPlaceholder="البحث بالاسم أو اسم المستخدم..."
+          filters={[
+            {
+              id: 'status',
+              label: 'الحالة',
+              value: filters.status || 'all',
+              onChange: (v) => setFilter('status', v),
+              options: statusOptions,
+            },
+            {
+              id: 'role',
+              label: 'الدور',
+              value: filters.role || 'all',
+              onChange: (v) => setFilter('role', v),
+              options: roleOptions,
+            },
+          ]}
+          onRefresh={fetchAdmins}
+          className="mb-6"
+        />
+      </AnimatedSection>
 
-      {/* Table - النظام الموحد */}
-      <UnifiedTable
-        columns={columns}
-        data={filteredData}
-        loading={loading}
-        emptyMessage="لا يوجد مديرين"
-        sortable={true}
-      />
+      <AnimatedSection delay={250}>
+        <UnifiedTable
+          columns={columns}
+          data={filteredData}
+          loading={loading}
+          emptyMessage="لا يوجد مديرين"
+          sortable={true}
+        />
+      </AnimatedSection>
     </AdminLayout>
   );
 }

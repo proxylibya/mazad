@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { UnifiedNavigationArrows } from './ui/NavigationArrows';
 
 interface ImageCarouselProps {
-  images: string[];
+  images: Array<string | { url?: string }>;
   alt: string;
   className?: string;
   showCounter?: boolean;

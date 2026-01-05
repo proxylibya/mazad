@@ -8,6 +8,51 @@ import {
 } from '../../../lib/api-helpers';
 import { dbHelpers } from '../../../lib/prisma';
 
+const SITE_TEAM_USER_ID = 'site_team';
+
+type SiteTeamSettings = {
+  enabled: boolean;
+  userId: string;
+  teamName: string;
+  phones: string[];
+  whatsappPhone: string;
+  allowCalls: boolean;
+  allowMessages: boolean;
+};
+
+const DEFAULT_SITE_TEAM_SETTINGS: SiteTeamSettings = {
+  enabled: false,
+  userId: SITE_TEAM_USER_ID,
+  teamName: 'فريق مزاد',
+  phones: [],
+  whatsappPhone: '',
+  allowCalls: true,
+  allowMessages: true,
+};
+
+async function readSiteTeamSettings(): Promise<SiteTeamSettings> {
+  const record = await dbHelpers.prisma.system_settings.findFirst({ where: { key: 'site_team' } });
+  if (!record || record.value === null || record.value === undefined) return DEFAULT_SITE_TEAM_SETTINGS;
+
+  const raw =
+    typeof record.value === 'string'
+      ? (JSON.parse(record.value as string) as Partial<SiteTeamSettings>)
+      : (record.value as Partial<SiteTeamSettings>);
+
+  return {
+    ...DEFAULT_SITE_TEAM_SETTINGS,
+    ...raw,
+    userId: SITE_TEAM_USER_ID,
+  };
+}
+
+function pickSiteTeamPhone(settings: SiteTeamSettings): string {
+  const first = Array.isArray(settings.phones)
+    ? settings.phones.map((p) => String(p || '').trim()).find(Boolean)
+    : '';
+  return first || String(settings.whatsappPhone || '').trim() || '';
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   return withApiHandler(req, res, async (req, res, requestId) => {
     const id = validateCarId(req.query.id);
@@ -59,6 +104,19 @@ async function getCarById(
       rating: (car as any).users.rating || 0,
     } : null
   };
+
+  if (processedCar.seller?.id === SITE_TEAM_USER_ID) {
+    const settings = await readSiteTeamSettings();
+    const teamPhone = pickSiteTeamPhone(settings);
+    const teamName = String(settings.teamName || processedCar.seller?.name || 'فريق مزاد');
+
+    processedCar.seller = {
+      ...(processedCar.seller as any),
+      name: teamName,
+      phone: teamPhone || (processedCar.seller as any).phone,
+    };
+    processedCar.contactPhone = teamPhone || (processedCar as any).contactPhone;
+  }
 
   sendSuccess(res, processedCar, 'تم جلب بيانات السيارة بنجاح');
 }

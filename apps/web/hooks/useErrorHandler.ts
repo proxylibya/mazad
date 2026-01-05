@@ -3,12 +3,12 @@
  * Custom Error Handling Hook
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
-  clientErrorHandler,
   ClientError,
   ClientErrorType,
   ErrorSeverity,
+  clientErrorHandler,
 } from '../lib/error-handling/client-error-handler';
 
 interface UseErrorHandlerOptions {
@@ -18,7 +18,7 @@ interface UseErrorHandlerOptions {
   onError?: (error: ClientError) => void;
 }
 
-interface UseErrorHandlerReturn {
+interface AdvancedUseErrorHandlerReturn {
   // حالة الأخطاء
   errors: ClientError[];
   hasErrors: boolean;
@@ -43,19 +43,14 @@ interface UseErrorHandlerReturn {
   };
 }
 
-export const useErrorHandler = (options: UseErrorHandlerOptions = {}): UseErrorHandlerReturn => {
+export const useAdvancedErrorHandler = (
+  options: UseErrorHandlerOptions = {},
+): AdvancedUseErrorHandlerReturn => {
   const [errors, setErrors] = useState<ClientError[]>([]);
   const [lastError, setLastError] = useState<ClientError | null>(null);
 
   // إعداد معالج الأخطاء
   useEffect(() => {
-    // تحديث إعدادات معالج الأخطاء
-    clientErrorHandler.updateConfig({
-      showNotifications: options.showNotifications ?? true,
-      logToConsole: options.logErrors ?? true,
-      sendToServer: options.reportToServer ?? false,
-    });
-
     // إضافة مستمع للأخطاء الجديدة
     const handleNewError = (error: ClientError) => {
       setErrors((prev) => [error, ...prev.slice(0, 49)]); // الاحتفاظ بآخر 50 خطأ
@@ -86,8 +81,8 @@ export const useErrorHandler = (options: UseErrorHandlerOptions = {}): UseErrorH
           severity: ErrorSeverity.MEDIUM,
           message: error.message,
           userMessage: 'حدث خطأ غير متوقع',
-          timestamp: new Date().toISOString(),
-          metadata: {
+          timestamp: new Date(),
+          context: {
             context,
             stack: error.stack,
             ...metadata,
@@ -102,8 +97,8 @@ export const useErrorHandler = (options: UseErrorHandlerOptions = {}): UseErrorH
           severity: ErrorSeverity.LOW,
           message: error,
           userMessage: error,
-          timestamp: new Date().toISOString(),
-          metadata: { context, ...metadata },
+          timestamp: new Date(),
+          context: { context, ...metadata },
           suggestions: ['أعد المحاولة'],
           retryable: true,
         };
@@ -114,8 +109,8 @@ export const useErrorHandler = (options: UseErrorHandlerOptions = {}): UseErrorH
           severity: ErrorSeverity.MEDIUM,
           message: 'Unknown error occurred',
           userMessage: 'حدث خطأ غير معروف',
-          timestamp: new Date().toISOString(),
-          metadata: { context, error, ...metadata },
+          timestamp: new Date(),
+          context: { context, error, ...metadata },
           suggestions: ['أعد المحاولة', 'إعادة تحميل الصفحة'],
           retryable: true,
         };
@@ -135,13 +130,20 @@ export const useErrorHandler = (options: UseErrorHandlerOptions = {}): UseErrorH
   // معالجة أخطاء API
   const handleApiError = useCallback(
     (response: Response, requestUrl: string, requestData?: any) => {
-      const clientError = clientErrorHandler.handleApiError(response, requestUrl, requestData);
-      setErrors((prev) => [clientError, ...prev.slice(0, 49)]);
-      setLastError(clientError);
+      const statusCode = response.status;
+      let type = ClientErrorType.UNKNOWN;
 
-      if (options.onError) {
-        options.onError(clientError);
-      }
+      if (statusCode === 400) type = ClientErrorType.VALIDATION;
+      else if (statusCode === 401) type = ClientErrorType.AUTHENTICATION;
+      else if (statusCode === 403) type = ClientErrorType.AUTHORIZATION;
+      else if (statusCode === 404) type = ClientErrorType.NOT_FOUND;
+      else if (statusCode >= 500) type = ClientErrorType.SERVER;
+      else if (statusCode >= 400) type = ClientErrorType.CLIENT;
+
+      clientErrorHandler.createError(type, response.statusText || `HTTP ${statusCode}`, {
+        statusCode,
+        context: { requestUrl, requestData },
+      });
     },
     [options.onError],
   );
@@ -167,8 +169,8 @@ export const useErrorHandler = (options: UseErrorHandlerOptions = {}): UseErrorH
         severity: ErrorSeverity.LOW,
         message: `Validation error: ${message}`,
         userMessage: field ? `خطأ في ${field}: ${message}` : `خطأ في التحقق: ${message}`,
-        timestamp: new Date().toISOString(),
-        metadata: { field },
+        timestamp: new Date(),
+        context: { field },
         suggestions: ['تحقق من البيانات المدخلة', 'راجع الحقول المطلوبة', 'تأكد من تنسيق البيانات'],
         retryable: false,
       };
@@ -192,7 +194,7 @@ export const useErrorHandler = (options: UseErrorHandlerOptions = {}): UseErrorH
         severity: ErrorSeverity.MEDIUM,
         message: `Network error: ${message}`,
         userMessage: message,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date(),
         suggestions: ['تحقق من اتصال الإنترنت', 'أعد المحاولة بعد قليل', 'تحقق من حالة الخدمة'],
         retryable: true,
       };
@@ -216,7 +218,7 @@ export const useErrorHandler = (options: UseErrorHandlerOptions = {}): UseErrorH
         severity: ErrorSeverity.MEDIUM,
         message: `Authentication error: ${message}`,
         userMessage: message,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date(),
         suggestions: ['تسجيل الدخول مرة أخرى', 'تحديث الصفحة', 'مسح ذاكرة التخزين المؤقت'],
         retryable: false,
       };
@@ -308,7 +310,10 @@ export function useSimpleErrorHandler(retryAction?: () => void): UseErrorHandler
 
     const errorInfo: ErrorInfo = {
       message: typeof error === 'string' ? error : error.message || 'خطأ غير معروف',
-      code: typeof error === 'object' && 'code' in error ? error.code : undefined,
+      code:
+        typeof error === 'object' && error && 'code' in error
+          ? String((error as any).code)
+          : undefined,
       details: typeof error === 'object' ? error : undefined,
       timestamp: new Date(),
     };
@@ -400,6 +405,10 @@ export function useSimpleErrorHandler(retryAction?: () => void): UseErrorHandler
   };
 }
 
+export function useErrorHandler(retryAction?: () => void): UseErrorHandlerReturn {
+  return useSimpleErrorHandler(retryAction);
+}
+
 /**
  * Hook للتعامل مع حالات التحميل والأخطاء معاً
  */
@@ -489,5 +498,3 @@ export function useRetry(maxRetries: number = 3) {
     resetRetry,
   };
 }
-
-export default useErrorHandler;

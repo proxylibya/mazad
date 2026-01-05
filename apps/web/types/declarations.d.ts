@@ -38,12 +38,6 @@ declare module '../lib/monitoring/performanceMonitor' {
     export default performanceMonitor;
 }
 
-declare module '../lib/universal-name-decoder' {
-    export function decodeUniversalName(name: string): string;
-    export function encodeUniversalName(name: string): string;
-    export default { decodeUniversalName, encodeUniversalName };
-}
-
 declare module './prisma-unified' {
     export * from '@prisma/client';
     export { prisma } from '../lib/prisma';

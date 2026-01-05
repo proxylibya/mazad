@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 interface SafeImageProps {
-  src: string | string[];
+  src: string | Array<string | { url?: string }>;
   alt: string;
   className?: string;
   fallbackSrc?: string;
@@ -22,7 +22,10 @@ const SafeImage: React.FC<SafeImageProps> = ({
   loading = 'lazy',
 }) => {
   // احسب مصدر الصورة الآمن مبدئياً لتفادي render أولي بصsrc فارغ
-  const computeInitialSrc = (source: string | string[], fallback: string): string => {
+  const computeInitialSrc = (
+    source: string | Array<string | { url?: string }>,
+    fallback: string,
+  ): string => {
     try {
       if (Array.isArray(source)) {
         const valid = source.find((img: any) => {
@@ -56,7 +59,7 @@ const SafeImage: React.FC<SafeImageProps> = ({
   const [retryCount, setRetryCount] = useState(0);
 
   // تحويل src إلى string واحد
-  const getSrcString = (source: string | string[]): string => {
+  const getSrcString = (source: string | Array<string | { url?: string }>): string => {
     if (Array.isArray(source)) {
       // أخذ أول صورة صالحة من المصفوفة - التعامل مع النصوص والكائنات
       const validImage = source.find((img) => {

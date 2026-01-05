@@ -20,6 +20,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '../../../components/AdminLayout';
+import ConfirmDialog from '../../../components/ui/ConfirmDialog';
 
 // حالات الحجز - الوضع الداكن
 const BOOKING_STATUS = {
@@ -614,36 +615,29 @@ export default function TransportBookingsPage() {
         </div>
       )}
 
-      {/* Modal تأكيد الحذف */}
-      {showDeleteConfirm && selectedBooking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-800 p-6 shadow-xl">
-            <h2 className="mb-4 text-xl font-bold text-red-400">تأكيد الحذف</h2>
-            <p className="mb-6 text-slate-300">
+      <ConfirmDialog
+        open={showDeleteConfirm && !!selectedBooking}
+        title="تأكيد الحذف"
+        message={
+          selectedBooking && (
+            <p>
               هل أنت متأكد من حذف الطلب رقم{' '}
-              <strong className="text-white">#{selectedBooking.id.slice(-8).toUpperCase()}</strong>؟
+              <strong className="text-white">
+                #{selectedBooking.id.slice(-8).toUpperCase()}
+              </strong>
+              ؟
               <br />
               <span className="text-sm text-red-400">هذا الإجراء لا يمكن التراجع عنه.</span>
             </p>
-
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="rounded-lg border border-slate-600 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-700"
-              >
-                إلغاء
-              </button>
-              <button
-                onClick={() => deleteBooking(selectedBooking.id)}
-                disabled={actionLoading}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
-              >
-                {actionLoading ? 'جاري الحذف...' : 'حذف نهائي'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          )
+        }
+        variant="danger"
+        confirmLabel="حذف نهائي"
+        cancelLabel="إلغاء"
+        loading={actionLoading}
+        onCancel={() => setShowDeleteConfirm(false)}
+        onConfirm={() => selectedBooking && deleteBooking(selectedBooking.id)}
+      />
 
       {/* Toast */}
       {toast && (

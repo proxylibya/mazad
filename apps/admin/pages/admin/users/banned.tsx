@@ -180,8 +180,13 @@ export default function BannedUsers() {
                             {user.name?.charAt(0) || '?'}
                           </span>
                         </div>
-                        <div>
-                          <p className="font-medium text-white">{user.name || 'بدون اسم'}</p>
+                        <div className="min-w-0">
+                          <p
+                            className="truncate font-medium text-white"
+                            title={user.name || 'بدون اسم'}
+                          >
+                            {user.name || 'بدون اسم'}
+                          </p>
                           <p className="text-xs text-red-400">محظور</p>
                         </div>
                       </div>

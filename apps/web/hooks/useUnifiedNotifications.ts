@@ -10,15 +10,15 @@
  * @date 2025-01-22
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
 import { unifiedNotificationManager } from '@/lib/notifications/UnifiedNotificationManager';
-import { getCurrentUser } from '@/utils/auth';
 import {
-  UINotificationType,
   DBNotificationType,
   NotificationPriority,
+  UINotificationType,
   UnifiedNotification,
 } from '@/types/notification.types';
+import { getCurrentUser } from '@/utils/authUtils';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 // ===========================
 // 📋 Types
@@ -43,7 +43,7 @@ export interface UseNotificationsReturn {
   isLoading: boolean;
   // خطأ إن وجد
   error: string | null;
-  
+
   // دوال الإدارة
   sendNotification: (options: {
     type: UINotificationType | DBNotificationType;
@@ -61,18 +61,18 @@ export interface UseNotificationsReturn {
       type?: 'primary' | 'secondary' | 'danger';
     }>;
   }) => Promise<void>;
-  
+
   markAsRead: (notificationId: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   deleteNotification: (notificationId: string) => Promise<void>;
   refresh: () => Promise<void>;
-  
+
   // دوال سريعة
   success: (title: string, message: string) => Promise<void>;
-  error: (title: string, message: string) => Promise<void>;
+  notifyError: (title: string, message: string) => Promise<void>;
   warning: (title: string, message: string) => Promise<void>;
   info: (title: string, message: string) => Promise<void>;
-  
+
   // إشعارات المزادات
   notifyAuctionWon: (params: {
     auctionId: string;
@@ -138,9 +138,8 @@ export function useUnifiedNotifications(
     try {
       const data = await unifiedNotificationManager.getUserNotifications(currentUser.id, {
         limit,
-        orderBy: 'desc',
-      });
-      
+      } as any);
+
       setNotifications(data as UnifiedNotification[]);
       setUnreadCount(data.filter((n: any) => !n.isRead).length);
     } catch (err) {
@@ -358,7 +357,7 @@ export function useUnifiedNotifications(
     deleteNotification,
     refresh,
     success,
-    error: errorNotif,
+    notifyError: errorNotif,
     warning,
     info,
     notifyAuctionWon,

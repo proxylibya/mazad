@@ -48,6 +48,13 @@ Thumbs.db
 temp/
 tmp/
 
+tsc-err.txt
+tsc-errors.txt
+**/tsc-err.txt
+**/tsc-errors.txt
+
+.windsurf/
+
 uploads/
 public/uploads/
 optimized-images/

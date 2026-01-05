@@ -1,6 +1,12 @@
 import { verifyToken } from '@/lib/auth/jwtUtils';
 import { prisma } from '@/lib/prisma';
+import { generateUniqueId } from '@/lib/wallet/wallet-utils';
 import { NextApiRequest, NextApiResponse } from 'next';
+
+interface AuthTokenPayload {
+  userId: string;
+  [key: string]: unknown;
+}
 
 /**
  * API لتحويل رصيد بين المحافظ
@@ -18,10 +24,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ success: false, message: 'غير مصرح' });
     }
 
-    const decoded = verifyToken(token);
-    if (!decoded) {
+    const decoded = verifyToken<AuthTokenPayload>(token);
+    if (!decoded || !decoded.userId) {
       return res.status(401).json({ success: false, message: 'توكن غير صالح' });
     }
+
+    const userId = decoded.userId;
 
     const { targetWalletId, amount, currency = 'LYD' } = req.body;
 
@@ -35,7 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // البحث عن المحفظة المصدر
     const sourceWallet = await prisma.wallets.findUnique({
-      where: { userId: decoded.userId },
+      where: { userId },
       include: { local_wallets: true }
     });
 
@@ -47,7 +55,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // التحقق من الرصيد
-    const balance = sourceWallet.local_wallets?.balance || 0;
+    const sourceWalletWithLocal = sourceWallet as any;
+    const balance = sourceWalletWithLocal.local_wallets?.balance || 0;
     if (balance < amount) {
       return res.status(400).json({
         success: false,
@@ -85,28 +94,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // تنفيذ التحويل (Transaction)
     const result = await prisma.$transaction(async (tx) => {
+      const now = new Date();
+
       // خصم من المصدر
       await tx.local_wallets.update({
         where: { walletId: sourceWallet.id },
-        data: { balance: { decrement: amount } }
+        data: { balance: { decrement: amount }, updatedAt: now }
       });
 
       // إضافة للمستهدف
       await tx.local_wallets.update({
         where: { walletId: targetWallet.id },
-        data: { balance: { increment: amount } }
+        data: { balance: { increment: amount }, updatedAt: now }
       });
 
       // إنشاء سجل المعاملة
       const transaction = await tx.transactions.create({
         data: {
+          id: generateUniqueId('txn'),
           walletId: sourceWallet.id,
-          amount: amount,
+          amount,
           type: 'TRANSFER',
           status: 'COMPLETED',
-          currency: currency,
+          currency,
           description: `تحويل إلى ${targetWallet.users?.name || 'مستخدم'} (محفظة ${targetWallet.publicId})`,
-          relatedWalletId: targetWallet.id
+          relatedWalletId: targetWallet.id,
+          walletType: 'LOCAL',
+          createdAt: now,
+          updatedAt: now
         }
       });
 

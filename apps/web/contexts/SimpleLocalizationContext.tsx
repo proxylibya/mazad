@@ -133,11 +133,11 @@ export const useSimpleLocalization = (): SimpleLocalizationContextType => {
 // خطافات مساعدة للتوافق مع النظام القديم
 export const useContent = () => {
   return {
-    siteTitle: 'موقع مزاد السيارات',
-    siteDescription: 'أفضل موقع لبيع وشراء السيارات في ليبيا والدول العربية',
-    welcomeMessage: 'مرحباً بكم في موقع مزاد السيارات',
+    siteTitle: 'سوق المزاد',
+    siteDescription: 'منصة المزادات الأولى في ليبيا',
+    welcomeMessage: 'مرحباً بكم في سوق المزاد',
     hero: {
-      title: 'موقع مزاد السيارات',
+      title: 'سوق المزاد',
       subtitle: 'اشتري وبع السيارات بأفضل الأسعار',
     },
     navigation: {

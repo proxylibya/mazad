@@ -12,6 +12,7 @@ import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
 import { useRouter } from 'next/router';
 import React, { useState } from 'react';
 import useAuthProtection from '../../../../hooks/useAuthProtection';
+import { useFavorites } from '../../../../hooks/useFavorites';
 import { UnifiedImage } from '../../../common/UnifiedImage';
 import { CardFeaturedBadge } from '../../../ui/FeaturedBadge';
 

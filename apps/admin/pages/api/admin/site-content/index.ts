@@ -6,14 +6,12 @@
  * DELETE - حذف قسم
  */
 
-import { PrismaClient } from '@prisma/client';
 import { verify } from 'jsonwebtoken';
 import { NextApiRequest, NextApiResponse } from 'next';
 
+import { prisma } from '@/lib/prisma';
+
 // Prisma client singleton
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined; };
-const prisma = globalForPrisma.prisma ?? new PrismaClient();
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 // يجب أن يتطابق مع المفتاح المستخدم في login.ts
 const JWT_SECRET = process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET || 'sooq-mazad-admin-secret-key-min-32-chars!';

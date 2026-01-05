@@ -143,7 +143,8 @@ export function generateFileName(
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8);
     const ext = path.extname(originalName).toLowerCase() || '.jpg';
-    const safeExt = IMAGE_CONFIG.ALLOWED_EXTENSIONS.includes(ext) ? ext : '.jpg';
+    const allowedExt = ext as (typeof IMAGE_CONFIG.ALLOWED_EXTENSIONS)[number];
+    const safeExt = IMAGE_CONFIG.ALLOWED_EXTENSIONS.includes(allowedExt) ? allowedExt : '.jpg';
 
     const parts = [category, timestamp, random];
     if (userId) parts.splice(1, 0, userId);

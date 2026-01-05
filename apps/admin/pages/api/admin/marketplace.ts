@@ -3,9 +3,10 @@
  * API إدارة السوق الفوري (السيارات) - مع Prisma
  */
 
-import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import type { NextApiRequest, NextApiResponse } from 'next';
+
+import { prisma } from '@/lib/prisma';
 
 // واجهة بيانات الموقع
 interface LocationData {
@@ -38,13 +39,83 @@ interface CarFormData {
     listingType?: string;
 }
 
-// Prisma client singleton
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined; };
-const prisma = globalForPrisma.prisma ?? new PrismaClient();
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
-
 const JWT_SECRET = process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET || 'sooq-mazad-admin-secret-key-min-32-chars!';
 const COOKIE_NAME = 'admin_session';
+
+const SITE_TEAM_USER_ID = 'site_team';
+
+type SiteTeamSettings = {
+    enabled: boolean;
+    userId: string;
+    teamName: string;
+    phones: string[];
+    whatsappPhone: string;
+    allowCalls: boolean;
+    allowMessages: boolean;
+};
+
+const DEFAULT_SITE_TEAM_SETTINGS: SiteTeamSettings = {
+    enabled: false,
+    userId: SITE_TEAM_USER_ID,
+    teamName: 'فريق مزاد',
+    phones: [],
+    whatsappPhone: '',
+    allowCalls: true,
+    allowMessages: true,
+};
+
+async function readSiteTeamSettings(): Promise<SiteTeamSettings> {
+    const record = await prisma.system_settings.findFirst({ where: { key: 'site_team' } });
+    if (!record || record.value === null || record.value === undefined) return DEFAULT_SITE_TEAM_SETTINGS;
+
+    const raw =
+        typeof record.value === 'string'
+            ? (JSON.parse(record.value as string) as Partial<SiteTeamSettings>)
+            : (record.value as Partial<SiteTeamSettings>);
+
+    return {
+        ...DEFAULT_SITE_TEAM_SETTINGS,
+        ...raw,
+        userId: SITE_TEAM_USER_ID,
+    };
+}
+
+function pickSiteTeamPhone(settings: SiteTeamSettings): string {
+    const first = Array.isArray(settings.phones)
+        ? settings.phones.map((p) => String(p || '').trim()).find(Boolean)
+        : '';
+    return first || String(settings.whatsappPhone || '').trim() || '';
+}
+
+async function ensureSiteTeamUserExists(teamName: string, preferredPhone?: string) {
+    const existing = await prisma.users.findUnique({ where: { id: SITE_TEAM_USER_ID } });
+    if (existing) return;
+
+    let phoneToUse = String(preferredPhone || '').trim();
+    if (!phoneToUse) {
+        phoneToUse = `+2189${Date.now().toString().slice(-9)}`;
+    }
+
+    for (let i = 0; i < 10; i += 1) {
+        const occupied = await prisma.users.findFirst({ where: { phone: phoneToUse }, select: { id: true } });
+        if (!occupied) break;
+        phoneToUse = `+2189${Date.now().toString().slice(-9)}`;
+    }
+
+    await prisma.users.create({
+        data: {
+            id: SITE_TEAM_USER_ID,
+            name: teamName || 'فريق مزاد',
+            phone: phoneToUse,
+            role: 'USER',
+            status: 'ACTIVE',
+            accountType: 'REGULAR_USER',
+            verified: true,
+            updatedAt: new Date(),
+            createdAt: new Date(),
+        },
+    });
+}
 
 // Verify admin authentication
 async function verifyAuth(req: NextApiRequest): Promise<{ adminId: string; role: string; } | null> {
@@ -249,7 +320,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 let sellerId: string;
                 let sellerName: string = 'البائع';
 
-                if (seller && seller.phone) {
+                const isSiteTeamSeller = Boolean(seller?.isSiteTeam) || seller?.id === SITE_TEAM_USER_ID;
+                const siteTeamSettings = isSiteTeamSeller ? await readSiteTeamSettings() : null;
+                const siteTeamPhone = siteTeamSettings ? pickSiteTeamPhone(siteTeamSettings) : '';
+
+                if (isSiteTeamSeller) {
+                    await ensureSiteTeamUserExists(siteTeamSettings?.teamName || seller?.name || 'فريق مزاد', siteTeamPhone);
+                    sellerId = SITE_TEAM_USER_ID;
+                    sellerName = siteTeamSettings?.teamName || seller?.name || 'فريق مزاد';
+                    console.log(`[Marketplace API] استخدام فريق الموقع كبائع: ${sellerName} (${sellerId})`);
+                } else if (seller && seller.phone) {
                     // التحقق من وجود مستخدم بنفس رقم الهاتف
                     console.log('[Marketplace API] البحث عن البائع المحدد...');
                     let existingSeller = await prisma.users.findFirst({
@@ -404,6 +484,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     locationLat, locationLng, hasLocationAddress: !!locationAddress
                 });
 
+                const finalContactPhone = isSiteTeamSeller
+                    ? (siteTeamPhone || safeStringOrNull(carData.contactPhone) || '')
+                    : (safeStringOrNull(seller?.phone) || safeStringOrNull(carData.contactPhone));
+
                 let newCar;
                 try {
                     newCar = await prisma.cars.create({
@@ -432,7 +516,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             transmission: safeStringOrNull(carData.transmission),
                             color: safeStringOrNull(carData.exteriorColor) || safeStringOrNull(carData.color),
                             // استخدام رقم الهاتف من البائع أو من بيانات السيارة
-                            contactPhone: safeStringOrNull(seller?.phone) || safeStringOrNull(carData.contactPhone),
+                            contactPhone: finalContactPhone,
                             area: safeStringOrNull(carData.area),
                             sellerId: sellerId,
                             updatedAt: new Date(),

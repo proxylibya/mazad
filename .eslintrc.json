@@ -22,16 +22,5 @@
   "rules": {
     "no-unused-vars": "off",
     "no-undef": "off"
-  },
-  "overrides": [
-    {
-      "files": ["apps/web/**/*.{ts,tsx}", "apps/admin/**/*.{ts,tsx}"],
-      "extends": ["next/core-web-vitals"],
-      "rules": {
-        "@typescript-eslint/no-explicit-any": "off",
-        "@typescript-eslint/no-unused-vars": "warn",
-        "react-hooks/exhaustive-deps": "warn"
-      }
-    }
-  ]
+  }
 }

@@ -26,11 +26,11 @@ export default async function handler(
     }
 
     const decoded = verifyToken(token);
-    if (!decoded || !decoded.userId) {
+    if (!decoded || !(decoded as any).userId) {
       return res.status(401).json({ success: false, error: 'توكن غير صالح' });
     }
 
-    const userId = decoded.userId;
+    const userId = String((decoded as any).userId);
     const cacheKey = `wallet:balance:${userId}`;
 
     // محاولة الحصول على البيانات من الذاكرة المؤقتة (آمن)
@@ -46,14 +46,14 @@ export default async function handler(
     }
 
     // الحصول على بيانات المحفظة من قاعدة البيانات
-    const wallet = await prisma.wallets.findUnique({
+    const wallet = (await prisma.wallets.findUnique({
       where: { userId },
       include: {
         local_wallets: true,
         global_wallets: true,
         crypto_wallets: true
       }
-    });
+    })) as any;
 
     // إذا لم توجد محفظة، أرجع قيم افتراضية
     if (!wallet) {

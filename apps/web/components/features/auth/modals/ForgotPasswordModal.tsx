@@ -1,8 +1,9 @@
+import ArrowLeftIcon from '@heroicons/react/24/outline/ArrowLeftIcon';
+import ArrowUturnRightIcon from '@heroicons/react/24/outline/ArrowUturnRightIcon';
 import KeyIcon from '@heroicons/react/24/outline/KeyIcon';
 import XMarkIcon from '@heroicons/react/24/outline/XMarkIcon';
 import { CheckCircleIcon } from '@heroicons/react/24/solid';
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeftIcon, BackIcon } from './ui/MissingIcons';
 
 interface ForgotPasswordModalProps {
   isOpen: boolean;
@@ -248,7 +249,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
               className="flex items-center gap-2 rounded-lg px-4 py-2 font-medium text-gray-600 transition-all duration-200 hover:bg-gray-100 hover:text-gray-800"
             >
               رجوع
-              <BackIcon className="h-4 w-4" />
+              <ArrowUturnRightIcon className="h-4 w-4" />
             </button>
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
               <KeyIcon className="h-6 w-6 text-orange-600" />

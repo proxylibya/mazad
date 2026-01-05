@@ -469,7 +469,6 @@ const MarketplaceCarCard: React.FC<MarketplaceCarCardProps> = ({
                 alt={car.title}
                 className="h-full w-full"
                 showNavigation={true}
-                priority={true}
               />
 
               {/* شارات إضافية */}
@@ -499,7 +498,6 @@ const MarketplaceCarCard: React.FC<MarketplaceCarCardProps> = ({
                 alt={car.title}
                 className="h-full w-full"
                 showNavigation={true}
-                priority={true}
               />
 
               {/* شارات إضافية */}

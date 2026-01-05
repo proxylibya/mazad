@@ -16,6 +16,7 @@ import {
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import React, { useState } from 'react';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 // أنواع الإجراءات المتاحة
 export type ActionType =
@@ -397,36 +398,24 @@ export default function AdvancedDataTable({
         </table>
       </div>
 
-      {/* نافذة التأكيد */}
-      {confirmAction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="mx-4 w-full max-w-md rounded-xl bg-slate-800 p-6 shadow-2xl">
-            <h3 className="mb-4 text-lg font-bold text-white">تأكيد الإجراء</h3>
-            <p className="mb-6 text-slate-300">
-              {confirmAction.action.confirmMessage ||
-                `هل أنت متأكد من ${defaultActionLabels[confirmAction.action.type]}؟`}
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setConfirmAction(null)}
-                className="rounded-lg border border-slate-600 px-4 py-2 text-slate-300 transition-colors hover:bg-slate-700"
-              >
-                إلغاء
-              </button>
-              <button
-                onClick={confirmActionExecution}
-                className={`rounded-lg px-4 py-2 text-white transition-colors ${
-                  confirmAction.action.type === 'delete' || confirmAction.action.type === 'ban'
-                    ? 'bg-red-600 hover:bg-red-700'
-                    : 'bg-blue-600 hover:bg-blue-700'
-                }`}
-              >
-                تأكيد
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!confirmAction}
+        title="تأكيد الإجراء"
+        message={
+          confirmAction?.action.confirmMessage ||
+          `هل أنت متأكد من ${
+            defaultActionLabels[confirmAction?.action.type || 'delete']
+          }؟`
+        }
+        variant={
+          confirmAction &&
+          (confirmAction.action.type === 'delete' || confirmAction.action.type === 'ban')
+            ? 'danger'
+            : 'primary'
+        }
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={confirmActionExecution}
+      />
     </>
   );
 }

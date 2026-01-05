@@ -20,6 +20,7 @@ import { useEffect, useState } from 'react';
 import {
   IMAGE_ROUNDED,
   IMAGE_SIZES,
+  getAllEntityImages,
   getEntityImage,
   getImageUrl,
   parseImages,
@@ -75,8 +76,7 @@ export default function UnifiedImage({
     totalImages = 1;
   } else if (src && typeof src === 'object') {
     imageSrc = getEntityImage(src as ImageableEntity);
-    const allImages = parseImages((src as ImageableEntity).images);
-    totalImages = allImages.length;
+    totalImages = getAllEntityImages(src as ImageableEntity).length;
   }
 
   // إعادة تعيين الحالة عند تغيير المصدر
@@ -138,8 +138,11 @@ export default function UnifiedImage({
 
       {/* عداد الصور الإضافية */}
       {extraCount > 0 && (
-        <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-xs font-medium text-white">
-          +{extraCount}
+        <span
+          className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-black/70 px-1 text-[10px] font-semibold text-white"
+          dir="ltr"
+        >
+          {extraCount}+
         </span>
       )}
     </div>

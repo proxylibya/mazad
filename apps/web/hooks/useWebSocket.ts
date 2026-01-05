@@ -3,9 +3,9 @@
  * يدعم Topic-based subscriptions و Auto-reconnect
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { io, Socket } from 'socket.io-client';
 import { logger } from '@/lib/utils/logger';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Socket, io } from 'socket.io-client';
 
 /**
  * حالة الاتصال
@@ -92,13 +92,13 @@ export function useWebSocket(
     // معالجة الأخطاء
     socket.on('connect_error', (error) => {
       setStatus('error');
-      logger.error('WebSocket connection error', error);
+      logger.error('WebSocket connection error', { error });
       reconnectCountRef.current++;
     });
 
     // استلام تأكيد الاتصال
     socket.on('connected', (data) => {
-      logger.debug('WebSocket connection confirmed', data);
+      logger.debug('WebSocket connection confirmed', { data });
     });
 
     socketRef.current = socket;
@@ -210,7 +210,7 @@ export function useAuctionUpdates(
     };
 
     // معالجة Batch Updates
-    const handleBatchUpdate = (batch: { updates: AuctionUpdate[] }) => {
+    const handleBatchUpdate = (batch: { updates: AuctionUpdate[]; }) => {
       batch.updates.forEach((update) => onUpdate(update));
     };
 
@@ -240,7 +240,7 @@ export function useAuctionViewers(auctionId: string | null) {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on('viewers_count', (data: { count: number }) => {
+    socket.on('viewers_count', (data: { count: number; }) => {
       setViewersCount(data.count);
     });
 

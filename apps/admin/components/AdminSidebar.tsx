@@ -23,8 +23,9 @@ import {
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { hasSectionAccess } from '../lib/permissions/admin-permissions-system';
+import { AnimatedPresence, AnimatedSection } from './unified';
 
 // نوع الإحصائيات
 interface NotificationStats {
@@ -47,6 +48,123 @@ interface MenuItem {
   badge?: number;
   children?: MenuItem[];
 }
+
+const MENU_ICON_STYLES: Record<
+  string,
+  {
+    bg: string;
+    text: string;
+    ring: string;
+    hoverBg: string;
+  }
+> = {
+  dashboard: {
+    bg: 'bg-blue-500/10',
+    text: 'text-blue-400',
+    ring: 'ring-blue-500/25',
+    hoverBg: 'group-hover:bg-blue-500/15',
+  },
+  users: {
+    bg: 'bg-cyan-500/10',
+    text: 'text-cyan-400',
+    ring: 'ring-cyan-500/25',
+    hoverBg: 'group-hover:bg-cyan-500/15',
+  },
+  auctions: {
+    bg: 'bg-amber-500/10',
+    text: 'text-amber-400',
+    ring: 'ring-amber-500/25',
+    hoverBg: 'group-hover:bg-amber-500/15',
+  },
+  marketplace: {
+    bg: 'bg-emerald-500/10',
+    text: 'text-emerald-400',
+    ring: 'ring-emerald-500/25',
+    hoverBg: 'group-hover:bg-emerald-500/15',
+  },
+  yards: {
+    bg: 'bg-orange-500/10',
+    text: 'text-orange-400',
+    ring: 'ring-orange-500/25',
+    hoverBg: 'group-hover:bg-orange-500/15',
+  },
+  transport: {
+    bg: 'bg-purple-500/10',
+    text: 'text-purple-400',
+    ring: 'ring-purple-500/25',
+    hoverBg: 'group-hover:bg-purple-500/15',
+  },
+  showrooms: {
+    bg: 'bg-fuchsia-500/10',
+    text: 'text-fuchsia-400',
+    ring: 'ring-fuchsia-500/25',
+    hoverBg: 'group-hover:bg-fuchsia-500/15',
+  },
+  wallets: {
+    bg: 'bg-pink-500/10',
+    text: 'text-pink-400',
+    ring: 'ring-pink-500/25',
+    hoverBg: 'group-hover:bg-pink-500/15',
+  },
+  managers: {
+    bg: 'bg-indigo-500/10',
+    text: 'text-indigo-400',
+    ring: 'ring-indigo-500/25',
+    hoverBg: 'group-hover:bg-indigo-500/15',
+  },
+  support: {
+    bg: 'bg-rose-500/10',
+    text: 'text-rose-400',
+    ring: 'ring-rose-500/25',
+    hoverBg: 'group-hover:bg-rose-500/15',
+  },
+  communications: {
+    bg: 'bg-sky-500/10',
+    text: 'text-sky-400',
+    ring: 'ring-sky-500/25',
+    hoverBg: 'group-hover:bg-sky-500/15',
+  },
+  reports: {
+    bg: 'bg-slate-500/10',
+    text: 'text-slate-300',
+    ring: 'ring-slate-500/25',
+    hoverBg: 'group-hover:bg-slate-500/15',
+  },
+  promotions: {
+    bg: 'bg-yellow-500/10',
+    text: 'text-yellow-400',
+    ring: 'ring-yellow-500/25',
+    hoverBg: 'group-hover:bg-yellow-500/15',
+  },
+  security: {
+    bg: 'bg-red-500/10',
+    text: 'text-red-400',
+    ring: 'ring-red-500/25',
+    hoverBg: 'group-hover:bg-red-500/15',
+  },
+  'site-content': {
+    bg: 'bg-violet-500/10',
+    text: 'text-violet-400',
+    ring: 'ring-violet-500/25',
+    hoverBg: 'group-hover:bg-violet-500/15',
+  },
+  settings: {
+    bg: 'bg-zinc-500/10',
+    text: 'text-zinc-300',
+    ring: 'ring-zinc-500/25',
+    hoverBg: 'group-hover:bg-zinc-500/15',
+  },
+  default: {
+    bg: 'bg-slate-500/10',
+    text: 'text-slate-300',
+    ring: 'ring-slate-500/25',
+    hoverBg: 'group-hover:bg-slate-500/15',
+  },
+};
+
+const getMenuIconStyle = (menuId: string) => {
+  return MENU_ICON_STYLES[menuId] || MENU_ICON_STYLES.default;
+};
 
 const menuItems: MenuItem[] = [
   {
@@ -176,6 +294,7 @@ const menuItems: MenuItem[] = [
       { id: 'comm-overview', label: 'نظرة عامة', href: '/admin/communications' },
       { id: 'calls-log', label: 'سجل المكالمات', href: '/admin/communications/calls' },
       { id: 'sms-messages', label: 'رسائل SMS', href: '/admin/communications/sms' },
+      { id: 'site-team-inbox', label: 'صندوق فريق الموقع', href: '/admin/site-team/inbox' },
       { id: 'comm-settings', label: 'الإعدادات', href: '/admin/communications/settings' },
     ],
   },
@@ -271,23 +390,35 @@ export default function AdminSidebar({
   }, [adminRole, adminPermissions]);
 
   // جلب إحصائيات الإشعارات
+  const statsRequestControllerRef = useRef<AbortController | null>(null);
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/notifications/stats');
+      statsRequestControllerRef.current?.abort();
+      const controller = new AbortController();
+      statsRequestControllerRef.current = controller;
+
+      const res = await fetch('/api/admin/notifications/stats', { signal: controller.signal });
       if (res.ok) {
         const data = await res.json();
         setStats(data);
       }
     } catch (err) {
-      console.error('Failed to fetch notification stats:', err);
+      if ((err as any)?.name !== 'AbortError') {
+        console.error('Failed to fetch notification stats:', err);
+      }
     }
   }, []);
 
   // جلب الإحصائيات عند التحميل وكل 30 ثانية
   useEffect(() => {
-    fetchStats();
-    const interval = setInterval(fetchStats, 30000);
-    return () => clearInterval(interval);
+    void fetchStats();
+    const interval = setInterval(() => {
+      void fetchStats();
+    }, 30000);
+    return () => {
+      clearInterval(interval);
+      statsRequestControllerRef.current?.abort();
+    };
   }, [fetchStats]);
 
   // الحصول على badge لقسم معين
@@ -378,16 +509,25 @@ export default function AdminSidebar({
     const active = isActive(item.href);
     const hasChildren = item.children && item.children.length > 0;
     const badge = getBadge(item.id);
+    const iconStyle = getMenuIconStyle(item.id);
 
     return (
       <div key={item.id}>
         {hasChildren ? (
           <button
             onClick={() => toggleExpand(item.id)}
-            className={`flex w-full items-center justify-between px-4 py-3 text-sm font-medium transition-all duration-200 ${depth > 0 ? 'pr-10' : ''} text-slate-300 hover:bg-slate-700/50 hover:text-white`}
+            className={`group flex w-full items-center justify-between px-4 py-3 text-sm font-medium transition-all ${
+              depth > 0 ? 'pr-10' : ''
+            } text-slate-300 hover:bg-slate-700/60 hover:text-white`}
           >
             <div className="flex items-center gap-3">
-              {item.icon && <item.icon className="h-5 w-5" />}
+              {item.icon && (
+                <span
+                  className={`flex h-9 w-9 items-center justify-center rounded-lg ${iconStyle.bg} ${iconStyle.hoverBg} ring-1 ${iconStyle.ring} transition-colors`}
+                >
+                  <item.icon className={`h-5 w-5 ${iconStyle.text}`} />
+                </span>
+              )}
               <span>{item.label}</span>
               {badge > 0 && (
                 <span className="min-w-[20px] rounded-full bg-red-500 px-1.5 py-0.5 text-center text-xs font-bold text-white">
@@ -396,19 +536,25 @@ export default function AdminSidebar({
               )}
             </div>
             <ChevronLeftIcon
-              className={`h-4 w-4 transition-transform duration-200 ${expanded ? '-rotate-90' : ''}`}
+              className={`h-4 w-4 transition-transform ${expanded ? '-rotate-90' : ''}`}
             />
           </button>
         ) : (
           <Link
             href={item.href || '#'}
-            className={`flex w-full items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 ${depth > 0 ? 'pr-10' : ''} ${
+            className={`group flex w-full items-center gap-3 px-4 py-3 text-sm font-medium transition-all duration-200 ${depth > 0 ? 'pr-10' : ''} ${
               active
                 ? 'border-l-4 border-blue-500 bg-gradient-to-l from-blue-600/30 to-blue-500/10 text-blue-400'
                 : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
             } `}
           >
-            {item.icon && <item.icon className="h-5 w-5" />}
+            {item.icon && (
+              <span
+                className={`flex h-9 w-9 items-center justify-center rounded-lg ${iconStyle.bg} ${iconStyle.hoverBg} ring-1 ${iconStyle.ring} transition-colors`}
+              >
+                <item.icon className={`h-5 w-5 ${iconStyle.text}`} />
+              </span>
+            )}
             <span>{item.label}</span>
             {badge > 0 && (
               <span className="min-w-[20px] rounded-full bg-red-500 px-1.5 py-0.5 text-center text-xs font-bold text-white">
@@ -418,28 +564,31 @@ export default function AdminSidebar({
           </Link>
         )}
 
-        {hasChildren && expanded && (
-          <div className="bg-slate-800/50">
-            {item.children!.map((child) => (
-              <Link
-                key={child.id}
-                href={child.href || '#'}
-                className={`flex w-full items-center gap-3 px-4 py-2.5 pr-12 text-sm transition-all duration-200 ${
-                  isActive(child.href)
-                    ? 'bg-blue-600/10 text-blue-400'
-                    : 'text-slate-400 hover:bg-slate-700/30 hover:text-white'
-                } `}
-              >
-                <span className="h-1.5 w-1.5 rounded-full bg-current opacity-50" />
-                <span>{child.label}</span>
-                {child.badge && (
-                  <span className="rounded-full bg-blue-600/30 px-1.5 py-0.5 text-xs text-blue-400">
-                    {child.badge}
-                  </span>
-                )}
-              </Link>
-            ))}
-          </div>
+        {hasChildren && (
+          <AnimatedPresence show={expanded} className="bg-slate-800/40">
+            <div>
+              {item.children!.map((child, index) => (
+                <AnimatedSection key={child.id} delay={40 * index} className="border-slate-800/40">
+                  <Link
+                    href={child.href || '#'}
+                    className={`flex w-full items-center gap-3 px-4 py-2.5 pr-12 text-sm transition-all ${
+                      isActive(child.href)
+                        ? 'bg-blue-600/15 text-blue-400'
+                        : 'text-slate-400 hover:bg-slate-700/40 hover:text-white'
+                    } `}
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-current opacity-50" />
+                    <span>{child.label}</span>
+                    {child.badge && (
+                      <span className="rounded-full bg-blue-600/30 px-1.5 py-0.5 text-xs text-blue-400">
+                        {child.badge}
+                      </span>
+                    )}
+                  </Link>
+                </AnimatedSection>
+              ))}
+            </div>
+          </AnimatedPresence>
         )}
       </div>
     );
@@ -447,17 +596,22 @@ export default function AdminSidebar({
 
   return (
     <div>
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden"
-          onClick={onClose}
-        />
-      )}
+      <AnimatedPresence
+        show={isOpen}
+        variant="fade"
+        duration="fast"
+        className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden"
+      >
+        <div className="h-full w-full" onClick={onClose} />
+      </AnimatedPresence>
 
       <aside
-        className={`fixed right-0 top-0 z-50 flex h-full w-64 flex-col border-l border-slate-700 bg-slate-900 transition-transform duration-300 ease-in-out ${
+        className={`fixed right-0 top-0 z-50 flex h-full w-64 flex-col border-l border-slate-700 bg-slate-900 transition-transform duration-500 ${
           isOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
         }`}
+        style={{
+          transitionTimingFunction: 'cubic-bezier(0.19, 1, 0.22, 1)',
+        }}
       >
         <div className="flex items-center justify-between border-b border-slate-700 p-5">
           <div>

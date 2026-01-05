@@ -525,7 +525,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         for (let i = 0; i < images.length; i++) {
           const imagePath = images[i];
           if (imagePath && imagePath.trim() !== '') {
-            await dbHelpers.prisma.carImage.create({
+            await dbHelpers.prisma.car_images.create({
               data: {
                 carId: newCar.id,
                 fileName: imagePath.split('/').pop() || `image_${i + 1}`,

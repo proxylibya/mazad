@@ -165,7 +165,7 @@ class EnterpriseSocketClient {
     });
 
     // Error event
-    this.socket.on('error', (error) => {
+    this.socket.on('error' as any, (error: any) => {
       console.error('❌ [Socket Client] Socket error:', error);
     });
   }

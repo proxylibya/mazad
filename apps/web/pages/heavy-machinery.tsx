@@ -1,21 +1,18 @@
-import SelectField from '../components/ui/SelectField';
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
-import Head from 'next/head';
-import { Layout } from '../components/common';
-import TruckIcon from '@heroicons/react/24/outline/TruckIcon';
-import PhoneIcon from '@heroicons/react/24/outline/PhoneIcon';
-import ChatBubbleLeftRightIcon from '@heroicons/react/24/outline/ChatBubbleLeftRightIcon';
-import HeartIcon from '@heroicons/react/24/outline/HeartIcon';
-import ClockIcon from '@heroicons/react/24/outline/ClockIcon';
-import MapPinIcon from '@heroicons/react/24/outline/MapPinIcon';
-import MagnifyingGlassIcon from '@heroicons/react/24/outline/MagnifyingGlassIcon';
-import XMarkIcon from '@heroicons/react/24/outline/XMarkIcon';
-import Squares2X2Icon from '@heroicons/react/24/outline/Squares2X2Icon';
-import ListBulletIcon from '@heroicons/react/24/outline/ListBulletIcon';
 import CogIcon from '@heroicons/react/24/outline/CogIcon';
-import { formatNumber } from '../utils/numberUtils';
+import HeartIcon from '@heroicons/react/24/outline/HeartIcon';
+import ListBulletIcon from '@heroicons/react/24/outline/ListBulletIcon';
+import MagnifyingGlassIcon from '@heroicons/react/24/outline/MagnifyingGlassIcon';
+import MapPinIcon from '@heroicons/react/24/outline/MapPinIcon';
+import Squares2X2Icon from '@heroicons/react/24/outline/Squares2X2Icon';
+import TruckIcon from '@heroicons/react/24/outline/TruckIcon';
+import XMarkIcon from '@heroicons/react/24/outline/XMarkIcon';
+import Head from 'next/head';
+import { useRouter } from 'next/router';
+import React, { useEffect, useState } from 'react';
+import { Layout } from '../components/common';
+import SelectField from '../components/ui/SelectField';
 import { libyanCities } from '../data/libyan-cities';
+import { formatNumber } from '../utils/numberUtils';
 
 // فئات المعدات الثقيلة
 const machineryCategories = [
@@ -371,7 +368,7 @@ const HeavyMachineryPage: React.FC<HeavyMachineryPageProps> = ({
                   <div>
                     <label className="mb-1 block text-xs font-medium text-gray-600">المدينة</label>
                     <SelectField
-                      options={['جميع المدن', ...libyanCities]}
+                      options={['جميع المدن', ...libyanCities.map((c) => c.name)]}
                       value={filters.location}
                       onChange={(value) => handleFilterChange('location', value)}
                       placeholder="اختر المدينة"
@@ -541,7 +538,7 @@ const HeavyMachineryPage: React.FC<HeavyMachineryPageProps> = ({
                     المدينة
                   </label>
                   <SelectField
-                    options={['جميع المدن', ...libyanCities]}
+                    options={['جميع المدن', ...libyanCities.map((c) => c.name)]}
                     value={filters.location}
                     onChange={(value) => handleFilterChange('location', value)}
                     placeholder="اختر المدينة"

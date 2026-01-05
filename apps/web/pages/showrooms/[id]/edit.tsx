@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import CreateShowroomWizard from '../../../components/showroom/CreateShowroomWizard';
+import React, { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
+import CreateShowroomWizard from '../../../components/showroom/CreateShowroomWizard';
 
 interface InitialShowroomData {
   name?: string;
@@ -109,11 +109,11 @@ const EditPublicShowroomPage: React.FC = () => {
           <div className="mx-auto max-w-4xl rounded-lg bg-white p-12 text-center shadow-sm">
             <div className="mb-3 flex justify-center">
               <div
-                      className="animate-spin rounded-full border-4 border-white border-t-blue-600 shadow-lg"
-                      style={{ width: 24, height: 24 }}
-                      role="status"
-                      aria-label="جاري التحميل"
-                    />
+                className="animate-spin rounded-full border-4 border-white border-t-blue-600 shadow-lg"
+                style={{ width: 24, height: 24 }}
+                role="status"
+                aria-label="جاري التحميل"
+              />
             </div>
             <p className="text-sm text-gray-500">جاري تحميل بيانات المعرض...</p>
           </div>
@@ -122,7 +122,6 @@ const EditPublicShowroomPage: React.FC = () => {
         <div className="min-h-screen bg-gray-50 py-8">
           <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
             <CreateShowroomWizard
-              isAdmin={false}
               initialData={initialData || undefined}
               title="تعديل بيانات المعرض"
               continueButtonText="حفظ التعديلات"

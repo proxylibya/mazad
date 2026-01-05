@@ -6,6 +6,7 @@
 import fs from 'fs';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import path from 'path';
+import { getBlobPublicUrl, putBufferToBlobPathname } from '../../../../lib/blob';
 
 // مسار ملف الإعدادات - يحاول عدة مسارات للتوافق
 function getSettingsFilePath(): string {
@@ -26,6 +27,26 @@ function getSettingsFilePath(): string {
 
 const SETTINGS_FILE = getSettingsFilePath();
 const DATA_DIR = path.dirname(SETTINGS_FILE);
+
+const SETTINGS_BLOB_PATHNAME = 'config/auction-settings.json';
+
+async function readSettingsFromBlob(): Promise<any | null> {
+    const url = await getBlobPublicUrl(SETTINGS_BLOB_PATHNAME);
+    if (!url) return null;
+
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return res.json();
+}
+
+async function writeSettingsToBlob(settings: any): Promise<void> {
+    const buffer = Buffer.from(JSON.stringify(settings, null, 2), 'utf-8');
+    await putBufferToBlobPathname({
+        pathname: SETTINGS_BLOB_PATHNAME,
+        buffer,
+        contentType: 'application/json',
+    });
+}
 
 // خيارات وقت بداية المزاد الافتراضية
 interface StartTimeOption {
@@ -155,7 +176,12 @@ export default async function handler(
         try {
             let settings = DEFAULT_SETTINGS;
 
-            if (fs.existsSync(SETTINGS_FILE)) {
+            if (process.env.NODE_ENV !== 'development') {
+                const savedSettings = await readSettingsFromBlob();
+                if (savedSettings) {
+                    settings = { ...DEFAULT_SETTINGS, ...savedSettings };
+                }
+            } else if (fs.existsSync(SETTINGS_FILE)) {
                 const fileContent = fs.readFileSync(SETTINGS_FILE, 'utf-8');
                 const savedSettings = JSON.parse(fileContent);
                 settings = { ...DEFAULT_SETTINGS, ...savedSettings };
@@ -187,14 +213,15 @@ export default async function handler(
                 });
             }
 
-            // التأكد من وجود المجلد
-            if (!fs.existsSync(DATA_DIR)) {
-                fs.mkdirSync(DATA_DIR, { recursive: true });
-            }
-
             // دمج الإعدادات الجديدة مع القديمة
             let existingSettings = DEFAULT_SETTINGS;
-            if (fs.existsSync(SETTINGS_FILE)) {
+
+            if (process.env.NODE_ENV !== 'development') {
+                const savedSettings = await readSettingsFromBlob();
+                if (savedSettings) {
+                    existingSettings = { ...DEFAULT_SETTINGS, ...savedSettings };
+                }
+            } else if (fs.existsSync(SETTINGS_FILE)) {
                 try {
                     const fileContent = fs.readFileSync(SETTINGS_FILE, 'utf-8');
                     existingSettings = { ...DEFAULT_SETTINGS, ...JSON.parse(fileContent) };
@@ -213,12 +240,21 @@ export default async function handler(
                 updatedAt: new Date().toISOString(),
             };
 
-            // حفظ في الملف
-            fs.writeFileSync(
-                SETTINGS_FILE,
-                JSON.stringify(updatedSettings, null, 2),
-                'utf-8'
-            );
+            if (process.env.NODE_ENV !== 'development') {
+                await writeSettingsToBlob(updatedSettings);
+            } else {
+                // التأكد من وجود المجلد
+                if (!fs.existsSync(DATA_DIR)) {
+                    fs.mkdirSync(DATA_DIR, { recursive: true });
+                }
+
+                // حفظ في الملف
+                fs.writeFileSync(
+                    SETTINGS_FILE,
+                    JSON.stringify(updatedSettings, null, 2),
+                    'utf-8'
+                );
+            }
 
             console.log('[Admin] تم حفظ إعدادات المزادات:', {
                 minStartingPrice: updatedSettings.minStartingPrice,

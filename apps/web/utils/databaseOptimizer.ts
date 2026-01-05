@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
 
 // إعداد Connection Pool محسن
 export const prismaConfig = {
@@ -15,26 +15,7 @@ export const prismaConfig = {
   errorFormat: 'pretty' as const,
 };
 
-// إنشاء singleton instance
-declare global {
-  var __prisma: PrismaClient | undefined;
-}
-
-export const prisma =
-  global.__prisma ||
-  new PrismaClient({
-    ...prismaConfig,
-    // Connection Pool optimization
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL + '?connection_limit=20&pool_timeout=20&pgbouncer=true',
-      },
-    },
-  });
-
-if (process.env.NODE_ENV !== 'production') {
-  global.__prisma = prisma;
-}
+export { prisma };
 
 // دالة لإنشاء الفهارس المحسنة
 export async function createOptimizedIndexes() {

@@ -294,8 +294,16 @@ const NewAuctionCard: React.FC<NewAuctionCardProps> = ({
                     if (car.year && car.year !== 'غير محدد') {
                       properties.push(car.year.toString());
                     }
-                    if (car.mileage && typeof car.mileage === 'string' && car.mileage !== '0') {
-                      properties.push(`${car.mileage} كم`);
+                    if (
+                      car.mileage &&
+                      typeof car.mileage === 'string' &&
+                      car.mileage !== '0' &&
+                      car.mileage !== 'غير محدد' &&
+                      !car.mileage.includes('غير محدد')
+                    ) {
+                      // إزالة "كم" إذا كانت مضافة مسبقاً لتجنب التكرار، ثم إضافتها مرة واحدة إذا لزم الأمر
+                      // ولكن بما أن formatMileage يضيفها، فنحن نستخدم القيمة كما هي
+                      properties.push(car.mileage);
                     }
                     if (
                       car.transmission &&

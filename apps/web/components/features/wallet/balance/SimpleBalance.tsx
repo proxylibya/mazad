@@ -1,5 +1,5 @@
 import React from 'react';
-import { usePriceFormatter } from '../contexts/SimpleLocalizationContext';
+import { usePriceFormatter } from '../../../../contexts/SimpleLocalizationContext';
 
 // مكون بسيط لعرض الرصيد (احتياطي)
 const SimpleBalance: React.FC<{ className?: string }> = ({ className = '' }) => {

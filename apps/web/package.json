@@ -7,7 +7,7 @@
     "build": "next build --no-lint",
     "start": "next start -p 3021",
     "lint": "echo \"Linting disabled\"",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@sooq-mazad/config": "*",

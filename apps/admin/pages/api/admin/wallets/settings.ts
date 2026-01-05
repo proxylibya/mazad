@@ -1,13 +1,10 @@
 /**
  * Wallet Settings API - إعدادات المحافظ
  */
-import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined; };
-const prisma = globalForPrisma.prisma ?? new PrismaClient();
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+import { prisma } from '@/lib/prisma';
 
 const JWT_SECRET = process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET || 'sooq-mazad-admin-secret-key-min-32-chars!';
 const COOKIE_NAME = 'admin_session';

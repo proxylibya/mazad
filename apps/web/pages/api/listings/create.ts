@@ -441,7 +441,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     for (let i = 0; i < images.length; i++) {
       const image = images[i];
       try {
-        const carImage = await prisma.carImage.create({
+        const carImage = await prisma.car_images.create({
           data: {
             carId: carId,
             fileName: image.fileName || `car_${carId}_${i + 1}.jpg`,

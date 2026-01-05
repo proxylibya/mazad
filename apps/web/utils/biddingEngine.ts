@@ -4,7 +4,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import prisma from '../lib/prisma';
+import { prisma } from '../lib/prisma';
 import { BidData, SocketUser } from '../types/socket';
 import { getAuctionRoomManager } from './auctionRoomManager';
 

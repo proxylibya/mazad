@@ -1,4 +1,5 @@
 import { Bounds, Cluster, MapPoint, SmartClusterManager } from '@/utils/map-clustering';
+import { MapControlButton } from '@sooq-mazad/ui';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -240,10 +241,11 @@ export function ClusteredMap({
           </div>
 
           {/* زر إعادة التوسيط */}
-          <button
+          <MapControlButton
             onClick={recenterMap}
+            label="إعادة التوسيط"
+            unstyled
             className="rounded-lg bg-white p-2 shadow-md transition-colors hover:bg-gray-50"
-            title="إعادة التوسيط"
           >
             <svg
               className="h-5 w-5 text-gray-700"
@@ -264,13 +266,14 @@ export function ClusteredMap({
                 d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
               />
             </svg>
-          </button>
+          </MapControlButton>
 
           {/* زر التحديث */}
-          <button
+          <MapControlButton
             onClick={refreshClusters}
+            label="تحديث"
+            unstyled
             className="rounded-lg bg-white p-2 shadow-md transition-colors hover:bg-gray-50"
-            title="تحديث"
           >
             <svg
               className="h-5 w-5 text-gray-700"
@@ -285,7 +288,7 @@ export function ClusteredMap({
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
               />
             </svg>
-          </button>
+          </MapControlButton>
         </div>
       )}
 

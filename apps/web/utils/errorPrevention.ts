@@ -131,6 +131,43 @@ export function clearErrorReports(): void {
     errorReports.length = 0;
 }
 
+export function logError(params: {
+    type: ErrorType;
+    message: string;
+    timestamp: Date;
+    location?: string;
+    data?: unknown;
+}): void {
+    try {
+        generateErrorReport(params.type, params.message, {
+            location: params.location,
+            data: params.data,
+        });
+    } catch {
+    }
+
+    if (defaultConfig.logErrors) {
+        console.error('[ErrorPrevention]', params.type, params.message, {
+            location: params.location,
+            data: params.data,
+        });
+    }
+}
+
+export function validateApiResponse(responseData: unknown, location?: string): boolean {
+    if (!responseData || typeof responseData !== 'object') {
+        logError({
+            type: ErrorType.API_ERROR,
+            message: 'Invalid API response',
+            timestamp: new Date(),
+            location,
+            data: responseData,
+        });
+        return false;
+    }
+    return true;
+}
+
 /**
  * إنشاء تقرير خطأ
  * @overload بدون parameters - يرجع جميع التقارير كـ JSON string
@@ -171,5 +208,7 @@ export default {
     getErrorReports,
     clearErrorReports,
     generateErrorReport,
+    logError,
+    validateApiResponse,
     ErrorType,
 };

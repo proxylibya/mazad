@@ -1,8 +1,10 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { IncomingForm, File as FormidableFile } from 'formidable';
+import { File as FormidableFile, IncomingForm } from 'formidable';
 import fs from 'fs';
-import path from 'path';
 import jwt, { JwtPayload } from 'jsonwebtoken';
+import { NextApiRequest, NextApiResponse } from 'next';
+import os from 'os';
+import path from 'path';
+import { uploadBufferToBlob } from '../../../lib/blob';
 
 // تعطيل parser الافتراضي لـ Next.js
 export const config = {
@@ -35,7 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       try {
         const token = authHeader.substring(7);
         const secret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-        const decoded = jwt.verify(token, secret) as JwtPayload & { userId?: string; id?: string };
+        const decoded = jwt.verify(token, secret) as JwtPayload & { userId?: string; id?: string; };
         userId = decoded.userId || decoded.id || 'temp_user';
       } catch (error) {
         userId = 'temp_user';
@@ -104,9 +106,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 }
 
 // دالة لمعالجة النموذج والملفات
-async function parseForm(req: NextApiRequest): Promise<{ fields: any; files: any }> {
+async function parseForm(req: NextApiRequest): Promise<{ fields: any; files: any; }> {
   return new Promise((resolve, reject) => {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'temp');
+    const uploadDir = path.join(os.tmpdir(), 'sooq-mazad', 'uploads', 'temp');
 
     // إنشاء مجلد الرفع المؤقت إذا لم يكن موجوداً
     if (!fs.existsSync(uploadDir)) {
@@ -172,35 +174,24 @@ async function processTruckImage(
   file: FormidableFile,
   userId: string,
   position: string,
-): Promise<{ imageUrl: string; fileName: string }> {
+): Promise<{ imageUrl: string; fileName: string; }> {
   // إنشاء اسم ملف فريد
   const timestamp = Date.now();
   const extension = path.extname(file.originalFilename || '');
   const fileName = `truck_${userId}_${position}_${timestamp}${extension}`;
 
-  // إنشاء مجلد صور الساحبات
-  const truckImagesDir = path.join(process.cwd(), 'public', 'images', 'trucks');
-  if (!fs.existsSync(truckImagesDir)) {
-    fs.mkdirSync(truckImagesDir, { recursive: true });
-  }
+  const buffer = await fs.promises.readFile(file.filepath);
+  const contentType = file.mimetype || 'application/octet-stream';
+  const uploaded = await uploadBufferToBlob({
+    buffer,
+    filename: fileName,
+    contentType,
+    folder: `images/trucks/${userId}`,
+  });
 
-  // إنشاء مجلد فرعي للمستخدم
-  const userTruckDir = path.join(truckImagesDir, userId);
-  if (!fs.existsSync(userTruckDir)) {
-    fs.mkdirSync(userTruckDir, { recursive: true });
-  }
+  await fs.promises.unlink(file.filepath).catch(() => { });
 
-  // مسار الملف النهائي
-  const finalPath = path.join(userTruckDir, fileName);
-
-  // نسخ الملف من المجلد المؤقت إلى المجلد النهائي
-  fs.copyFileSync(file.filepath, finalPath);
-
-  // حذف الملف المؤقت
-  fs.unlinkSync(file.filepath);
-
-  // إنشاء URL للصورة
-  const imageUrl = `/images/trucks/${userId}/${fileName}`;
+  const imageUrl = uploaded.url;
 
   return {
     imageUrl,

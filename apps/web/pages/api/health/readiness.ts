@@ -1,6 +1,6 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
 import Redis from 'ioredis';
-import { prisma } from '@/lib/prisma';
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { prisma } from '../../../lib/prisma';
 
 /**
  * @swagger
@@ -21,7 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const checks: Record<string, { status: string; message?: string; latency?: number }> = {
+  const checks: Record<string, { status: string; message?: string; latency?: number; }> = {
     app: { status: 'ok' },
   };
 
@@ -31,7 +31,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const start = Date.now();
     await prisma.$queryRaw`SELECT 1`;
     const latency = Date.now() - start;
-    await prisma.$disconnect();
 
     checks.database = {
       status: 'ok',
@@ -45,29 +44,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     };
   }
 
-  // فحص KeyDB
-  try {
-    let keydbUrl = process.env.KEYDB_URL || 'redis://localhost:6379';
-    // تحويل keydb:// إلى redis:// لتوافق ioredis
-    if (keydbUrl.startsWith('keydb://')) {
-      keydbUrl = keydbUrl.replace('keydb://', 'redis://');
-    }
-    const redis = new Redis(keydbUrl);
-    const start = Date.now();
-    await redis.ping();
-    const latency = Date.now() - start;
-    await redis.quit();
-
+  // فحص KeyDB (اختياري للتجربة)
+  const rawKeydbUrl = process.env.KEYDB_URL;
+  if (!rawKeydbUrl) {
     checks.keydb = {
       status: 'ok',
-      latency,
-      message: 'KeyDB connected',
+      message: 'KeyDB not configured (KEYDB_URL is not set)',
     };
-  } catch (error) {
-    checks.keydb = {
-      status: 'error',
-      message: error instanceof Error ? error.message : 'KeyDB connection failed',
-    };
+  } else {
+    try {
+      let keydbUrl = rawKeydbUrl;
+      // تحويل keydb:// إلى redis:// لتوافق ioredis
+      if (keydbUrl.startsWith('keydb://')) {
+        keydbUrl = keydbUrl.replace('keydb://', 'redis://');
+      }
+      const redis = new Redis(keydbUrl);
+      const start = Date.now();
+      await redis.ping();
+      const latency = Date.now() - start;
+      await redis.quit();
+
+      checks.keydb = {
+        status: 'ok',
+        latency,
+        message: 'KeyDB connected',
+      };
+    } catch (error) {
+      checks.keydb = {
+        status: 'error',
+        message: error instanceof Error ? error.message : 'KeyDB connection failed',
+      };
+    }
   }
 
   // تحديد الحالة الإجمالية

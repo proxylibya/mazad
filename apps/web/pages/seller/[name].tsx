@@ -12,6 +12,7 @@ import PhoneIcon from '@heroicons/react/24/outline/PhoneIcon';
 import ShareIcon from '@heroicons/react/24/outline/ShareIcon';
 import TrophyIcon from '@heroicons/react/24/outline/TrophyIcon';
 import UserIcon from '@heroicons/react/24/outline/UserIcon';
+import WalletIcon from '@heroicons/react/24/outline/WalletIcon';
 import {
   CheckCircleIcon as CheckCircleSolid,
   HeartIcon as HeartSolid,
@@ -24,6 +25,7 @@ import React, { useEffect, useState } from 'react';
 import UserAvatar from '../../components/UserAvatar';
 import LoginModal from '../../components/auth/LoginModal';
 import { OpensooqNavbar } from '../../components/common';
+import Loader from '../../components/ui/Loader';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader } from '../../components/ui/card';
 import useAuthProtection from '../../hooks/useAuthProtection';
@@ -47,7 +49,18 @@ const formatLargeNumber = (num: number): string => {
   return formatNumber(num);
 };
 
-// واجهة بيانات البائع
+interface SellerReview {
+  id: string;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+  reviewer?: {
+    name?: string;
+    profileImage?: string;
+    verified?: boolean;
+  };
+}
+
 interface SellerData {
   id: string;
   name: string;
@@ -77,6 +90,12 @@ interface SellerData {
     avgResponseTime: string;
   };
   specialties?: string[];
+  walletSummary?: {
+    hasWallet: boolean;
+    totalBalance: number;
+    primaryCurrency: string;
+    activeWallets: number;
+  };
   cars?: Array<{
     id: string;
     title: string;
@@ -88,7 +107,7 @@ interface SellerData {
     city: string;
     location: string;
     status: string;
-    images: Array<{ id: string; url: string; fileName: string; isPrimary: boolean }>;
+    images: Array<string | { id: string; url: string; fileName: string; isPrimary: boolean }>;
     auction?: {
       id: string;
       status: string;
@@ -99,6 +118,7 @@ interface SellerData {
   }>;
 }
 
+type SellerCar = NonNullable<SellerData['cars']>[number];
 // مكون صفحة البائع الجديدة
 const ModernSellerProfile: React.FC = () => {
   const router = useRouter();
@@ -109,9 +129,8 @@ const ModernSellerProfile: React.FC = () => {
     showModal: true,
   });
 
-  // حالات البيانات
   const [sellerData, setSellerData] = useState<SellerData | null>(null);
-  const [sellerCars, setSellerCars] = useState([]);
+  const [sellerCars, setSellerCars] = useState<SellerCar[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('active');
@@ -120,6 +139,10 @@ const ModernSellerProfile: React.FC = () => {
     type: '',
     message: '',
   });
+
+  const [reviews, setReviews] = useState<SellerReview[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsError, setReviewsError] = useState<string | null>(null);
 
   // استخدام hook المفضلة الموحد
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -184,6 +207,55 @@ const ModernSellerProfile: React.FC = () => {
 
     fetchSellerData();
   }, [name]);
+
+  useEffect(() => {
+    const fetchReviews = async () => {
+      if (!sellerData?.id) return;
+
+      try {
+        setReviewsLoading(true);
+        setReviewsError(null);
+
+        const response = await fetch(
+          `/api/reviews?userId=${encodeURIComponent(sellerData.id)}&type=received&limit=10`,
+        );
+        if (!response.ok) {
+          throw new Error('فشل في جلب تقييمات البائع');
+        }
+
+        const result: {
+          success: boolean;
+          data?: {
+            reviews?: Array<{
+              id: string;
+              rating: number;
+              comment?: string;
+              createdAt: string;
+              reviewer?: {
+                name?: string;
+                profileImage?: string;
+                verified?: boolean;
+              };
+            }>;
+          };
+          error?: string;
+        } = await response.json();
+
+        if (result.success) {
+          setReviews(result.data?.reviews || []);
+        } else {
+          throw new Error(result.error || 'خطأ في جلب التقييمات');
+        }
+      } catch (err) {
+        console.error('خطأ في جلب تقييمات البائع:', err);
+        setReviewsError(err instanceof Error ? err.message : 'حدث خطأ غير متوقع في التقييمات');
+      } finally {
+        setReviewsLoading(false);
+      }
+    };
+
+    fetchReviews();
+  }, [sellerData?.id]);
 
   // معالجات الأحداث
   const handleContactClick = async () => {
@@ -387,7 +459,25 @@ const ModernSellerProfile: React.FC = () => {
 
   // عرض حالة التحميل
   // تم إزالة spinner - UnifiedPageTransition يتولى ذلك
-  if (loading) return null;
+  if (loading)
+    return (
+      <>
+        <Head>
+          <title>تحميل ملف البائع | مزاد السيارات</title>
+        </Head>
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100" dir="rtl">
+          <OpensooqNavbar />
+          <div className="flex min-h-[70vh] items-center justify-center">
+            <Loader
+              fullScreen={false}
+              size="lg"
+              variant="spinner"
+              message="جاري تحميل ملف البائع..."
+            />
+          </div>
+        </div>
+      </>
+    );
 
   // عرض حالة الخطأ
   if (error) {
@@ -420,6 +510,37 @@ const ModernSellerProfile: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {sellerData.walletSummary && sellerData.walletSummary.hasWallet && (
+              <Card className="border-0 shadow-lg">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-emerald-100 p-3">
+                      <WalletIcon className="h-6 w-6 text-emerald-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">محفظة البائع</h3>
+                      <p className="text-sm text-gray-600">
+                        عدد المحافظ النشطة: {sellerData.walletSummary.activeWallets}
+                      </p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-baseline justify-between">
+                    <div>
+                      <p className="text-xs text-gray-500">إجمالي الرصيد التقريبي</p>
+                      <p className="mt-1 text-2xl font-bold text-emerald-600">
+                        {formatNumber(sellerData.walletSummary.totalBalance || 0)}{' '}
+                        <span className="text-sm font-semibold text-gray-600">
+                          {sellerData.walletSummary.primaryCurrency}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </>
@@ -702,6 +823,204 @@ const ModernSellerProfile: React.FC = () => {
 
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
+            {/* Main Content - Listings */}
+            <div className="lg:col-span-3">
+              <Card className="border-0 shadow-lg">
+                {/* عنوان الإعلانات */}
+                <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-blue-50 to-cyan-50 pb-6">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-xl bg-blue-100 p-3 shadow-sm">
+                        <BuildingStorefrontIcon className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900">إعلانات البائع</h3>
+                        <p className="text-sm text-gray-600">
+                          {formatNumber(sellerCars.length)} سيارة متاحة
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* أزرار الفلترة */}
+                    <div className="inline-flex rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
+                      <button
+                        onClick={() => setActiveTab('active')}
+                        className={`group rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
+                          activeTab === 'active'
+                            ? 'scale-105 bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md'
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <span>النشطة</span>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-xs ${
+                              activeTab === 'active' ? 'bg-white/20' : 'bg-gray-200'
+                            }`}
+                          >
+                            {formatNumber(
+                              sellerCars.filter((car) => car.status === 'active').length,
+                            )}
+                          </span>
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('sold')}
+                        className={`group rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
+                          activeTab === 'sold'
+                            ? 'scale-105 bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md'
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <span>المباعة</span>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-xs ${
+                              activeTab === 'sold' ? 'bg-white/20' : 'bg-gray-200'
+                            }`}
+                          >
+                            {formatNumber(sellerCars.filter((car) => car.status === 'sold').length)}
+                          </span>
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('all')}
+                        className={`group rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
+                          activeTab === 'all'
+                            ? 'scale-105 bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md'
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <span>الكل</span>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-xs ${
+                              activeTab === 'all' ? 'bg-white/20' : 'bg-gray-200'
+                            }`}
+                          >
+                            {formatNumber(sellerCars.length)}
+                          </span>
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                {/* Listings Content */}
+                <CardContent className="p-6">
+                  {sellerCars.length === 0 ? (
+                    <div className="py-16 text-center">
+                      <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+                        <BuildingStorefrontIcon className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <h3 className="mb-2 text-lg font-semibold text-gray-900">لا توجد إعلانات</h3>
+                      <p className="text-gray-600">لم يقم هذا البائع بنشر أي إعلانات بعد</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+                      {sellerCars
+                        .filter((car) => {
+                          if (activeTab === 'active') return car.status === 'active';
+                          if (activeTab === 'sold') return car.status === 'sold';
+                          return true;
+                        })
+                        .map((car) => (
+                          <div
+                            key={car.id}
+                            className="group cursor-pointer overflow-hidden rounded-2xl border-2 border-gray-200 bg-white shadow-md transition-all duration-300 hover:scale-[1.03] hover:border-blue-300 hover:shadow-2xl"
+                            onClick={() => router.push(`/marketplace/${car.id}`)}
+                          >
+                            {/* صورة السيارة */}
+                            <div className="relative h-52 overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
+                              {car.images && car.images.length > 0 ? (
+                                <Image
+                                  src={
+                                    typeof car.images[0] === 'string'
+                                      ? car.images[0]
+                                      : car.images[0].url
+                                  }
+                                  alt={car.title}
+                                  fill
+                                  className="object-cover transition-all duration-500 group-hover:rotate-1 group-hover:scale-110"
+                                />
+                              ) : (
+                                <div className="flex h-full items-center justify-center">
+                                  <BuildingStorefrontIcon className="h-16 w-16 text-gray-300" />
+                                </div>
+                              )}
+                              {/* تأثير التظليل */}
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+                              {/* شارة الحالة */}
+                              <div className="absolute left-3 top-3">
+                                <span
+                                  className={`rounded-full px-3 py-1.5 text-xs font-bold shadow-lg backdrop-blur-sm ${
+                                    car.status === 'active'
+                                      ? 'bg-green-500/95 text-white ring-2 ring-white/30'
+                                      : car.status === 'sold'
+                                        ? 'bg-red-500/95 text-white ring-2 ring-white/30'
+                                        : 'bg-gray-500/95 text-white ring-2 ring-white/30'
+                                  }`}
+                                >
+                                  {car.status === 'active'
+                                    ? '✓ متاح'
+                                    : car.status === 'sold'
+                                      ? '✓ مباع'
+                                      : '⊗ غير متاح'}
+                                </span>
+                              </div>
+
+                              {/* زر المفضلة */}
+                              <button
+                                onClick={(e) => handleToggleFavorite(car.id, e)}
+                                className="absolute right-3 top-3 rounded-full bg-white/95 p-2.5 shadow-lg ring-2 ring-white/50 backdrop-blur-sm transition-all duration-300 hover:scale-125 hover:bg-white hover:shadow-xl"
+                              >
+                                {isFavorite(car.id) ? (
+                                  <HeartSolid className="h-5 w-5 animate-pulse text-red-500" />
+                                ) : (
+                                  <HeartIcon className="h-5 w-5 text-gray-600 transition-colors hover:text-red-500" />
+                                )}
+                              </button>
+                            </div>
+
+                            {/* معلومات السيارة */}
+                            <div className="p-5">
+                              <h4 className="mb-2 line-clamp-2 font-bold text-gray-900 transition-colors group-hover:text-blue-600">
+                                {car.title || `${car.make} ${car.model} ${car.year}`}
+                              </h4>
+
+                              <div className="mb-4 flex items-center gap-3 text-sm text-gray-600">
+                                <span className="font-medium">{car.year}</span>
+                                <span className="text-gray-300">•</span>
+                                <span>{formatNumber(car.mileage || 0)} كم</span>
+                                <span className="text-gray-300">•</span>
+                                <span className="text-xs">{car.city || car.location}</span>
+                              </div>
+
+                              <div className="flex items-center justify-between border-t border-gray-100 pt-3">
+                                <div className="text-xl font-bold text-blue-600">
+                                  {formatNumber(car.price || 0)}
+                                  <span className="mr-1 text-sm font-medium text-gray-500">
+                                    د.ل
+                                  </span>
+                                </div>
+
+                                {car.auction && (
+                                  <div className="flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-600">
+                                    <TrophyIcon className="h-3.5 w-3.5" />
+                                    <span>مزاد</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
             {/* Sidebar - Stats and Info */}
             <div className="space-y-6 lg:col-span-1">
               {/* Quick Stats */}
@@ -872,197 +1191,94 @@ const ModernSellerProfile: React.FC = () => {
                   </CardContent>
                 </Card>
               )}
-            </div>
 
-            {/* Main Content - Listings */}
-            <div className="lg:col-span-3">
+              {/* Seller Reviews */}
               <Card className="border-0 shadow-lg">
-                {/* عنوان الإعلانات */}
-                <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-blue-50 to-cyan-50 pb-6">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="rounded-xl bg-blue-100 p-3 shadow-sm">
-                        <BuildingStorefrontIcon className="h-6 w-6 text-blue-600" />
+                      <div className="rounded-xl bg-yellow-100 p-3">
+                        <StarSolid className="h-6 w-6 text-yellow-500" />
                       </div>
                       <div>
-                        <h3 className="text-xl font-bold text-gray-900">إعلانات البائع</h3>
-                        <p className="text-sm text-gray-600">
-                          {formatNumber(sellerCars.length)} سيارة متاحة
-                        </p>
+                        <h3 className="text-lg font-bold text-gray-900">تقييمات البائع</h3>
+                        {sellerData.rating &&
+                          sellerData.reviewsCount &&
+                          sellerData.reviewsCount > 0 && (
+                            <p className="text-sm text-gray-600">
+                              متوسط {sellerData.rating.toFixed(1)} من{' '}
+                              {formatNumber(sellerData.reviewsCount)} تقييم
+                            </p>
+                          )}
                       </div>
                     </div>
-
-                    {/* أزرار الفلترة */}
-                    <div className="inline-flex rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
-                      <button
-                        onClick={() => setActiveTab('active')}
-                        className={`group rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
-                          activeTab === 'active'
-                            ? 'scale-105 bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md'
-                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                        }`}
-                      >
-                        <span className="flex items-center gap-1.5">
-                          <span>النشطة</span>
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-xs ${
-                              activeTab === 'active' ? 'bg-white/20' : 'bg-gray-200'
-                            }`}
-                          >
-                            {formatNumber(
-                              sellerCars.filter((car) => car.status === 'active').length,
-                            )}
-                          </span>
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => setActiveTab('sold')}
-                        className={`group rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
-                          activeTab === 'sold'
-                            ? 'scale-105 bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md'
-                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                        }`}
-                      >
-                        <span className="flex items-center gap-1.5">
-                          <span>المباعة</span>
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-xs ${
-                              activeTab === 'sold' ? 'bg-white/20' : 'bg-gray-200'
-                            }`}
-                          >
-                            {formatNumber(sellerCars.filter((car) => car.status === 'sold').length)}
-                          </span>
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => setActiveTab('all')}
-                        className={`group rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
-                          activeTab === 'all'
-                            ? 'scale-105 bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md'
-                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                        }`}
-                      >
-                        <span className="flex items-center gap-1.5">
-                          <span>الكل</span>
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-xs ${
-                              activeTab === 'all' ? 'bg-white/20' : 'bg-gray-200'
-                            }`}
-                          >
-                            {formatNumber(sellerCars.length)}
-                          </span>
-                        </span>
-                      </button>
-                    </div>
+                    {reviewsLoading && (
+                      <span className="text-xs text-gray-500">جاري جلب التقييمات...</span>
+                    )}
                   </div>
                 </CardHeader>
-
-                {/* Listings Content */}
-                <CardContent className="p-6">
-                  {sellerCars.length === 0 ? (
-                    <div className="py-16 text-center">
-                      <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
-                        <BuildingStorefrontIcon className="h-8 w-8 text-gray-400" />
-                      </div>
-                      <h3 className="mb-2 text-lg font-semibold text-gray-900">لا توجد إعلانات</h3>
-                      <p className="text-gray-600">لم يقم هذا البائع بنشر أي إعلانات بعد</p>
+                <CardContent className="space-y-4">
+                  {reviewsError && (
+                    <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+                      {reviewsError}
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                      {sellerCars
-                        .filter((car) => {
-                          if (activeTab === 'active') return car.status === 'active';
-                          if (activeTab === 'sold') return car.status === 'sold';
-                          return true;
-                        })
-                        .map((car) => (
-                          <div
-                            key={car.id}
-                            className="group cursor-pointer overflow-hidden rounded-2xl border-2 border-gray-200 bg-white shadow-md transition-all duration-300 hover:scale-[1.03] hover:border-blue-300 hover:shadow-2xl"
-                            onClick={() => router.push(`/marketplace/${car.id}`)}
-                          >
-                            {/* صورة السيارة */}
-                            <div className="relative h-52 overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
-                              {car.images && car.images.length > 0 ? (
-                                <Image
-                                  src={car.images[0].url || car.images[0]}
-                                  alt={car.title}
-                                  fill
-                                  className="object-cover transition-all duration-500 group-hover:rotate-1 group-hover:scale-110"
-                                />
-                              ) : (
-                                <div className="flex h-full items-center justify-center">
-                                  <BuildingStorefrontIcon className="h-16 w-16 text-gray-300" />
-                                </div>
-                              )}
-                              {/* تأثير التظليل */}
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  )}
 
-                              {/* شارة الحالة */}
-                              <div className="absolute left-3 top-3">
-                                <span
-                                  className={`rounded-full px-3 py-1.5 text-xs font-bold shadow-lg backdrop-blur-sm ${
-                                    car.status === 'active'
-                                      ? 'bg-green-500/95 text-white ring-2 ring-white/30'
-                                      : car.status === 'sold'
-                                        ? 'bg-red-500/95 text-white ring-2 ring-white/30'
-                                        : 'bg-gray-500/95 text-white ring-2 ring-white/30'
+                  {!reviewsLoading && reviews.length === 0 && !reviewsError && (
+                    <p className="text-sm text-gray-500">لا توجد تقييمات للبائع حتى الآن.</p>
+                  )}
+
+                  {reviews.slice(0, 3).map((review) => (
+                    <div
+                      key={review.id}
+                      className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-all hover:border-yellow-200 hover:shadow-md"
+                    >
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600">
+                            {(review.reviewer?.name || 'مستخدم').trim().charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">
+                              {review.reviewer?.name || 'مستخدم من المنصة'}
+                            </p>
+                            <div className="flex items-center gap-1">
+                              {Array.from({ length: 5 }).map((_, index) => (
+                                <StarSolid
+                                  key={index}
+                                  className={`h-3.5 w-3.5 ${
+                                    index < review.rating ? 'text-yellow-400' : 'text-gray-200'
                                   }`}
-                                >
-                                  {car.status === 'active'
-                                    ? '✓ متاح'
-                                    : car.status === 'sold'
-                                      ? '✓ مباع'
-                                      : '⊗ غير متاح'}
-                                </span>
-                              </div>
-
-                              {/* زر المفضلة */}
-                              <button
-                                onClick={(e) => handleToggleFavorite(car.id, e)}
-                                className="absolute right-3 top-3 rounded-full bg-white/95 p-2.5 shadow-lg ring-2 ring-white/50 backdrop-blur-sm transition-all duration-300 hover:scale-125 hover:bg-white hover:shadow-xl"
-                              >
-                                {isFavorite(car.id) ? (
-                                  <HeartSolid className="h-5 w-5 animate-pulse text-red-500" />
-                                ) : (
-                                  <HeartIcon className="h-5 w-5 text-gray-600 transition-colors hover:text-red-500" />
-                                )}
-                              </button>
-                            </div>
-
-                            {/* معلومات السيارة */}
-                            <div className="p-5">
-                              <h4 className="mb-2 line-clamp-2 font-bold text-gray-900 transition-colors group-hover:text-blue-600">
-                                {car.title || `${car.make} ${car.model} ${car.year}`}
-                              </h4>
-
-                              <div className="mb-4 flex items-center gap-3 text-sm text-gray-600">
-                                <span className="font-medium">{car.year}</span>
-                                <span className="text-gray-300">•</span>
-                                <span>{formatNumber(car.mileage || 0)} كم</span>
-                                <span className="text-gray-300">•</span>
-                                <span className="text-xs">{car.city || car.location}</span>
-                              </div>
-
-                              <div className="flex items-center justify-between border-t border-gray-100 pt-3">
-                                <div className="text-xl font-bold text-blue-600">
-                                  {formatNumber(car.price || 0)}
-                                  <span className="mr-1 text-sm font-medium text-gray-500">
-                                    د.ل
-                                  </span>
-                                </div>
-
-                                {car.auction && (
-                                  <div className="flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-600">
-                                    <TrophyIcon className="h-3.5 w-3.5" />
-                                    <span>مزاد</span>
-                                  </div>
-                                )}
-                              </div>
+                                />
+                              ))}
                             </div>
                           </div>
-                        ))}
+                        </div>
+                        <span className="text-xs text-gray-400">
+                          {new Date(review.createdAt).toLocaleDateString('ar-SA')}
+                        </span>
+                      </div>
+                      {review.comment && (
+                        <p className="text-sm leading-relaxed text-gray-700">{review.comment}</p>
+                      )}
                     </div>
+                  ))}
+
+                  {reviews.length > 3 && (
+                    <button
+                      type="button"
+                      className="w-full rounded-lg bg-gray-50 py-2 text-center text-xs font-medium text-gray-700 transition hover:bg-gray-100"
+                      onClick={() =>
+                        setReviews((prev) =>
+                          [...prev].sort(
+                            (a, b) =>
+                              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+                          ),
+                        )
+                      }
+                    >
+                      عرض أحدث التقييمات أولاً
+                    </button>
                   )}
                 </CardContent>
               </Card>

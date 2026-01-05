@@ -37,12 +37,12 @@ export default async function handler(
     // 1. اختبار الاتصال بقاعدة البيانات
     try {
       console.log("🔗 اختبار الاتصال بقاعدة البيانات...");
-      
+
       // اختبار بسيط للاتصال
       const connectionTest = await dbHelpers.prisma.$queryRaw`SELECT 1 as test`;
       systemStatus.database.connection = "✅ متصل";
       systemStatus.database.testQuery = "✅ نجح";
-      
+
       console.log("✅ الاتصال بقاعدة البيانات يعمل");
     } catch (dbError) {
       systemStatus.database.connection = "❌ فشل";
@@ -55,7 +55,7 @@ export default async function handler(
       const stats = await Promise.allSettled([
         dbHelpers.prisma.users.count(),
         dbHelpers.prisma.cars.count(),
-        dbHelpers.prisma.carImage.count(),
+        dbHelpers.prisma.car_images.count(),
         dbHelpers.prisma.auctions.count(),
       ]);
 
@@ -65,7 +65,7 @@ export default async function handler(
         totalCarImages: stats[2].status === 'fulfilled' ? stats[2].value : 'خطأ',
         totalAuctions: stats[3].status === 'fulfilled' ? stats[3].value : 'خطأ',
       };
-      
+
       console.log("📊 إحصائيات قاعدة البيانات:", systemStatus.database.stats);
     } catch (statsError) {
       systemStatus.errors.push(`Database stats: ${statsError instanceof Error ? statsError.message : 'Unknown error'}`);
@@ -76,7 +76,7 @@ export default async function handler(
     const testUserId = "cmg8gnk4q0000vg40nfwwb0hq";
     try {
       console.log("👤 البحث عن المستخدم التجريبي:", testUserId);
-      
+
       const testUser = await dbHelpers.prisma.users.findUnique({
         where: { id: testUserId },
         select: {
@@ -126,10 +126,10 @@ export default async function handler(
     // 4. اختبار إنشاء سيارة تجريبية (بدون حفظ)
     try {
       console.log("🚗 اختبار بيانات إنشاء السيارة...");
-      
+
       const testCarData = {
         title: "اختبار النظام",
-        brand: "تويوتا", 
+        brand: "تويوتا",
         model: "كامري",
         year: 2020,
         price: 25000.0,
@@ -146,9 +146,9 @@ export default async function handler(
 
       // التحقق من صحة البيانات بدون إنشاء فعلي
       const validation = {
-        hasAllRequired: !!(testCarData.title && testCarData.brand && testCarData.model && 
-                          testCarData.year && testCarData.price && testCarData.location &&
-                          testCarData.contactPhone && testCarData.sellerId),
+        hasAllRequired: !!(testCarData.title && testCarData.brand && testCarData.model &&
+          testCarData.year && testCarData.price && testCarData.location &&
+          testCarData.contactPhone && testCarData.sellerId),
         dataTypes: {
           year: typeof testCarData.year === 'number',
           price: typeof testCarData.price === 'number',
@@ -158,7 +158,7 @@ export default async function handler(
 
       systemStatus.apis.carCreate = validation.hasAllRequired ? "✅ البيانات صحيحة" : "❌ بيانات ناقصة";
       console.log("🔍 نتيجة فحص بيانات السيارة:", validation);
-      
+
     } catch (carTestError) {
       systemStatus.apis.carCreate = "❌ خطأ في الاختبار";
       systemStatus.errors.push(`Car creation test: ${carTestError instanceof Error ? carTestError.message : 'Unknown error'}`);
@@ -167,7 +167,7 @@ export default async function handler(
 
     // النتيجة النهائية
     const overallStatus = systemStatus.errors.length === 0 ? "✅ النظام يعمل بشكل طبيعي" : "⚠️ يوجد مشاكل";
-    
+
     console.log("📋 تقرير حالة النظام:", overallStatus);
 
     return res.status(200).json({
@@ -177,7 +177,7 @@ export default async function handler(
       details: systemStatus,
       recommendations: systemStatus.errors.length > 0 ? [
         "تحقق من الاتصال بقاعدة البيانات",
-        "تأكد من وجود المستخدم في النظام", 
+        "تأكد من وجود المستخدم في النظام",
         "راجع إعدادات Prisma",
         "تحقق من متغيرات البيئة",
       ] : [
@@ -194,8 +194,8 @@ export default async function handler(
       error: "خطأ في فحص النظام",
       details: {
         originalError: error instanceof Error ? error.message : "Unknown error",
-        stack: process.env.NODE_ENV === "development" && error instanceof Error 
-          ? error.stack 
+        stack: process.env.NODE_ENV === "development" && error instanceof Error
+          ? error.stack
           : undefined,
       },
       timestamp: new Date().toISOString(),

@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
-
-const prisma = new PrismaClient();
+import { prisma } from '../../../lib/prisma';
 
 // محاكاة إرسال SMS (للاختبار)
 async function sendSMSLocal(phone: string, message: string): Promise<{ success: boolean; messageId?: string; error?: string; }> {
@@ -93,7 +91,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             success: false,
             message: 'حدث خطأ في إرسال الرسالة',
         });
-    } finally {
-        await prisma.$disconnect();
     }
 }

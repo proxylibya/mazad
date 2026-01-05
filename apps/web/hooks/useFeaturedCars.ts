@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { formatPrice } from '../utils/numberFormat';
+import { useEffect, useState } from 'react';
 
 interface Car {
   id: string;

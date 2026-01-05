@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 /* eslint-disable react-hooks/exhaustive-deps */
 import { processCardImages } from '@/lib/services/UnifiedImageService';
 import HandRaisedIcon from '@heroicons/react/24/outline/HandRaisedIcon';
@@ -6,11 +5,11 @@ import HeartIcon from '@heroicons/react/24/outline/HeartIcon';
 import MapPinIcon from '@heroicons/react/24/outline/MapPinIcon';
 import PhoneIcon from '@heroicons/react/24/outline/PhoneIcon';
 import { HeartIcon as HeartSolid, StarIcon } from '@heroicons/react/24/solid';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import React from 'react';
-// formatCityRegion تم استبداله بعرض location + area مباشرة
 
-import SimpleImageRenderer from '../../../ui/SimpleImageRenderer';
+import SimpleCircularAuctionTimer from '../timer/SimpleCircularAuctionTimer';
 
 interface AuctionCardGridProps {
   car: {
@@ -113,13 +112,10 @@ const AuctionCardGrid: React.FC<AuctionCardGridProps> = ({
         })
       : '';
 
-  // معالج النقر على البطاقة - يستخدم onCardClick المخصص إذا كان متاحاً
   const handleCardClick = (e: React.MouseEvent) => {
-    // تجنب التنقل إذا تم النقر على الأزرار أو أسهم التنقل
     if ((e.target as HTMLElement).closest('button')) {
       return;
     }
-    // استخدام التوجيه المخصص إذا كان متاحاً (مثل مزادات الساحات)
     if (onCardClick) {
       onCardClick(car);
     } else {
@@ -127,11 +123,9 @@ const AuctionCardGrid: React.FC<AuctionCardGridProps> = ({
     }
   };
 
-  // تم إزالة getAuctionStatusInfo - لم تعد مطلوبة لأن الشارة ستظهر من العداد الدائري
-
   return (
     <div
-      className="group relative mx-auto w-full max-w-xs transform cursor-pointer overflow-hidden rounded-2xl bg-white shadow-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl"
+      className="relative mx-auto flex h-full w-full max-w-md cursor-pointer flex-col overflow-hidden rounded-2xl bg-white shadow-xl"
       onClick={handleCardClick}
     >
       {isFeatured && (
@@ -141,13 +135,20 @@ const AuctionCardGrid: React.FC<AuctionCardGridProps> = ({
         </div>
       )}
 
-      <div className="relative h-40 overflow-hidden bg-gray-50">
-        <SimpleImageRenderer
-          images={imageData.urls}
-          carImages={car.car?.carImages || []}
+      <div className="relative h-40 w-full overflow-hidden bg-gray-50">
+        <Image
+          src={imageData.primaryUrl || '/images/cars/default-car.svg'}
           alt={car.title}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-          showNavigation={false}
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="object-cover"
+          priority={false}
+          unoptimized={
+            typeof imageData.primaryUrl === 'string' &&
+            (imageData.primaryUrl.includes('/uploads/') ||
+              imageData.primaryUrl.includes('/images/cars/listings/') ||
+              imageData.primaryUrl.includes('/images/cars/auction-listings/'))
+          }
         />
 
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
@@ -228,6 +229,28 @@ const AuctionCardGrid: React.FC<AuctionCardGridProps> = ({
         {car.description && (
           <p className="mb-3 line-clamp-2 text-xs text-gray-600">{car.description}</p>
         )}
+
+        <div className="mb-4 flex justify-center">
+          <div className="scale-90">
+            <SimpleCircularAuctionTimer
+              endTime={car.auctionEndTime}
+              startTime={car.auctionStartTime}
+              currentBid={
+                car.currentBid ||
+                car.currentPrice ||
+                car.startingBid ||
+                car.startingPrice ||
+                car.price ||
+                '0'
+              }
+              bidCount={car.bidCount}
+              startingBid={car.startingBid}
+              reservePrice={car.reservePrice || undefined}
+              auctionStatus={car.auctionType}
+              externalTick={externalTick ?? -1}
+            />
+          </div>
+        </div>
 
         <div className="mt-auto flex w-full gap-2">
           <button

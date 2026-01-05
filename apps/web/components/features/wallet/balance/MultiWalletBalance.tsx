@@ -1,17 +1,16 @@
-import React, { useState } from 'react';
-import Link from 'next/link';
-import WalletIcon from '@heroicons/react/24/outline/WalletIcon';
-import CurrencyDollarIcon from '@heroicons/react/24/outline/CurrencyDollarIcon';
-import GlobeAltIcon from '@heroicons/react/24/outline/GlobeAltIcon';
-import PlusIcon from '@heroicons/react/24/outline/PlusIcon';
 import ArrowUpIcon from '@heroicons/react/24/outline/ArrowUpIcon';
 import BuildingLibraryIcon from '@heroicons/react/24/outline/BuildingLibraryIcon';
 import CreditCardIcon from '@heroicons/react/24/outline/CreditCardIcon';
+import CurrencyDollarIcon from '@heroicons/react/24/outline/CurrencyDollarIcon';
 import DevicePhoneMobileIcon from '@heroicons/react/24/outline/DevicePhoneMobileIcon';
 import EyeIcon from '@heroicons/react/24/outline/EyeIcon';
 import EyeSlashIcon from '@heroicons/react/24/outline/EyeSlashIcon';
+import GlobeAltIcon from '@heroicons/react/24/outline/GlobeAltIcon';
+import PlusIcon from '@heroicons/react/24/outline/PlusIcon';
 import SparklesIcon from '@heroicons/react/24/outline/SparklesIcon';
-import ArrowTrendingUpIcon from '@heroicons/react/24/outline/ArrowTrendingUpIcon';
+import WalletIcon from '@heroicons/react/24/outline/WalletIcon';
+import Link from 'next/link';
+import React, { useState } from 'react';
 import { formatNumber } from '../utils/numberUtils';
 
 interface WalletBalanceData {
@@ -46,7 +45,7 @@ const MultiWalletBalance: React.FC<MultiWalletBalanceProps> = ({
 
   // تنسيق الرصيد بنظام 00.00
   const formatBalanceDecimal = (amount: number): string => {
-    return formatNumber(Number(amount).toFixed(2));
+    return formatNumber(Number(Number(amount).toFixed(2)));
   };
 
   // تنسيق الرصيد مع إخفاء/إظهار

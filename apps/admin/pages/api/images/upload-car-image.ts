@@ -7,7 +7,9 @@ import formidable from 'formidable';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import os from 'os';
 import path from 'path';
+import { uploadBufferToBlob } from '../../../lib/blob';
 
 const JWT_SECRET = process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET || 'sooq-mazad-admin-secret-key-min-32-chars!';
 const COOKIE_NAME = 'admin_session';
@@ -61,30 +63,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             console.warn('⚠️ [تحذير] رفع صورة بدون مصادقة في وضع التطوير');
         }
 
-        // تحديد مسار المشروع الرئيسي (الجذر)
-        // process.cwd() في admin app = apps/admin
-        // نريد الحفظ في المجلد المشترك: public/uploads/marketplace
-        const rootDir = path.resolve(process.cwd(), '..', '..');
-
-        // إنشاء مجلد الرفع في المسار المشترك
-        const uploadDir = path.join(rootDir, 'public', 'uploads', 'marketplace');
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
-        }
-
-        // أيضاً إنشاء نسخة في مجلد web للتأكد من الوصول
-        const webUploadDir = path.join(rootDir, 'apps', 'web', 'public', 'uploads', 'marketplace');
-        if (!fs.existsSync(webUploadDir)) {
-            fs.mkdirSync(webUploadDir, { recursive: true });
-        }
-
-        // إنشاء مجلد temp إذا لم يكن موجوداً
-        const tempDir = path.join(rootDir, 'uploads', 'temp');
+        const tempDir = path.join(os.tmpdir(), 'sooq-mazad', 'admin', 'uploads', 'temp');
         if (!fs.existsSync(tempDir)) {
             fs.mkdirSync(tempDir, { recursive: true });
         }
-
-        console.log('[Upload] مسارات الرفع:', { rootDir, uploadDir, webUploadDir, tempDir });
 
         // إعداد formidable
         const form = formidable({
@@ -129,39 +111,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const timestamp = Date.now();
         const ext = path.extname(imageFile.originalFilename || '.jpg');
         const newFileName = `marketplace_${category}_${timestamp}${ext}`;
-        const newFilePath = path.join(uploadDir, newFileName);
+        const buffer = await fs.promises.readFile(imageFile.filepath);
+        const contentType = imageFile.mimetype || 'application/octet-stream';
+        const uploaded = await uploadBufferToBlob({
+            buffer,
+            filename: newFileName,
+            contentType,
+            folder: 'uploads/marketplace',
+        });
+        await fs.promises.unlink(imageFile.filepath).catch(() => { });
 
-        // نقل الملف إلى المجلد الرئيسي
-        fs.renameSync(imageFile.filepath, newFilePath);
-
-        // التحقق من نجاح النقل
-        if (!fs.existsSync(newFilePath)) {
-            return res.status(500).json({ success: false, message: 'فشل في حفظ الصورة' });
-        }
-
-        // نسخ الملف إلى مجلد web - هذا المجلد الأساسي للعرض
-        const webFilePath = path.join(webUploadDir, newFileName);
-        try {
-            fs.copyFileSync(newFilePath, webFilePath);
-            console.log('[Upload] تم نسخ الصورة إلى مجلد web:', webFilePath);
-
-            // التحقق من نجاح النسخ
-            if (!fs.existsSync(webFilePath)) {
-                console.error('[Upload] فشل التحقق من وجود الملف في web');
-            }
-        } catch (copyError) {
-            console.error('[Upload] خطأ في نسخ الصورة إلى web:', copyError);
-            // محاولة النقل بدلاً من النسخ
-            try {
-                fs.renameSync(newFilePath, webFilePath);
-                console.log('[Upload] تم نقل الصورة إلى مجلد web بنجاح');
-            } catch (moveError) {
-                console.error('[Upload] فشل نقل الصورة أيضاً:', moveError);
-            }
-        }
-
-        // إنشاء URL للصورة
-        const fileUrl = `/uploads/marketplace/${newFileName}`;
+        const fileUrl = uploaded.url;
 
         console.log('✅ تم رفع الصورة بنجاح:', {
             fileName: newFileName,

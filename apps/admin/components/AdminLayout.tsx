@@ -1,6 +1,6 @@
 'use client';
 
-import { Bars3Icon } from '@heroicons/react/24/outline';
+import { Bars3Icon, ClockIcon } from '@heroicons/react/24/outline';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
@@ -24,9 +24,29 @@ export default function AdminLayout({ children, title = 'لوحة التحكم' 
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState('');
 
   useEffect(() => {
     checkAuth();
+  }, []);
+
+  useEffect(() => {
+    const updateTime = () => {
+      setCurrentTime(
+        new Date().toLocaleTimeString('ar-LY', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        }),
+      );
+    };
+
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+
+    return () => {
+      clearInterval(timer);
+    };
   }, []);
 
   const checkAuth = async () => {
@@ -102,12 +122,12 @@ export default function AdminLayout({ children, title = 'لوحة التحكم' 
               </div>
 
               <div className="flex items-center gap-2 sm:gap-4">
-                {/* نظام الإشعارات */}
-                <NotificationDropdown />
+                <div className="hidden items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/80 px-3 py-1 text-xs text-slate-300 sm:flex">
+                  <ClockIcon className="h-4 w-4 text-slate-400" />
+                  <span className="font-mono tabular-nums">{currentTime}</span>
+                </div>
 
-                <span className="hidden text-sm text-slate-400 sm:inline-block">
-                  مرحباً، <span className="text-white">{admin.name}</span>
-                </span>
+                <NotificationDropdown />
               </div>
             </div>
           </header>

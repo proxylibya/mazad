@@ -18,7 +18,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import AdminLayout from '../../../components/AdminLayout';
-import { parseImages } from '../../../components/unified';
+import { parseImages, truncateText } from '../../../components/unified';
 
 interface Auction {
   id: string;
@@ -319,10 +319,12 @@ export default function SoldAuctionsPage() {
                         <CheckBadgeIcon className="h-5 w-5 text-emerald-400" />
                       </div>
                       <div>
-                        <p className="font-medium text-white">{auction.title}</p>
+                        <p className="font-medium text-white" title={auction.title}>
+                          {truncateText(auction.title)}
+                        </p>
                         {auction.car && (
-                          <p className="text-sm text-slate-400">
-                            {auction.car.title} - {auction.car.year}
+                          <p className="text-sm text-slate-400" title={auction.car.title}>
+                            {truncateText(auction.car.title)} - {auction.car.year}
                           </p>
                         )}
                       </div>
@@ -346,13 +348,20 @@ export default function SoldAuctionsPage() {
                       <div className="rounded-full bg-amber-500/20 p-1.5">
                         <TrophyIcon className="h-4 w-4 text-amber-400" />
                       </div>
-                      <span className="text-slate-300">{auction.winner?.name || 'غير محدد'}</span>
+                      <span
+                        className="text-slate-300"
+                        title={auction.winner?.name || 'غير محدد'}
+                      >
+                        {truncateText(auction.winner?.name || 'غير محدد')}
+                      </span>
                     </div>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">
                     <div className="flex items-center gap-2">
                       <UserIcon className="h-4 w-4 text-slate-400" />
-                      <span className="text-slate-300">{auction.seller?.name || '-'}</span>
+                      <span className="text-slate-300" title={auction.seller?.name || '-'}>
+                        {truncateText(auction.seller?.name || '-')}
+                      </span>
                     </div>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-slate-300">

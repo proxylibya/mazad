@@ -18,6 +18,8 @@ import TruckIcon from '@heroicons/react/24/outline/TruckIcon';
 import useAuthProtection from '../../../hooks/useAuthProtection';
 import { prisma } from '../../../lib/prisma';
 
+const SITE_TEAM_USER_ID = 'site_team';
+
 interface ProviderInfo {
   id: string;
   name: string;
@@ -316,6 +318,29 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({ params
 
     if (!svc) return { notFound: true };
 
+    let teamName: string | null = null;
+    let teamPhone: string | null = null;
+    if (svc.users?.id === SITE_TEAM_USER_ID) {
+      try {
+        const record = await prisma.system_settings.findFirst({ where: { key: 'site_team' } });
+        const raw = record?.value
+          ? typeof record.value === 'string'
+            ? (JSON.parse(record.value as string) as any)
+            : (record.value as any)
+          : null;
+
+        const phones = Array.isArray(raw?.phones)
+          ? raw.phones.map((p: any) => String(p || '').trim()).filter(Boolean)
+          : [];
+        const whatsappPhone = String(raw?.whatsappPhone || '').trim();
+
+        teamName = String(raw?.teamName || svc.users.name || 'فريق مزاد');
+        teamPhone = phones.find(Boolean) || whatsappPhone || svc.users.phone || null;
+      } catch {
+        // ignore parsing errors
+      }
+    }
+
     const service: TransportServiceSSR = {
       id: svc.id,
       title: svc.title,
@@ -345,13 +370,13 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({ params
       createdAt: svc.createdAt.toISOString(),
       provider: {
         id: svc.users.id,
-        name: svc.users.name,
-        phone: svc.users.phone,
+        name: teamName || svc.users.name,
+        phone: teamPhone || svc.users.phone,
         verified: svc.users.verified,
         profileImage: svc.users.profileImage,
         accountType: svc.users.accountType || null,
       },
-      contactPhone: svc.contactPhone || svc.users.phone || null,
+      contactPhone: teamPhone || svc.contactPhone || svc.users.phone || null,
     };
 
     return { props: { service } };

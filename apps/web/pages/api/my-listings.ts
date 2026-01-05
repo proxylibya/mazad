@@ -53,11 +53,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 promotionPackage: true,
                 promotionEndDate: true,
                 createdAt: true,
-                images: {
-                    take: 1,
+                images: true,
+                car_images: {
                     select: {
-                        url: true,
+                        fileUrl: true,
+                        isPrimary: true,
                     },
+                    orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+                    take: 1,
                 },
             },
             orderBy: {
@@ -73,19 +76,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             select: {
                 id: true,
                 title: true,
-                startingPrice: true,
+                startPrice: true,
                 status: true,
                 featured: true,
                 promotionPackage: true,
                 promotionEndDate: true,
                 createdAt: true,
-                car: {
+                cars: {
                     select: {
-                        images: {
-                            take: 1,
+                        images: true,
+                        car_images: {
                             select: {
-                                url: true,
+                                fileUrl: true,
+                                isPrimary: true,
                             },
+                            orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+                            take: 1,
                         },
                     },
                 },
@@ -96,11 +102,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
 
         // تحويل البيانات للتنسيق الموحد
+        const getFirstImageUrl = (images: unknown, carImages: any[] | undefined) => {
+            const fromCarImages = carImages?.[0]?.fileUrl;
+            if (typeof fromCarImages === 'string' && fromCarImages.trim()) return fromCarImages.trim();
+
+            if (typeof images === 'string' && images.trim()) {
+                const raw = images.trim();
+                try {
+                    if (raw.startsWith('[')) {
+                        const parsed = JSON.parse(raw);
+                        if (Array.isArray(parsed) && typeof parsed[0] === 'string') {
+                            return parsed[0].trim() || null;
+                        }
+                    }
+                } catch { }
+
+                if (raw.includes(',')) {
+                    const first = raw.split(',')[0]?.trim();
+                    return first || null;
+                }
+
+                return raw || null;
+            }
+
+            return null;
+        };
+
         const carListings = cars.map((car) => ({
             id: car.id,
             title: car.title || 'سيارة بدون عنوان',
             price: car.price || 0,
-            image: car.images[0]?.url || null,
+            image: getFirstImageUrl((car as any).images, (car as any).car_images) || null,
             type: 'car' as const,
             status: car.status || 'AVAILABLE',
             promotionPackage: car.promotionPackage,
@@ -111,8 +143,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const auctionListings = auctions.map((auction) => ({
             id: auction.id,
             title: auction.title || 'مزاد بدون عنوان',
-            price: auction.startingPrice || 0,
-            image: auction.car?.images[0]?.url || null,
+            price: (auction as any).startPrice || 0,
+            image: getFirstImageUrl((auction as any).cars?.images, (auction as any).cars?.car_images) || null,
             type: 'auction' as const,
             status: auction.status || 'ACTIVE',
             promotionPackage: auction.promotionPackage,

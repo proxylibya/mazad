@@ -21,10 +21,10 @@ const GuestGuard: React.FC<GuestGuardProps> = ({
     </div>
   ),
 }) => {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
 
   // أثناء التحميل، عرض مكون التحميل
-  if (loading) {
+  if (isLoading) {
     return <>{loadingComponent}</>;
   }
 

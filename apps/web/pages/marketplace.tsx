@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 // import { useSession } from 'next-auth/react'; // تم تعطيل نظام المصادقة مؤقتاً
 import { GetServerSideProps } from 'next';
 import { OpensooqNavbar, Pagination } from '../components/common';
@@ -188,150 +188,131 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
     pageParam: 'page',
   });
 
-  // دالة تحديث البيانات محسنة للأداء - إصلاح جذري
-  const refreshCars = async (showLoading = false) => {
-    // منع التحديث المتعدد المتزامن
-    if (refreshCars.isRunning) {
-      // تم تجاهل التحديث - قيد التشغيل بالفعل
-      return;
-    }
+  // استخدام مرجع لحالة تشغيل التحديث لمنع الطلبات المتكررة
+  const refreshInProgressRef = useRef(false);
 
-    // بدء تحديث البيانات
-    refreshCars.isRunning = true;
-
-    try {
-      // تعيين حالة التحميل فقط إذا طُلب ذلك
-      if (showLoading) {
-        // تعيين حالة التحميل
-        setLoading(true);
+  // دالة تحديث البيانات محسنة للأداء ومنع التكرار
+  const refreshCars = useCallback(
+    async (showLoading = false) => {
+      if (refreshInProgressRef.current) {
+        return;
       }
 
-      // إضافة timestamp لتجنب cache
-      const timestamp = Date.now();
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // زيادة timeout إلى 15 ثانية
+      refreshInProgressRef.current = true;
 
       try {
-        const apiUrl = `/api/cars?status=AVAILABLE&page=${pagination.currentPage}&limit=${pagination.itemsPerPage}&isAuction=false&_t=${timestamp}`;
-        // استدعاء API للبيانات الجديدة
+        if (showLoading) {
+          setLoading(true);
+        }
 
-        const response = await fetch(apiUrl, {
-          cache: 'no-cache',
-          headers: {
-            'Cache-Control': 'no-cache',
-            Pragma: 'no-cache',
-          },
-          signal: controller.signal,
-        });
+        const timestamp = Date.now();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-        clearTimeout(timeoutId);
+        try {
+          const apiUrl = `/api/cars?status=AVAILABLE&page=${pagination.currentPage}&limit=${pagination.itemsPerPage}&isAuction=false&_t=${timestamp}`;
 
-        if (response.ok) {
-          const data = await response.json();
-          // تم استلام البيانات بنجاح
-
-          // إذا كانت الاستجابة لا تحتوي على data أو cars، نحافظ على القائمة الحالية
-          if (!data || !data.data || !Array.isArray(data.data.cars)) {
-            console.warn(
-              '⚠️ [RefreshCars] استجابة غير صالحة أو بدون cars - الاحتفاظ بالقائمة الحالية',
-            );
-            // تحديث معلومات الترقيم إن وُجدت
-            if (data?.data?.pagination?.total !== undefined) {
-              pagination.setTotalItems(data.data.pagination.total);
-            }
-            setLoading(false);
-            return;
-          }
-
-          // تحويل البيانات إلى التنسيق المطلوب مع دعم carImages الجديدة
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const formattedCars: CarWithUser[] = (data.data?.cars || []).map((car: any) => ({
-            id: car.id,
-            title: car.title || 'سيارة بدون عنوان',
-            price: car.price || 0,
-            condition: translateToArabic(car.condition || '') || 'مستعمل',
-            brand: car.brand || 'غير محدد',
-            model: car.model || 'غير محدد',
-            year: car.year || new Date().getFullYear(),
-            bodyType: translateToArabic(car.bodyType || '') || 'سيدان',
-            mileage: car.mileage || 0,
-            fuelType: translateToArabic(car.fuelType || '') || 'بنزين',
-            transmission: translateToArabic(car.transmission || '') || 'أوتوماتيك',
-            location:
-              typeof car.location === 'string' && car.location.trim() ? car.location : 'طرابلس',
-            area: car.area,
-            coordinates: undefined,
-            images:
-              Array.isArray(car.images) && car.images.length > 0
-                ? car.images
-                : ['/images/cars/default-car.svg'],
-            carImages: car.carImages || [],
-            featured: car.featured || false,
-            promotionPackage: car.promotionPackage || 'free',
-            promotionEndDate: car.promotionEndDate,
-            negotiable: car.isNegotiable || false,
-            urgent: car.urgent || false,
-            user: car.user || {
-              id: car.sellerId || 'unknown',
-              name: 'مستخدم غير معروف',
-              phone: car.phone || '',
-              verified: false,
+          const response = await fetch(apiUrl, {
+            cache: 'no-cache',
+            headers: {
+              'Cache-Control': 'no-cache',
+              Pragma: 'no-cache',
             },
-          }));
+            signal: controller.signal,
+          });
 
-          // تحديث البيانات بنجاح
+          clearTimeout(timeoutId);
 
-          // تحديث معلومات الترقيم أولاً
-          if (data.data?.pagination) {
-            pagination.setTotalItems(data.data.pagination.total);
-          }
+          if (response.ok) {
+            const data = await response.json();
 
-          // إذا أعاد الـ API قائمة فارغة، لا نقوم بمسح القائمة الحالية لتجنب اختفاء البطاقات
-          if (formattedCars.length === 0) {
-            console.warn('⚠️ [RefreshCars] API أعاد 0 سيارات - الحفاظ على القائمة الحالية');
-            // تحديث معلومات الترقيم أولاً إن وُجدت
+            if (!data || !data.data || !Array.isArray(data.data.cars)) {
+              console.warn(
+                '⚠️ [RefreshCars] استجابة غير صالحة أو بدون cars - الاحتفاظ بالقائمة الحالية',
+              );
+              if (data?.data?.pagination?.total !== undefined) {
+                pagination.setTotalItems(data.data.pagination.total);
+              }
+              setLoading(false);
+              return;
+            }
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const formattedCars: CarWithUser[] = (data.data?.cars || []).map((car: any) => ({
+              id: car.id,
+              title: car.title || 'سيارة بدون عنوان',
+              price: car.price || 0,
+              condition: translateToArabic(car.condition || '') || 'مستعمل',
+              brand: car.brand || 'غير محدد',
+              model: car.model || 'غير محدد',
+              year: car.year || new Date().getFullYear(),
+              bodyType: translateToArabic(car.bodyType || '') || 'سيدان',
+              mileage: car.mileage || 0,
+              fuelType: translateToArabic(car.fuelType || '') || 'بنزين',
+              transmission: translateToArabic(car.transmission || '') || 'أوتوماتيك',
+              location:
+                typeof car.location === 'string' && car.location.trim() ? car.location : 'طرابلس',
+              area: car.area,
+              coordinates: undefined,
+              images:
+                Array.isArray(car.images) && car.images.length > 0
+                  ? car.images
+                  : ['/images/cars/default-car.svg'],
+              carImages: car.carImages || [],
+              featured: car.featured || false,
+              promotionPackage: car.promotionPackage || 'free',
+              promotionEndDate: car.promotionEndDate,
+              negotiable: car.isNegotiable || false,
+              urgent: car.urgent || false,
+              user: car.user || {
+                id: car.sellerId || 'unknown',
+                name: 'مستخدم غير معروف',
+                phone: car.phone || '',
+                verified: false,
+              },
+            }));
+
             if (data.data?.pagination) {
               pagination.setTotalItems(data.data.pagination.total);
             }
+
+            if (formattedCars.length === 0) {
+              console.warn('⚠️ [RefreshCars] API أعاد 0 سيارات - الحفاظ على القائمة الحالية');
+              if (data.data?.pagination) {
+                pagination.setTotalItems(data.data.pagination.total);
+              }
+              setLoading(false);
+              return;
+            }
+
+            setCars(formattedCars);
             setLoading(false);
-            return;
-          }
-
-          // تحديث البيانات - هذا هو الجزء المهم
-          setCars(formattedCars);
-
-          // إزالة حالة التحميل
-          setLoading(false);
-        } else {
-          console.error('❌ [RefreshCars] فشل في جلب البيانات، كود الحالة:', response.status);
-          setLoading(false);
-        }
-      } catch (fetchError: unknown) {
-        clearTimeout(timeoutId);
-        if (fetchError instanceof Error) {
-          if (fetchError.name === 'AbortError') {
-            // تم إلغاء الطلب
           } else {
-            console.error('❌ [RefreshCars] خطأ في الشبكة:', fetchError.message);
-            throw fetchError;
+            console.error('❌ [RefreshCars] فشل في جلب البيانات، كود الحالة:', response.status);
+            setLoading(false);
           }
-        } else {
-          console.error('❌ [RefreshCars] خطأ غير متوقع:', fetchError);
+        } catch (fetchError: unknown) {
+          clearTimeout(timeoutId);
+          if (fetchError instanceof Error) {
+            if (fetchError.name !== 'AbortError') {
+              console.error('❌ [RefreshCars] خطأ في الشبكة:', fetchError.message);
+              throw fetchError;
+            }
+          } else {
+            console.error('❌ [RefreshCars] خطأ غير متوقع:', fetchError);
+          }
+          setLoading(false);
         }
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'خطأ غير معروف';
+        console.error('❌ [RefreshCars] خطأ عام:', errorMessage);
         setLoading(false);
+      } finally {
+        refreshInProgressRef.current = false;
       }
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'خطأ غير معروف';
-      console.error('❌ [RefreshCars] خطأ عام:', errorMessage);
-      setLoading(false);
-    } finally {
-      refreshCars.isRunning = false;
-      // انتهاء التحديث
-    }
-  };
-
-  // إضافة خاصية لمنع التحديث المتعدد
-  refreshCars.isRunning = false;
+    },
+    [pagination.currentPage, pagination.itemsPerPage],
+  );
 
   // تحديث البيانات تلقائياً - إصلاح للتكرار
   useEffect(() => {
@@ -590,7 +571,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
   return (
     <>
       <Head>
-        <title>سوق الفوري | موقع مزاد السيارات</title>
+        <title>السوق الفوري | سوق المزاد</title>
         <meta
           name="description"
           content="تصفح السيارات المعروضة للبيع في سوق الفوري بأسعار ثابتة وقابلة للتفاوض"

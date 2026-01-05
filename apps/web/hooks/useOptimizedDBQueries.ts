@@ -1,5 +1,4 @@
-import { useCallback, useMemo, useRef } from 'react';
-import { useOptimizedAPI } from './useOptimizedAPI';
+import { useCallback, useMemo } from 'react';
 
 interface QueryCacheConfig {
   ttl?: number;
@@ -19,7 +18,7 @@ interface BatchedQuery {
 class OptimizedDBQueryManager {
   private batchQueues: Map<string, BatchedQuery[]> = new Map();
   private batchTimeouts: Map<string, NodeJS.Timeout> = new Map();
-  private cache: Map<string, { data: any; timestamp: number; ttl: number }> = new Map();
+  private cache: Map<string, { data: any; timestamp: number; ttl: number; }> = new Map();
   private ongoingQueries: Map<string, Promise<any>> = new Map();
 
   constructor(private defaultConfig: QueryCacheConfig = {}) {
@@ -68,7 +67,7 @@ class OptimizedDBQueryManager {
   // Batch multiple queries for efficiency
   async batchQuery<T>(
     queryType: string,
-    queries: Array<{ key: string; fn: () => Promise<T> }>,
+    queries: Array<{ key: string; fn: () => Promise<T>; }>,
     config: QueryCacheConfig = {},
   ): Promise<T[]> {
     const fullConfig = { ...this.defaultConfig, ...config };
@@ -244,7 +243,7 @@ class OptimizedDBQueryManager {
     console.log('DB query cache cleared');
   }
 
-  getCacheStats(): { size: number; hitRate: number } {
+  getCacheStats(): { size: number; hitRate: number; } {
     return {
       size: this.cache.size,
       hitRate: 0, // Implement hit rate tracking if needed
@@ -252,7 +251,7 @@ class OptimizedDBQueryManager {
   }
 
   // Preload commonly used queries
-  async preloadQueries(queries: Array<{ key: string; fn: () => Promise<any> }>): Promise<void> {
+  async preloadQueries(queries: Array<{ key: string; fn: () => Promise<any>; }>): Promise<void> {
     console.log(`Preloading ${queries.length} queries`);
     await Promise.allSettled(queries.map((q) => this.query(q.key, q.fn)));
   }
@@ -263,7 +262,18 @@ const dbQueryManager = new OptimizedDBQueryManager();
 
 // Hook for optimized database queries
 export function useOptimizedDBQueries() {
-  const { fetchData } = useOptimizedAPI();
+  const fetchData = useCallback(async (url: string, options?: { params?: Record<string, any>; }) => {
+    const params = options?.params;
+    const qs = params ? new URLSearchParams(params as Record<string, string>).toString() : '';
+    const fullUrl = qs ? `${url}?${qs}` : url;
+
+    const response = await fetch(fullUrl, { credentials: 'include' });
+    if (!response.ok) {
+      const text = await response.text().catch(() => '');
+      throw new Error(text || `HTTP ${response.status}`);
+    }
+    return response.json();
+  }, []);
 
   // Optimized user queries
   const queryUsers = useCallback(
@@ -312,7 +322,7 @@ export function useOptimizedDBQueries() {
 
   // Batch query multiple data types
   const queryBatchData = useCallback(
-    async (queries: Array<{ type: string; filters?: any }>) => {
+    async (queries: Array<{ type: string; filters?: any; }>) => {
       const batchQueries = queries.map((q) => ({
         key: `${q.type}_${JSON.stringify(q.filters || {})}`,
         fn: () => {
@@ -397,3 +407,4 @@ export function useOptimizedDBQueries() {
 
 // Export the manager for direct usage
 export { dbQueryManager };
+

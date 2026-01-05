@@ -121,7 +121,8 @@ export function handleApiError(
   }
 
   // خطأ غير متوقع
-  logger.error('Unhandled API Error', error as Error, {
+  logger.error('Unhandled API Error', {
+    error: error instanceof Error ? error.message : String(error),
     method: req.method,
     url: req.url,
     requestId,

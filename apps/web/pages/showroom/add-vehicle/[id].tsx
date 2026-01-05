@@ -1,44 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import ArrowLeftIcon from '@heroicons/react/24/outline/ArrowLeftIcon';
+import ArrowRightIcon from '@heroicons/react/24/outline/ArrowRightIcon';
+import BuildingStorefrontIcon from '@heroicons/react/24/outline/BuildingStorefrontIcon';
+import ChevronDownIcon from '@heroicons/react/24/outline/ChevronDownIcon';
+import ChevronUpIcon from '@heroicons/react/24/outline/ChevronUpIcon';
+import CogIcon from '@heroicons/react/24/outline/CogIcon';
+import PhoneIcon from '@heroicons/react/24/outline/PhoneIcon';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
+import { useEffect, useState } from 'react';
+import LocationPickerModal from '../../../components/LocationPickerModal';
 import { Layout } from '../../../components/common';
 import SelectField from '../../../components/ui/SelectField';
 import { useUserContext } from '../../../contexts/UserContext';
-import { processPhoneNumber } from '../../../utils/phoneUtils';
-import ArrowRightIcon from '@heroicons/react/24/outline/ArrowRightIcon';
-import ArrowLeftIcon from '@heroicons/react/24/outline/ArrowLeftIcon';
-import ExclamationTriangleIcon from '@heroicons/react/24/outline/ExclamationTriangleIcon';
-import InformationCircleIcon from '@heroicons/react/24/outline/InformationCircleIcon';
-import ChevronDownIcon from '@heroicons/react/24/outline/ChevronDownIcon';
-import ChevronUpIcon from '@heroicons/react/24/outline/ChevronUpIcon';
-import ClockIcon from '@heroicons/react/24/outline/ClockIcon';
-import CalendarIcon from '@heroicons/react/24/outline/CalendarIcon';
-import PhoneIcon from '@heroicons/react/24/outline/PhoneIcon';
-import MapPinIcon from '@heroicons/react/24/outline/MapPinIcon';
-import DocumentTextIcon from '@heroicons/react/24/outline/DocumentTextIcon';
-import CloudArrowUpIcon from '@heroicons/react/24/outline/CloudArrowUpIcon';
-import PlusIcon from '@heroicons/react/24/outline/PlusIcon';
-import XMarkIcon from '@heroicons/react/24/outline/XMarkIcon';
-import EyeIcon from '@heroicons/react/24/outline/EyeIcon';
-import CogIcon from '@heroicons/react/24/outline/CogIcon';
-import SwatchIcon from '@heroicons/react/24/outline/SwatchIcon';
-import SparklesIcon from '@heroicons/react/24/outline/SparklesIcon';
-import WrenchScrewdriverIcon from '@heroicons/react/24/outline/WrenchScrewdriverIcon';
-import BuildingStorefrontIcon from '@heroicons/react/24/outline/BuildingStorefrontIcon';
 import {
-  carBrands,
   carYears,
-  bodyTypes,
-  fuelTypes,
   conditions,
-  regionalSpecs,
   exteriorColors,
-  interiorColors,
-  getModelsByBrand,
+  fuelTypes,
   getAllBrandNames,
+  getModelsByBrand,
 } from '../../../data/simple-filters';
-import { libyanCities } from '../../../data/libyan-cities';
-import LocationPickerModal from '../../../components/LocationPickerModal';
+import { processPhoneNumber } from '../../../utils/phoneUtils';
 
 interface FormData {
   brand: string;
@@ -620,11 +602,23 @@ const ShowroomCarDetailsForm = () => {
             onLocationSelect={(location) => {
               setFormData((prev) => ({
                 ...prev,
-                coordinates: location,
+                coordinates: {
+                  lat: location.lat,
+                  lng: location.lng,
+                },
+                detailedAddress: location.address,
               }));
               setShowLocationModal(false);
             }}
-            initialLocation={formData.coordinates}
+            currentLocation={
+              formData.coordinates
+                ? {
+                    lat: formData.coordinates.lat,
+                    lng: formData.coordinates.lng,
+                    address: formData.detailedAddress || '',
+                  }
+                : undefined
+            }
           />
         </div>
       </div>

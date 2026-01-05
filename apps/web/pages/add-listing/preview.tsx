@@ -852,12 +852,12 @@ const PreviewPage = () => {
                   <div className="text-sm font-medium text-gray-900">{carData.condition}</div>
                   <div className="text-xs text-gray-500">الحالة</div>
                 </div>
-                {carData.mileage && (
+                {carData.mileage !== null && carData.mileage !== undefined && (
                   <div className="rounded-lg bg-gray-50 p-3 text-center">
                     <div className="text-sm font-medium text-gray-900">
                       {formatPrice(carData.mileage)} كم
                     </div>
-                    <div className="text-xs text-gray-500">المسافة</div>
+                    <div className="text-xs text-gray-500">المسافة المقطوعة</div>
                   </div>
                 )}
                 <div className="rounded-lg bg-gray-50 p-3 text-center">
@@ -913,7 +913,7 @@ const PreviewPage = () => {
                       <span className="text-gray-900">{carData.interiorColor}</span>
                     </div>
                   )}
-                  {carData.seatCount && (
+                  {carData.seatCount !== undefined && carData.seatCount !== null && (
                     <div className="flex justify-between">
                       <span className="text-gray-500">عدد المقاعد:</span>
                       <span className="text-gray-900">{carData.seatCount}</span>

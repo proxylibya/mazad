@@ -1,6 +1,6 @@
 // API محسن للإحصائيات مع التخزين المؤقت
-import type { NextApiRequest, NextApiResponse } from 'next';
 import prisma from '@/lib/prisma';
+import type { NextApiRequest, NextApiResponse } from 'next';
 import { statsCache } from '../../../lib/cache/statsCache';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -10,10 +10,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // استخدام التخزين المؤقت للإحصائيات
-    const cachedStats = await statsCache.getStats(async () => {
+    const cachedStats = await statsCache.getOrSet('simple', async () => {
       const [userCount, carCount, auctionCount] = await Promise.all([
         prisma.users.count(),
-        prisma.cars.count(), 
+        prisma.cars.count(),
         prisma.auctions.count(),
       ]);
 
@@ -24,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         systemSettings: {},
         lastUpdated: Date.now()
       };
-    });
+    }, 300);
 
     const { userCount, carCount, auctionCount } = cachedStats;
 

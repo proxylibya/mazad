@@ -19,7 +19,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import AdminLayout from '../../../components/AdminLayout';
-import { parseImages } from '../../../components/unified';
+import { parseImages, truncateText } from '../../../components/unified';
 
 interface Auction {
   id: string;
@@ -292,7 +292,9 @@ export default function LiveAuctionsPage() {
                       </span>
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-white">{auction.title}</p>
+                          <p className="font-medium text-white" title={auction.title}>
+                            {truncateText(auction.title)}
+                          </p>
                           {auction.featured && (
                             <span className="flex items-center gap-1 rounded-full bg-amber-500/20 px-2 py-0.5 text-xs text-amber-400">
                               <FireIcon className="h-3 w-3" />
@@ -301,8 +303,8 @@ export default function LiveAuctionsPage() {
                           )}
                         </div>
                         {auction.car && (
-                          <p className="text-sm text-slate-400">
-                            {auction.car.title} - {auction.car.year}
+                          <p className="text-sm text-slate-400" title={auction.car.title}>
+                            {truncateText(auction.car.title)} - {auction.car.year}
                           </p>
                         )}
                       </div>
@@ -330,7 +332,9 @@ export default function LiveAuctionsPage() {
                     </div>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-slate-300">
-                    {auction.seller?.name || '-'}
+                    <span title={auction.seller?.name || '-'}>
+                      {truncateText(auction.seller?.name || '-')}
+                    </span>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">
                     <div className="flex items-center gap-1">

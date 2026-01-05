@@ -516,7 +516,7 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
                 orderBy: { amount: 'desc' },
                 take: 1,
                 include: {
-                  bidder: {
+                  users: {
                     select: {
                       id: true,
                       name: true,
@@ -540,7 +540,7 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
 
           // Ensure auction is active
           const now = new Date();
-          if ((auction as unknown as { status?: string; endTime: Date; }).status === 'ENDED' || auction.endTime < now) {
+          if (auction.status === 'ENDED' || auction.endDate < now) {
             callback({ success: false, error: 'Auction has ended' });
             s.emit('error:auction', {
               error: 'المزاد قد انتهى',
@@ -561,7 +561,7 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
 
           // Get current auction state
           const currentBid = auction.bids[0];
-          const currentPrice = currentBid?.amount || auction.startingPrice;
+          const currentPrice = currentBid?.amount || auction.startPrice;
           const participantsCount = (await io.in(`auction:${data.auctionId}`).allSockets()).size;
 
           // Map DB status to socket AuctionState status union
@@ -581,21 +581,21 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
             imageUrl: undefined,
             status: mappedStatus,
             currentPrice,
-            startingPrice: auction.startingPrice,
-            minimumBidIncrement: Math.max(auction.minimumBidIncrement || 500, 500),
-            reservePrice: auction.reservePrice || undefined,
+            startingPrice: auction.startPrice,
+            minimumBidIncrement: Math.max(auction.minimumBid || 500, 500),
+            reservePrice: undefined,
             buyNowPrice: undefined,
-            startTime: auction.startTime.getTime(),
-            endTime: auction.endTime.getTime(),
+            startTime: auction.startDate.getTime(),
+            endTime: auction.endDate.getTime(),
             participantsCount,
             bidsCount: auction.totalBids || 0,
             lastBidder: currentBid
               ? {
-                id: currentBid.bidder.id,
-                name: currentBid.bidder.name,
+                id: currentBid.users.id,
+                name: currentBid.users.name,
                 role: 'USER',
                 accountType: 'REGULAR_USER',
-                verified: currentBid.bidder.verified,
+                verified: currentBid.users.verified,
               }
               : undefined,
             seller: undefined,
@@ -700,14 +700,14 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
 
           // Check if auction is still active
           const now = new Date();
-          if (auction.status === 'ENDED' || auction.endTime < now) {
+          if (auction.status === 'ENDED' || auction.endDate < now) {
             callback({ success: false, error: 'Auction has ended' });
             return;
           }
 
           const currentBid = auction.bids[0];
-          const currentPrice = currentBid?.amount || auction.startingPrice;
-          const minimumBid = currentPrice + Math.max(auction.minimumBidIncrement || 500, 500);
+          const currentPrice = currentBid?.amount || auction.startPrice;
+          const minimumBid = currentPrice + Math.max(auction.minimumBid || 500, 500);
 
           if (data.amount < minimumBid) {
             callback({
@@ -761,11 +761,11 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
           io.to(`auction:${data.auctionId}`).emit('bid:placed', {
             ...bidData,
             user: {
-              id: newBid.bidder.id,
-              name: newBid.bidder.name,
+              id: newBid.users.id,
+              name: newBid.users.name,
               role: 'USER',
               accountType: 'REGULAR_USER',
-              verified: newBid.bidder.verified,
+              verified: newBid.users.verified,
             },
           });
 

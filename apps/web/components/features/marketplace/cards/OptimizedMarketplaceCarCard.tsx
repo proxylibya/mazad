@@ -94,7 +94,8 @@ export const OptimizedMarketplaceCarCard: React.FC<OptimizedMarketplaceCarCardPr
             height={160}
             className="h-full w-full"
             objectFit="cover"
-            placeholder={optimizedImage?.placeholder}
+            placeholder={optimizedImage?.placeholder ? 'blur' : 'empty'}
+            blurDataURL={optimizedImage?.placeholder}
             sizes="240px"
           />
 
@@ -164,7 +165,8 @@ export const OptimizedMarketplaceCarCard: React.FC<OptimizedMarketplaceCarCardPr
           height={224}
           className="h-full w-full"
           objectFit="cover"
-          placeholder={optimizedImage?.placeholder}
+          placeholder={optimizedImage?.placeholder ? 'blur' : 'empty'}
+          blurDataURL={optimizedImage?.placeholder}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
 

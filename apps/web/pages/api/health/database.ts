@@ -11,7 +11,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // اختبار الاتصال بقاعدة البيانات
-    await prisma.$connect();
+    await prisma.$queryRaw`SELECT 1`;
 
     // اختبار استعلام بسيط
     const userCount = await prisma.users.count();
@@ -45,10 +45,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     missingTables = requiredTables.filter((table) => !existingTables.includes(table));
 
-    await prisma.$disconnect();
-
     return res.status(200).json({
       success: true,
+      connected: true,
       message: 'قاعدة البيانات متصلة وتعمل بشكل صحيح',
       database: 'PostgreSQL',
       version: dbVersion,
@@ -69,10 +68,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (error) {
     console.error('خطأ في فحص قاعدة البيانات:', error);
 
-    await prisma.$disconnect();
-
     return res.status(500).json({
       success: false,
+      connected: false,
       message: 'فشل في الاتصال بقاعدة البيانات',
       error: error instanceof Error ? error.message : 'خطأ غير معروف',
       database: 'PostgreSQL',

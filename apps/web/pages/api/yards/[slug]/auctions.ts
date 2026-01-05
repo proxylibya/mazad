@@ -12,15 +12,17 @@ function getAuctionStatus(auction: {
     status: string;
     startDate: Date | null;
     endDate: Date | null;
+    cars?: { status: string; } | null;
 }): 'live' | 'upcoming' | 'sold' | 'ended' {
     const now = new Date();
     const startDate = auction.startDate ? new Date(auction.startDate) : null;
     const endDate = auction.endDate ? new Date(auction.endDate) : null;
     const status = auction.status?.toUpperCase() || '';
+    const carStatus = auction.cars?.status || '';
 
     // ✅ أولاً: فحص الحالات المُحددة صراحة
     // السيارة مباعة
-    if (status === 'SOLD' || status === 'COMPLETED') {
+    if (status === 'SOLD' || status === 'COMPLETED' || carStatus === 'SOLD') {
         return 'sold';
     }
 
@@ -109,22 +111,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // بناء شرط البحث
-        const baseWhere: Record<string, unknown> = {
-            yardId: yard.id,
-        };
+        const whereConditions: any[] = [{ yardId: yard.id }];
 
         // فلتر البحث
         if (search && typeof search === 'string' && search.trim()) {
-            baseWhere.OR = [
-                { title: { contains: search, mode: 'insensitive' } },
-                { cars: { brand: { contains: search, mode: 'insensitive' } } },
-                { cars: { model: { contains: search, mode: 'insensitive' } } },
-            ];
+            whereConditions.push({
+                OR: [
+                    { title: { contains: search, mode: 'insensitive' } },
+                    { cars: { brand: { contains: search, mode: 'insensitive' } } },
+                    { cars: { model: { contains: search, mode: 'insensitive' } } },
+                ]
+            });
         }
 
         // فلتر الماركة
         if (brand && typeof brand === 'string' && brand.trim()) {
-            baseWhere.cars = { brand: { equals: brand, mode: 'insensitive' } };
+            whereConditions.push({
+                cars: { brand: { equals: brand, mode: 'insensitive' } }
+            });
         }
 
         // جلب جميع المزادات لحساب الإحصائيات
@@ -135,6 +139,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 status: true,
                 startDate: true,
                 endDate: true,
+                cars: {
+                    select: { status: true }
+                }
             },
         });
 
@@ -153,33 +160,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
 
         // تحديد فلتر الحالة بناءً على التبويب
-        let statusFilter: string[] = [];
         const now = new Date();
 
         if (tab === 'live') {
             // ACTIVE auctions that have started and not ended
-            baseWhere.status = 'ACTIVE';
-            baseWhere.startDate = { lte: now };
-            baseWhere.endDate = { gt: now };
+            whereConditions.push({
+                status: 'ACTIVE',
+                startDate: { lte: now },
+                endDate: { gt: now }
+            });
         } else if (tab === 'upcoming') {
             // PENDING/UPCOMING auctions that haven't started yet
-            baseWhere.OR = [
-                { status: { in: ['PENDING', 'UPCOMING', 'SCHEDULED'] } },
-                {
-                    status: 'ACTIVE',
-                    startDate: { gt: now }
-                }
-            ];
+            whereConditions.push({
+                OR: [
+                    { status: { in: ['PENDING', 'UPCOMING'] } },
+                    {
+                        status: 'ACTIVE',
+                        startDate: { gt: now }
+                    }
+                ]
+            });
         } else if (tab === 'sold') {
-            // ✅ إصلاح: SOLD أو COMPLETED للمزادات المباعة
-            baseWhere.status = { in: ['SOLD', 'COMPLETED'] };
+            // البحث عن السيارات المباعة أو المزادات المنتهية مع سيارة مباعة
+            whereConditions.push({
+                OR: [{ status: 'ENDED' }]
+            });
+            whereConditions.push({
+                cars: { status: 'SOLD' }
+            });
         } else if (tab === 'ended') {
-            // ✅ إصلاح: ENDED/CANCELLED أو منتهية الوقت (بدون مزايدات)
-            baseWhere.AND = [
-                { status: { notIn: ['SOLD', 'COMPLETED', 'ACTIVE', 'PENDING', 'UPCOMING', 'SCHEDULED'] } },
-            ];
+            // المزادات المنتهية أو الملغاة والتي ليست مباعة
+            whereConditions.push({
+                status: { in: ['ENDED', 'CANCELLED', 'SUSPENDED'] }
+            });
+            whereConditions.push({
+                cars: { status: { not: 'SOLD' } }
+            });
         }
         // tab === 'all' لا يحتاج فلتر إضافي
+
+        const baseWhere = { AND: whereConditions };
 
         // الترتيب
         const orderByField = sortBy === 'price' ? 'currentPrice' : sortBy === 'endDate' ? 'endDate' : 'createdAt';

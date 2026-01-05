@@ -11,6 +11,7 @@ import jwt from 'jsonwebtoken';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import path from 'path';
 import sharp from 'sharp';
+import { uploadBufferToBlob } from '../../../lib/blob';
 
 // تعطيل bodyParser الافتراضي
 export const config = {
@@ -226,6 +227,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // التأكد من صحة الفئة
         const uploadPath = CONFIG.PATHS[category] || CONFIG.PATHS.general;
+        const blobFolder = CONFIG.PATHS[category] ? `uploads/${category}` : 'uploads/general';
 
         // تحليل الملف
         const form = new IncomingForm({
@@ -251,9 +253,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ success: false, error: validation.error });
         }
 
-        // إنشاء المجلد
-        await ensureDir(uploadPath);
-
         const userId = auth.userId || 'anonymous';
         const baseName = generateFileName(category, userId, '');
 
@@ -272,35 +271,59 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // حفظ الصورة الأصلية (إذا طُلب عدم التحسين)
         if (!optimize) {
-            const originalPath = path.join(process.cwd(), uploadPath, `${baseName}.${validation.metadata?.format}`);
-            await fs.writeFile(originalPath, buffer);
-            result.url = pathToUrl(originalPath);
-            result.urls!.original = result.url;
+            const originalFormat = validation.metadata?.format || 'jpeg';
+            const originalExt = originalFormat === 'jpeg' ? 'jpg' : originalFormat;
+            const originalContentType = uploadedFile.mimetype || `image/${originalExt}`;
+
+            const uploadedOriginal = await uploadBufferToBlob({
+                buffer,
+                filename: `${baseName}.${originalExt}`,
+                contentType: originalContentType,
+                folder: blobFolder,
+            });
+
+            result.url = uploadedOriginal.url;
+            result.urls!.original = uploadedOriginal.url;
         } else {
             // تحسين وحفظ الصورة
             const optimizedBuffer = await processImage(buffer);
-            const optimizedPath = path.join(process.cwd(), uploadPath, `${baseName}.webp`);
-            await fs.writeFile(optimizedPath, optimizedBuffer);
 
-            result.url = pathToUrl(optimizedPath);
-            result.urls!.original = pathToUrl(path.join(process.cwd(), uploadPath, `${baseName}_original.${validation.metadata?.format}`));
-            result.urls!.optimized = result.url;
+            const originalFormat = validation.metadata?.format || 'jpeg';
+            const originalExt = originalFormat === 'jpeg' ? 'jpg' : originalFormat;
+            const originalContentType = uploadedFile.mimetype || `image/${originalExt}`;
+
+            const [uploadedOriginal, uploadedOptimized] = await Promise.all([
+                uploadBufferToBlob({
+                    buffer,
+                    filename: `${baseName}_original.${originalExt}`,
+                    contentType: originalContentType,
+                    folder: blobFolder,
+                }),
+                uploadBufferToBlob({
+                    buffer: optimizedBuffer,
+                    filename: `${baseName}.webp`,
+                    contentType: 'image/webp',
+                    folder: blobFolder,
+                }),
+            ]);
+
+            result.url = uploadedOptimized.url;
+            result.urls!.original = uploadedOriginal.url;
+            result.urls!.optimized = uploadedOptimized.url;
             result.metadata!.size = optimizedBuffer.length;
             result.metadata!.savings = Math.round(((buffer.length - optimizedBuffer.length) / buffer.length) * 100);
-
-            // حفظ النسخة الأصلية أيضاً
-            await fs.writeFile(
-                path.join(process.cwd(), uploadPath, `${baseName}_original.${validation.metadata?.format}`),
-                buffer
-            );
 
             // توليد أحجام متعددة إذا طُلب
             if (generateSizes) {
                 for (const [sizeName, dimensions] of Object.entries(CONFIG.SIZES)) {
                     const sizedBuffer = await processImage(buffer, dimensions);
-                    const sizedPath = path.join(process.cwd(), uploadPath, `${baseName}_${sizeName}.webp`);
-                    await fs.writeFile(sizedPath, sizedBuffer);
-                    (result.urls as Record<string, string>)[sizeName] = pathToUrl(sizedPath);
+                    const uploadedSized = await uploadBufferToBlob({
+                        buffer: sizedBuffer,
+                        filename: `${baseName}_${sizeName}.webp`,
+                        contentType: 'image/webp',
+                        folder: blobFolder,
+                    });
+                    (result.urls as Record<string, string>)[sizeName] = uploadedSized.url;
                 }
             }
         }

@@ -1,8 +1,10 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { IncomingForm, File as FormidableFile } from 'formidable';
-import fs from 'fs';
-import path from 'path';
 import crypto from 'crypto';
+import { File as FormidableFile, IncomingForm } from 'formidable';
+import fs from 'fs';
+import { NextApiRequest, NextApiResponse } from 'next';
+import os from 'os';
+import path from 'path';
+import { uploadBufferToBlob } from '../../../lib/blob';
 import { verifyToken } from '../../../middleware/auth';
 import { DocumentType } from '../../../types/verification';
 import { withUploadRateLimit } from '../../../utils/rateLimiter';
@@ -118,9 +120,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<UploadDocumentR
 };
 
 // دالة لمعالجة النموذج والملفات
-async function parseForm(req: NextApiRequest): Promise<{ fields: any; files: any }> {
+async function parseForm(req: NextApiRequest): Promise<{ fields: any; files: any; }> {
   return new Promise((resolve, reject) => {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'verification', 'temp');
+    const uploadDir = path.join(os.tmpdir(), 'sooq-mazad', 'verification', 'temp');
 
     // إنشاء مجلد الرفع المؤقت إذا لم يكن موجوداً
     if (!fs.existsSync(uploadDir)) {
@@ -148,7 +150,7 @@ async function parseForm(req: NextApiRequest): Promise<{ fields: any; files: any
 function validateFile(
   file: FormidableFile,
   documentType: DocumentType,
-): { isValid: boolean; error?: string } {
+): { isValid: boolean; error?: string; } {
   // التحقق من وجود الملف
   if (!file || !file.originalFilename) {
     return { isValid: false, error: 'لم يتم العثور على الملف' };
@@ -213,34 +215,35 @@ async function processFile(
   filePath: string;
 }> {
   // إنشاء معرف فريد للرفع
-  const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const uploadId = `upload_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`;
 
   // إنشاء اسم ملف فريد
   const timestamp = Date.now();
   const extension = path.extname(file.originalFilename || '');
   const fileName = `${documentType}_${userId}_${timestamp}${extension}`;
 
-  // إنشاء مجلد المستخدم
-  const userDir = path.join(process.cwd(), 'uploads', 'verification', userId);
-  if (!fs.existsSync(userDir)) {
-    fs.mkdirSync(userDir, { recursive: true });
-  }
+  // رفع الملف إلى Vercel Blob
+  const buffer = await fs.promises.readFile(file.filepath);
+  const contentType = file.mimetype || 'application/octet-stream';
+  const uploaded = await uploadBufferToBlob({
+    buffer,
+    filename: fileName,
+    contentType,
+    folder: `uploads/verification/${userId}`,
+  });
 
-  // المسار النهائي للملف
-  const finalPath = path.join(userDir, fileName);
+  // حذف الملف المؤقت
+  await fs.promises.unlink(file.filepath).catch(() => { });
 
-  // نقل الملف من المجلد المؤقت إلى المجلد النهائي
-  fs.renameSync(file.filepath, finalPath);
-
-  // إنشاء URL للملف (في التطبيق الحقيقي، قد يكون هذا URL لخدمة التخزين السحابي)
-  const fileUrl = `/uploads/verification/${userId}/${fileName}`;
+  // إنشاء URL للملف
+  const fileUrl = uploaded.url;
 
   return {
     fileName,
     fileUrl,
     fileSize: file.size,
     uploadId,
-    filePath: finalPath,
+    filePath: uploaded.pathname,
   };
 }
 

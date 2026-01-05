@@ -1,7 +1,7 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import Redis from 'ioredis';
-import os from 'os';
 import { prisma } from '@/lib/prisma';
+import Redis from 'ioredis';
+import type { NextApiRequest, NextApiResponse } from 'next';
+import os from 'os';
 
 /**
  * @swagger
@@ -72,13 +72,11 @@ async function checkDatabase() {
     await prisma.$queryRaw`SELECT 1`;
 
     // عدد الاتصالات النشطة
-    const connections = await prisma.$queryRaw<Array<{ count: bigint }>>`
+    const connections = await prisma.$queryRaw<Array<{ count: bigint; }>>`
       SELECT count(*) as count FROM pg_stat_activity
     `;
 
     const latency = Date.now() - start;
-    await prisma.$disconnect();
-
     return {
       status: 'ok',
       latency,

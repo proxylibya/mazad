@@ -4,9 +4,9 @@
  */
 
 import React from 'react';
-import SimpleCircularAuctionTimer from './SimpleCircularAuctionTimer';
 import { calculateAuctionProgress } from '../../../../utils/auctionProgressCalculator';
 import { calculateUnifiedProgress } from '../../../../utils/unifiedAuctionProgress';
+import SimpleCircularAuctionTimer from './SimpleCircularAuctionTimer';
 
 interface TimerComparisonProps {
   endTime: string;
@@ -25,7 +25,7 @@ const TimerComparison: React.FC<TimerComparisonProps> = ({
   bidCount,
   startingBid = '0',
   reservePrice,
-  auctionStatus
+  auctionStatus,
 }) => {
   // حساب التقدم بالنظام القديم
   const oldProgress = calculateAuctionProgress({
@@ -49,15 +49,15 @@ const TimerComparison: React.FC<TimerComparisonProps> = ({
 
   return (
     <div className="space-y-8 p-6">
-      <h2 className="text-2xl font-bold text-center">مقارنة أنظمة حساب التقدم</h2>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <h2 className="text-center text-2xl font-bold">مقارنة أنظمة حساب التقدم</h2>
+
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         {/* العداد الجديد المحسن */}
         <div className="space-y-4">
-          <h3 className="text-xl font-semibold text-green-700 text-center">
+          <h3 className="text-center text-xl font-semibold text-green-700">
             النظام الجديد المحسن ✨
           </h3>
-          
+
           <div className="flex justify-center">
             <SimpleCircularAuctionTimer
               endTime={endTime}
@@ -70,49 +70,59 @@ const TimerComparison: React.FC<TimerComparisonProps> = ({
               size="medium"
             />
           </div>
-          
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <h4 className="font-semibold text-green-800 mb-2">إحصائيات النظام الجديد:</h4>
+
+          <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+            <h4 className="mb-2 font-semibold text-green-800">إحصائيات النظام الجديد:</h4>
             <div className="space-y-1 text-sm text-green-700">
               <div>نسبة التقدم المعروضة: {newProgress.displayProgress.toFixed(1)}%</div>
-              <div>نوع التقدم: {
-                newProgress.progressType === 'time-based' ? 'معتمد على الوقت' :
-                newProgress.progressType === 'price-based' ? 'معتمد على السعر' : 'مكتمل'
-              }</div>
-              <div>تقدم الوقت: {newProgress.timeProgress.toFixed(1)}%</div>
-              <div>تقدم السعر: {newProgress.priceProgress.toFixed(1)}%</div>
+              <div>
+                نوع التقدم:{' '}
+                {newProgress.progressType === 'time-based'
+                  ? 'معتمد على الوقت'
+                  : newProgress.progressType === 'price-based'
+                    ? 'معتمد على السعر'
+                    : 'مكتمل'}
+              </div>
               <div>حالة عاجلة: {newProgress.isUrgent ? 'نعم ⚠️' : 'لا ✅'}</div>
-              <div>الوقت المتبقي: {newProgress.timeLeft.hours}:{newProgress.timeLeft.minutes.toString().padStart(2, '0')}:{newProgress.timeLeft.seconds.toString().padStart(2, '0')}</div>
+              <div>
+                الوقت المتبقي: {newProgress.timeLeft.hours}:
+                {newProgress.timeLeft.minutes.toString().padStart(2, '0')}:
+                {newProgress.timeLeft.seconds.toString().padStart(2, '0')}
+              </div>
             </div>
           </div>
         </div>
 
         {/* مقارنة الإحصائيات */}
         <div className="space-y-4">
-          <h3 className="text-xl font-semibold text-blue-700 text-center">
-            مقارنة الأنظمة 📊
-          </h3>
-          
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="font-semibold text-blue-800 mb-2">النظام القديم:</h4>
+          <h3 className="text-center text-xl font-semibold text-blue-700">مقارنة الأنظمة 📊</h3>
+
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+            <h4 className="mb-2 font-semibold text-blue-800">النظام القديم:</h4>
             <div className="space-y-1 text-sm text-blue-700">
               <div>نسبة التقدم: {oldProgress.progress.toFixed(1)}%</div>
-              <div>الوقت المتبقي: {oldProgress.timeLeft.hours}:{oldProgress.timeLeft.minutes.toString().padStart(2, '0')}:{oldProgress.timeLeft.seconds.toString().padStart(2, '0')}</div>
+              <div>
+                الوقت المتبقي: {oldProgress.timeLeft.hours}:
+                {oldProgress.timeLeft.minutes.toString().padStart(2, '0')}:
+                {oldProgress.timeLeft.seconds.toString().padStart(2, '0')}
+              </div>
               <div>حالة النشاط: {oldProgress.isActive ? 'نشط' : 'غير نشط'}</div>
             </div>
           </div>
 
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <h4 className="font-semibold text-gray-800 mb-2">الفروقات:</h4>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <h4 className="mb-2 font-semibold text-gray-800">الفروقات:</h4>
             <div className="space-y-1 text-sm text-gray-700">
-              <div>فرق نسبة التقدم: {(newProgress.displayProgress - oldProgress.progress).toFixed(1)}%</div>
+              <div>
+                فرق نسبة التقدم: {(newProgress.displayProgress - oldProgress.progress).toFixed(1)}%
+              </div>
               <div>نظام أكثر تفصيلاً: {newProgress.progressType}</div>
               <div>كشف الحالات العاجلة: {newProgress.isUrgent ? '✨ جديد' : 'عادي'}</div>
             </div>
           </div>
 
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <h4 className="font-semibold text-yellow-800 mb-2">المزايا الجديدة:</h4>
+          <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+            <h4 className="mb-2 font-semibold text-yellow-800">المزايا الجديدة:</h4>
             <ul className="space-y-1 text-sm text-yellow-700">
               <li>• حسابات أكثر دقة ووضوحاً</li>
               <li>• تمييز بين أنواع التقدم المختلفة</li>
@@ -126,12 +136,12 @@ const TimerComparison: React.FC<TimerComparisonProps> = ({
 
       {/* أمثلة للحالات المختلفة */}
       <div className="border-t pt-6">
-        <h3 className="text-lg font-semibold text-center mb-4">أمثلة للحالات المختلفة</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <h3 className="mb-4 text-center text-lg font-semibold">أمثلة للحالات المختلفة</h3>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {/* مزاد قادم */}
           <div className="text-center">
-            <h4 className="font-medium mb-2">مزاد قادم</h4>
+            <h4 className="mb-2 font-medium">مزاد قادم</h4>
             <SimpleCircularAuctionTimer
               endTime={new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()}
               startTime={new Date(Date.now() + 30 * 60 * 1000).toISOString()}
@@ -145,7 +155,7 @@ const TimerComparison: React.FC<TimerComparisonProps> = ({
 
           {/* مزاد مباشر */}
           <div className="text-center">
-            <h4 className="font-medium mb-2">مزاد مباشر</h4>
+            <h4 className="mb-2 font-medium">مزاد مباشر</h4>
             <SimpleCircularAuctionTimer
               endTime={new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString()}
               currentBid="3500"
@@ -159,7 +169,7 @@ const TimerComparison: React.FC<TimerComparisonProps> = ({
 
           {/* مزاد منتهي */}
           <div className="text-center">
-            <h4 className="font-medium mb-2">مزاد منتهي</h4>
+            <h4 className="mb-2 font-medium">مزاد منتهي</h4>
             <SimpleCircularAuctionTimer
               endTime={new Date(Date.now() - 1000).toISOString()}
               currentBid="4800"

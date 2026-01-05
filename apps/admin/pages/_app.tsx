@@ -1,3 +1,4 @@
+import { PageTransition, RouteProgressBar } from '@/components/unified';
 import '@/styles/globals.css';
 import type { AppProps } from 'next/app';
 import { Cairo } from 'next/font/google';
@@ -15,7 +16,10 @@ export default function App({ Component, pageProps }: AppProps) {
           --font-cairo: ${cairo.style.fontFamily};
         }
       `}</style>
-      <Component {...pageProps} />
+      <RouteProgressBar />
+      <PageTransition>
+        <Component {...pageProps} />
+      </PageTransition>
     </>
   );
 }

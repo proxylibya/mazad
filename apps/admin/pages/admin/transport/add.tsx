@@ -39,6 +39,25 @@ const WEEK_DAYS = [
   { value: 'السبت', label: 'السبت' },
 ];
 
+type SiteTeamSettings = {
+  phones?: string[];
+  whatsappPhone?: string;
+};
+
+function normalizeSiteTeamPhoneForTextInput(raw: string) {
+  const digits = String(raw || '').replace(/[^\d]/g, '');
+  if (!digits) return '';
+
+  if (digits.startsWith('218')) {
+    const rest = digits.slice(3);
+    if (rest.startsWith('0')) return rest;
+    return `0${rest}`;
+  }
+
+  if (digits.startsWith('0')) return digits;
+  return digits;
+}
+
 export default function AddTransportPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -65,6 +84,11 @@ export default function AddTransportPage() {
 
   // البائع المختار
   const [selectedSeller, setSelectedSeller] = useState<SellerInfo | null>(null);
+  const [siteTeamPhone, setSiteTeamPhone] = useState<string>('');
+
+  const normalizedSiteTeamPhone = normalizeSiteTeamPhoneForTextInput(siteTeamPhone);
+  const isSiteTeamSeller = !!selectedSeller?.isSiteTeam;
+  const shouldRequirePhone = !isSiteTeamSeller || !normalizedSiteTeamPhone;
 
   // تحديث العنوان تلقائياً عند تغيير نوع الساحبة والمدن
   useEffect(() => {
@@ -79,6 +103,46 @@ export default function AddTransportPage() {
       }
     }
   }, [formData.vehicleType, formData.cities]);
+
+  useEffect(() => {
+    const fetchSiteTeam = async () => {
+      try {
+        const res = await fetch('/api/admin/site-team');
+        const data = (await res.json()) as { success?: boolean; settings?: SiteTeamSettings };
+
+        if (data?.success) {
+          const phone =
+            (data.settings?.phones || []).find((p) => String(p || '').trim()) ||
+            String(data.settings?.whatsappPhone || '').trim();
+          if (phone) setSiteTeamPhone(phone);
+        }
+      } catch {}
+    };
+
+    fetchSiteTeam();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedSeller?.isSiteTeam) return;
+    const normalized = normalizeSiteTeamPhoneForTextInput(siteTeamPhone);
+    if (!normalized) return;
+
+    setFormData((prev) => {
+      if (prev.phone === normalized) return prev;
+      return { ...prev, phone: normalized };
+    });
+  }, [selectedSeller?.isSiteTeam, siteTeamPhone]);
+
+  useEffect(() => {
+    if (selectedSeller?.isSiteTeam) return;
+    const normalized = normalizeSiteTeamPhoneForTextInput(siteTeamPhone);
+    if (!normalized) return;
+
+    setFormData((prev) => {
+      if (prev.phone !== normalized) return prev;
+      return { ...prev, phone: '' };
+    });
+  }, [selectedSeller?.isSiteTeam, siteTeamPhone]);
 
   // باقات الترويج المتاحة
   const promotionPackages = [
@@ -174,7 +238,11 @@ export default function AddTransportPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.companyName || !formData.phone || formData.cities.length === 0) {
+    if (
+      !formData.companyName ||
+      (shouldRequirePhone && !formData.phone) ||
+      formData.cities.length === 0
+    ) {
       alert('الرجاء ملء جميع الحقول المطلوبة');
       return;
     }
@@ -183,6 +251,7 @@ export default function AddTransportPage() {
     try {
       const submitData = {
         ...formData,
+        userId: selectedSeller?.id || undefined,
         // تحويل المصفوفات لنصوص مفصولة بفاصلة للتوافق مع API
         availableDays: formData.workingDays.join(','),
         imagesString: formData.images.join(','),
@@ -261,7 +330,7 @@ export default function AddTransportPage() {
               </div>
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-300">
-                  رقم الهاتف <span className="text-red-400">*</span>
+                  رقم الهاتف {shouldRequirePhone && <span className="text-red-400">*</span>}
                 </label>
                 <div className="relative">
                   <PhoneIcon className="absolute right-3 top-3.5 h-5 w-5 text-slate-400" />
@@ -270,7 +339,8 @@ export default function AddTransportPage() {
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="09xxxxxxxx"
-                    className="w-full rounded-lg border border-slate-600 bg-slate-700 py-3 pl-4 pr-10 text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none"
+                    disabled={isSiteTeamSeller && !!siteTeamPhone}
+                    className="w-full rounded-lg border border-slate-600 bg-slate-700 py-3 pl-4 pr-10 text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
                   />
                 </div>
               </div>
@@ -414,90 +484,117 @@ export default function AddTransportPage() {
             <span className="mr-auto text-sm font-normal text-slate-400">(اختياري)</span>
           </h2>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            {promotionPackages.map((pkg) => (
-              <div
-                key={pkg.id}
-                onClick={() =>
-                  setFormData({ ...formData, promotionPackage: pkg.id, promotionDays: pkg.days })
-                }
-                className={`relative cursor-pointer rounded-xl border-2 p-4 transition-all ${
-                  formData.promotionPackage === pkg.id
-                    ? pkg.color === 'yellow'
-                      ? 'border-yellow-500 bg-yellow-500/10 ring-2 ring-yellow-500/30'
-                      : pkg.color === 'purple'
-                        ? 'border-purple-500 bg-purple-500/10 ring-2 ring-purple-500/30'
-                        : pkg.color === 'amber'
-                          ? 'border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/30'
-                          : 'border-blue-500 bg-blue-500/10 ring-2 ring-blue-500/30'
-                    : 'border-slate-600 bg-slate-700/50 hover:border-slate-500'
-                }`}
-              >
-                {pkg.popular && (
-                  <div className="absolute -top-2 left-1/2 -translate-x-1/2">
-                    <span className="rounded-full bg-yellow-500 px-2 py-0.5 text-xs font-bold text-black">
-                      الأكثر شعبية
-                    </span>
-                  </div>
-                )}
+          <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
+            {promotionPackages.map((pkg) => {
+              const isSelected = formData.promotionPackage === pkg.id;
+              const accentText =
+                pkg.color === 'yellow'
+                  ? 'text-yellow-400'
+                  : pkg.color === 'purple'
+                    ? 'text-purple-400'
+                    : pkg.color === 'amber'
+                      ? 'text-amber-400'
+                      : 'text-slate-300';
+              const accentIconBg =
+                pkg.color === 'yellow'
+                  ? 'bg-yellow-500/15'
+                  : pkg.color === 'purple'
+                    ? 'bg-purple-500/15'
+                    : pkg.color === 'amber'
+                      ? 'bg-amber-500/15'
+                      : 'bg-slate-600/50';
+              const accentIconText =
+                pkg.color === 'yellow'
+                  ? 'text-yellow-400'
+                  : pkg.color === 'purple'
+                    ? 'text-purple-400'
+                    : pkg.color === 'amber'
+                      ? 'text-amber-400'
+                      : 'text-slate-400';
 
-                <div className="mb-3 text-center">
-                  <div
-                    className={`mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full ${
-                      pkg.color === 'yellow'
-                        ? 'bg-yellow-500/20'
-                        : pkg.color === 'purple'
-                          ? 'bg-purple-500/20'
-                          : pkg.color === 'amber'
-                            ? 'bg-amber-500/20'
-                            : 'bg-slate-600'
-                    }`}
-                  >
-                    <StarIcon
-                      className={`h-5 w-5 ${
-                        pkg.color === 'yellow'
-                          ? 'text-yellow-400'
-                          : pkg.color === 'purple'
-                            ? 'text-purple-400'
-                            : pkg.color === 'amber'
-                              ? 'text-amber-400'
-                              : 'text-slate-400'
-                      }`}
-                    />
-                  </div>
-                  <h3 className="font-bold text-white">{pkg.name}</h3>
-                  <div
-                    className={`mt-1 text-2xl font-bold ${
-                      pkg.color === 'yellow'
-                        ? 'text-yellow-400'
-                        : pkg.color === 'purple'
-                          ? 'text-purple-400'
-                          : pkg.color === 'amber'
-                            ? 'text-amber-400'
-                            : 'text-slate-300'
-                    }`}
-                  >
-                    {pkg.price === 0 ? 'مجاني' : `${pkg.price} د.ل`}
-                  </div>
-                  {pkg.days > 0 && <div className="text-xs text-slate-400">{pkg.days} يوم</div>}
-                </div>
+              const selectedClasses =
+                pkg.color === 'yellow'
+                  ? 'border-yellow-500/60 ring-2 ring-yellow-500/25'
+                  : pkg.color === 'purple'
+                    ? 'border-purple-500/60 ring-2 ring-purple-500/25'
+                    : pkg.color === 'amber'
+                      ? 'border-amber-500/60 ring-2 ring-amber-500/25'
+                      : 'border-blue-500/60 ring-2 ring-blue-500/25';
 
-                <ul className="space-y-1.5 text-xs">
-                  {pkg.features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-1.5 text-slate-300">
-                      <CheckCircleIcon className="h-3.5 w-3.5 flex-shrink-0 text-green-400" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
+              const featuresPreview = pkg.features.slice(0, 3);
+              const remainingFeatures = Math.max(0, pkg.features.length - featuresPreview.length);
 
-                {formData.promotionPackage === pkg.id && (
-                  <div className="mt-3 flex items-center justify-center">
-                    <CheckCircleIcon className="h-5 w-5 text-green-400" />
+              return (
+                <button
+                  key={pkg.id}
+                  type="button"
+                  onClick={() =>
+                    setFormData({ ...formData, promotionPackage: pkg.id, promotionDays: pkg.days })
+                  }
+                  className={`group relative w-full overflow-hidden rounded-2xl border bg-slate-900/30 p-3 text-right transition-all hover:-translate-y-0.5 hover:border-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/40 ${
+                    isSelected ? selectedClasses : 'border-slate-700'
+                  }`}
+                >
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+
+                  {pkg.popular && (
+                    <div className="absolute -top-2 left-1/2 -translate-x-1/2">
+                      <span className="rounded-full bg-yellow-500 px-2 py-0.5 text-xs font-bold text-black">
+                        الأكثر شعبية
+                      </span>
+                    </div>
+                  )}
+
+                  {isSelected && (
+                    <div className="absolute left-2 top-2 rounded-full bg-emerald-500/15 p-1">
+                      <CheckCircleIcon className="h-4 w-4 text-emerald-400" />
+                    </div>
+                  )}
+
+                  <div className="relative flex items-start gap-3">
+                    <div
+                      className={`flex h-9 w-9 items-center justify-center rounded-xl ${accentIconBg}`}
+                    >
+                      <StarIcon className={`h-4 w-4 ${accentIconText}`} />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="truncate text-sm font-bold text-white">{pkg.name}</h3>
+                        {pkg.days > 0 && (
+                          <span className="rounded-full border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-[11px] text-slate-300">
+                            {pkg.days} يوم
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-1 flex items-end justify-between gap-2">
+                        <div className={`text-lg font-bold ${accentText}`}>
+                          {pkg.price === 0 ? '0 د.ل' : `${pkg.price} د.ل`}
+                        </div>
+                        {pkg.price > 0 && (
+                          <span className="text-[11px] text-slate-400">شامل الترويج</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  <div className="relative mt-2">
+                    <ul className="space-y-1 text-[11px] text-slate-300">
+                      {featuresPreview.map((feature, i) => (
+                        <li key={i} className="flex items-center gap-1.5">
+                          <CheckCircleIcon className="h-3 w-3 flex-shrink-0 text-emerald-400" />
+                          <span className="line-clamp-1">{feature}</span>
+                        </li>
+                      ))}
+                      {remainingFeatures > 0 && (
+                        <li className="text-[11px] text-slate-500">+ {remainingFeatures} المزيد</li>
+                      )}
+                    </ul>
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
           {formData.promotionPackage !== 'free' && (

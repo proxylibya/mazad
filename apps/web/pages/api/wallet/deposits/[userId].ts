@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { DepositStatus } from '@prisma/client';
 import { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -32,12 +33,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const skip = (pageNumber - 1) * limitNumber;
 
     // بناء شروط البحث
-    const whereConditions: Record<string, unknown> = {
-      userId: userId,
+    const whereConditions: { userId: string; status?: DepositStatus; walletType?: string; } = {
+      userId,
     };
 
     if (status && typeof status === 'string') {
-      whereConditions.status = status;
+      const normalizedStatus = status.toUpperCase() as keyof typeof DepositStatus;
+      if (DepositStatus[normalizedStatus]) {
+        whereConditions.status = DepositStatus[normalizedStatus];
+      }
     }
 
     if (walletType && typeof walletType === 'string') {
@@ -116,13 +120,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       summary: {
         totalDeposits: totalCount,
         pendingCount: await prisma.deposits.count({
-          where: { ...whereConditions, status: 'PENDING' },
+          where: { ...whereConditions, status: DepositStatus.PENDING },
         }),
         approvedCount: await prisma.deposits.count({
-          where: { ...whereConditions, status: 'APPROVED' },
+          where: { ...whereConditions, status: DepositStatus.APPROVED },
         }),
         rejectedCount: await prisma.deposits.count({
-          where: { ...whereConditions, status: 'REJECTED' },
+          where: { ...whereConditions, status: DepositStatus.REJECTED },
         }),
       },
     });

@@ -6,9 +6,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // التحقق من اتصال قاعدة البيانات أولاً
-    await prisma.$connect();
-
     // إحصائيات وهمية للتطوير (في حالة عدم وجود قاعدة بيانات)
     const mockStats = {
       users: 1250,
@@ -106,14 +103,14 @@ export default async function handler(req, res) {
     // معالجة بيانات المحافظ إذا كانت متاحة
     if (walletStats.length > 0) {
       walletStats.forEach((wallet) => {
-        if (wallet.localWallet) {
-          totalLocalBalance += wallet.localWallet.balance || 0;
+        if (wallet.local_wallets) {
+          totalLocalBalance += wallet.local_wallets.balance || 0;
         }
-        if (wallet.globalWallet) {
-          totalGlobalBalance += wallet.globalWallet.balance || 0;
+        if (wallet.global_wallets) {
+          totalGlobalBalance += wallet.global_wallets.balance || 0;
         }
-        if (wallet.cryptoWallet) {
-          totalCryptoBalance += wallet.cryptoWallet.balance || 0;
+        if (wallet.crypto_wallets) {
+          totalCryptoBalance += wallet.crypto_wallets.balance || 0;
         }
       });
     }
@@ -407,10 +404,5 @@ export default async function handler(req, res) {
     console.warn('استخدام البيانات الوهمية بسبب خطأ في قاعدة البيانات');
     res.status(200).json(fallbackStats);
   } finally {
-    try {
-      await prisma.$disconnect();
-    } catch (disconnectError) {
-      console.warn('خطأ في قطع الاتصال مع قاعدة البيانات:', disconnectError.message);
-    }
   }
 }

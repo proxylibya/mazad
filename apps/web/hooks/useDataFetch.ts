@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useAdmin } from '../contexts/AdminContext';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UseDataFetchOptions {
   // Cache options
@@ -39,6 +38,26 @@ const pendingRequests = new Map<string, Promise<any>>();
 // Background refresh timers
 const refreshTimers = new Map<string, NodeJS.Timeout>();
 
+const cacheStore = new Map<string, { data: unknown; expiresAt: number; }>();
+
+function getCachedData<T>(key: string): T | null {
+  const entry = cacheStore.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) {
+    cacheStore.delete(key);
+    return null;
+  }
+  return entry.data as T;
+}
+
+function setCachedData(key: string, data: unknown, ttlMs: number): void {
+  cacheStore.set(key, { data, expiresAt: Date.now() + ttlMs });
+}
+
+function clearCache(key: string): void {
+  cacheStore.delete(key);
+}
+
 export function useDataFetch<T = any>(
   fetcher: () => Promise<T>,
   options: UseDataFetchOptions = {},
@@ -56,8 +75,6 @@ export function useDataFetch<T = any>(
     dependencies = [],
     enabled = true,
   } = options;
-
-  const { actions } = useAdmin();
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -148,7 +165,7 @@ export function useDataFetch<T = any>(
 
         // Cache the result
         if (enableCache && cacheKey) {
-          actions.setCachedData(cacheKey, result, cacheTTL);
+          setCachedData(cacheKey, result, cacheTTL);
         }
 
         lastFetchTimeRef.current = Date.now();
@@ -171,7 +188,6 @@ export function useDataFetch<T = any>(
       enableCache,
       cacheKey,
       cacheTTL,
-      actions,
     ],
   );
 
@@ -190,7 +206,7 @@ export function useDataFetch<T = any>(
 
         // Check cache first
         if (enableCache && cacheKey) {
-          const cachedData = actions.getCachedData(cacheKey);
+          const cachedData = getCachedData<T>(cacheKey);
           if (cachedData && !isBackground) {
             setData(cachedData);
             setIsStale(false);
@@ -226,17 +242,17 @@ export function useDataFetch<T = any>(
         }
       }
     },
-    [enabled, enableCache, cacheKey, actions, performFetch, data],
+    [enabled, enableCache, cacheKey, performFetch, data],
   );
 
   // Refetch function
   const refetch = useCallback(async () => {
     // Clear cache before refetching
     if (enableCache && cacheKey) {
-      actions.clearCache(cacheKey);
+      clearCache(cacheKey);
     }
     await fetchData(false);
-  }, [fetchData, enableCache, cacheKey, actions]);
+  }, [fetchData, enableCache, cacheKey]);
 
   // Initial fetch and dependency-based refetch
   useEffect(() => {

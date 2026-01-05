@@ -29,6 +29,10 @@ function hashCardNumber(cardNumber: string): string {
   return crypto.createHash('sha256').update(cardNumber).digest('hex');
 }
 
+function genId(prefix: string): string {
+  return `${prefix}_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`;
+}
+
 // الحصول على المستخدم من التوكن
 async function getUserFromRequest(req: NextApiRequest): Promise<{ id: string; } | null> {
   try {
@@ -186,18 +190,21 @@ export default async function handler(
     });
 
     if (!wallet) {
+      const now = new Date();
       wallet = await prisma.wallets.create({
         data: {
+          id: genId('wallet'),
           userId: user.id,
           local_wallets: {
-            create: { balance: 0, currency: 'LYD' },
+            create: { id: genId('local'), balance: 0, currency: 'LYD', updatedAt: now },
           },
           global_wallets: {
-            create: { balance: 0, currency: 'USD' },
+            create: { id: genId('global'), balance: 0, currency: 'USD', updatedAt: now },
           },
           crypto_wallets: {
-            create: { balance: 0, currency: 'USDT-TRC20', network: 'TRC20' },
+            create: { id: genId('crypto'), balance: 0, currency: 'USDT-TRC20', network: 'TRC20', updatedAt: now },
           },
+          updatedAt: now,
         },
         include: { local_wallets: true },
       });
@@ -205,7 +212,7 @@ export default async function handler(
 
     if (!wallet.local_wallets) {
       await prisma.local_wallets.create({
-        data: { walletId: wallet.id, balance: 0, currency: 'LYD' },
+        data: { id: genId('local'), walletId: wallet.id, balance: 0, currency: 'LYD', updatedAt: new Date() },
       });
       wallet = await prisma.wallets.findUnique({
         where: { id: wallet.id },
@@ -250,9 +257,10 @@ export default async function handler(
       data: {
         id: transactionId,
         walletId: wallet!.id,
-        type: 'CREDIT',
+        type: 'DEPOSIT',
         amount: cardValue,
         currency: 'LYD',
+        walletType: 'LOCAL',
         status: 'COMPLETED',
         description: `شحن من كرت ${provider === 'LIBYANA' ? 'ليبيانا' : 'مدار'}`,
         metadata: {
@@ -262,6 +270,7 @@ export default async function handler(
           denomination: card.denomination,
           processingTime: 'instant',
         },
+        updatedAt: new Date(),
       },
     });
 
@@ -269,11 +278,11 @@ export default async function handler(
     try {
       await prisma.notifications.create({
         data: {
-          id: `notif-topup-${Date.now()}`,
+          id: genId('notif'),
           userId: user.id,
           title: 'تم شحن المحفظة بنجاح ✅',
           message: `تم إضافة ${cardValue} د.ل إلى محفظتك من كرت ${provider === 'LIBYANA' ? 'ليبيانا' : 'مدار'}`,
-          type: 'WALLET_TOPUP',
+          type: 'DEPOSIT_COMPLETED',
           isRead: false,
           createdAt: new Date(),
         },

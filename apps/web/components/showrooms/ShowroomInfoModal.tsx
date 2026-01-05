@@ -1,22 +1,21 @@
-import React, { useState, useRef, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Button } from '../ui/button';
-import { quickDecodeName } from '../../utils/universalNameDecoder';
-import XMarkIcon from '@heroicons/react/24/outline/XMarkIcon';
 import BuildingStorefrontIcon from '@heroicons/react/24/outline/BuildingStorefrontIcon';
-import MapPinIcon from '@heroicons/react/24/outline/MapPinIcon';
-import PhoneIcon from '@heroicons/react/24/outline/PhoneIcon';
-import ClockIcon from '@heroicons/react/24/outline/ClockIcon';
-import StarIcon from '@heroicons/react/24/outline/StarIcon';
-import CheckBadgeIcon from '@heroicons/react/24/outline/CheckBadgeIcon';
+import CalendarDaysIcon from '@heroicons/react/24/outline/CalendarDaysIcon';
 import CameraIcon from '@heroicons/react/24/outline/CameraIcon';
 import ChatBubbleLeftRightIcon from '@heroicons/react/24/outline/ChatBubbleLeftRightIcon';
-import CalendarDaysIcon from '@heroicons/react/24/outline/CalendarDaysIcon';
-import UserIcon from '@heroicons/react/24/outline/UserIcon';
+import CheckBadgeIcon from '@heroicons/react/24/outline/CheckBadgeIcon';
+import ClockIcon from '@heroicons/react/24/outline/ClockIcon';
 import EyeIcon from '@heroicons/react/24/outline/EyeIcon';
-import { UnifiedNavigationArrows } from '../ui/NavigationArrows';
+import MapPinIcon from '@heroicons/react/24/outline/MapPinIcon';
+import PhoneIcon from '@heroicons/react/24/outline/PhoneIcon';
+import StarIcon from '@heroicons/react/24/outline/StarIcon';
+import UserIcon from '@heroicons/react/24/outline/UserIcon';
+import XMarkIcon from '@heroicons/react/24/outline/XMarkIcon';
+import { useRouter } from 'next/router';
+import React, { Fragment, useState } from 'react';
+import { quickDecodeName } from '../../utils/universalNameDecoder';
 import SafeImage from '../SafeImage';
+import { UnifiedNavigationArrows } from '../ui/NavigationArrows';
 
 interface Showroom {
   id: string;
@@ -29,7 +28,7 @@ interface Showroom {
   reviewsCount: number;
   totalCars: number;
   activeCars: number;
-  images: string[];
+  images: string[] | string;
   verified: boolean;
   featured: boolean;
   specialties: string[];
@@ -274,7 +273,9 @@ const ShowroomInfoModal: React.FC<ShowroomInfoModalProps> = ({ showroom, isOpen,
                           <div className="flex items-center gap-2 text-sm">
                             <PhoneIcon className="h-4 w-4 text-gray-400" />
                             <span className="text-gray-600">الهاتف:</span>
-                            <span className="font-medium" dir="ltr">{showroom.phone}</span>
+                            <span className="font-medium" dir="ltr">
+                              {showroom.phone}
+                            </span>
                           </div>
 
                           {showroom.openingHours && (
@@ -296,7 +297,9 @@ const ShowroomInfoModal: React.FC<ShowroomInfoModalProps> = ({ showroom, isOpen,
                           <div className="flex items-center gap-2 text-sm">
                             <UserIcon className="h-4 w-4 text-gray-400" />
                             <span className="text-gray-600">المالك:</span>
-                            <span className="font-medium">{quickDecodeName(showroom.user.name)}</span>
+                            <span className="font-medium">
+                              {quickDecodeName(showroom.user.name)}
+                            </span>
                           </div>
                         </div>
                       </div>

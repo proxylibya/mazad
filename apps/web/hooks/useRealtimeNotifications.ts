@@ -7,9 +7,9 @@
  * @date 2025-01-22
  */
 
-import { useEffect, useRef, useCallback, useState } from 'react';
-import { getCurrentUser } from '@/utils/auth';
 import { unifiedNotificationManager } from '@/lib/notifications/UnifiedNotificationManager';
+import { getCurrentUser } from '@/utils/authUtils';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface RealtimeNotificationsOptions {
   // تفعيل الاتصال
@@ -72,7 +72,7 @@ export function useRealtimeNotifications(options: RealtimeNotificationsOptions =
     try {
       // الحصول على التوكن
       const token = localStorage.getItem('token') || '';
-      
+
       // إنشاء اتصال SSE
       const eventSource = new EventSource(
         `/api/notifications/stream?token=${encodeURIComponent(token)}`
@@ -94,7 +94,7 @@ export function useRealtimeNotifications(options: RealtimeNotificationsOptions =
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          
+
           console.log('[Realtime] 📨 استقبال:', data.type);
 
           switch (data.type) {
@@ -141,7 +141,7 @@ export function useRealtimeNotifications(options: RealtimeNotificationsOptions =
         console.error('[Realtime] ❌ خطأ في الاتصال:', err);
         setIsConnected(false);
         setConnectionStatus('error');
-        
+
         const error = new Error('فشل الاتصال بخادم الإشعارات');
         setError(error);
         onError?.(error);
@@ -155,7 +155,7 @@ export function useRealtimeNotifications(options: RealtimeNotificationsOptions =
           console.log(
             `[Realtime] 🔄 إعادة المحاولة ${reconnectAttemptsRef.current}/${maxReconnectAttempts} بعد ${reconnectDelay}ms`
           );
-          
+
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
           }, reconnectDelay);
@@ -183,7 +183,7 @@ export function useRealtimeNotifications(options: RealtimeNotificationsOptions =
 
   const disconnect = useCallback(() => {
     console.log('[Realtime] 🔌 قطع الاتصال يدوياً');
-    
+
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
     }

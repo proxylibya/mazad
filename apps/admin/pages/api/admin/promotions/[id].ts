@@ -5,14 +5,11 @@
  * DELETE - حذف/إيقاف الترويج
  */
 
-import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 // Prisma client singleton
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined; };
-const prisma = globalForPrisma.prisma ?? new PrismaClient();
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+import { prisma } from '@/lib/prisma';
 
 const JWT_SECRET = process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET || 'sooq-mazad-admin-secret-key-min-32-chars!';
 const COOKIE_NAME = 'admin_session';

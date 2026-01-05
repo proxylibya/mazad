@@ -3,7 +3,6 @@
  * Showrooms Management - Updated with Unified System
  */
 import {
-  BuildingStorefrontIcon,
   CheckBadgeIcon,
   EyeIcon,
   MapPinIcon,
@@ -30,6 +29,7 @@ import {
   useSearchFilter,
   type TableColumn,
 } from '../../../components/unified';
+import ConfirmDialog from '../../../components/ui/ConfirmDialog';
 
 interface Showroom {
   id: string;
@@ -307,39 +307,25 @@ export default function ShowroomsPage() {
         sortable={true}
       />
 
-      {/* Delete Confirmation Modal */}
-      {deleteModal.open && deleteModal.showroom && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="mx-4 w-full max-w-md rounded-xl border border-slate-700 bg-slate-800 p-6 shadow-2xl">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="rounded-full bg-red-500/20 p-3">
-                <BuildingStorefrontIcon className="h-6 w-6 text-red-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-white">تأكيد الحذف</h3>
+      <ConfirmDialog
+        open={deleteModal.open && !!deleteModal.showroom}
+        title="تأكيد الحذف"
+        message={
+          deleteModal.showroom && (
+            <div className="space-y-3">
+              <p>هل أنت متأكد من حذف هذا المعرض؟</p>
+              <p className="rounded-lg bg-slate-700/50 p-3 text-sm text-white">
+                {deleteModal.showroom.name}
+              </p>
             </div>
-
-            <p className="mb-2 text-slate-300">هل أنت متأكد من حذف هذا المعرض؟</p>
-            <p className="mb-6 rounded-lg bg-slate-700/50 p-3 text-sm text-white">
-              {deleteModal.showroom.name}
-            </p>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteModal({ open: false, showroom: null })}
-                className="flex-1 rounded-lg border border-slate-600 bg-slate-700 px-4 py-2.5 text-white transition-colors hover:bg-slate-600"
-              >
-                إلغاء
-              </button>
-              <button
-                onClick={handleDelete}
-                className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-white transition-colors hover:bg-red-700"
-              >
-                تأكيد الحذف
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          )
+        }
+        variant="danger"
+        confirmLabel="تأكيد الحذف"
+        cancelLabel="إلغاء"
+        onCancel={() => setDeleteModal({ open: false, showroom: null })}
+        onConfirm={handleDelete}
+      />
     </AdminLayout>
   );
 }

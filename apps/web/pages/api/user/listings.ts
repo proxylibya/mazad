@@ -67,7 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           createdAt: true,
           updatedAt: true,
           // الصور المرفوعة
-          carImages: {
+          car_images: {
             select: {
               fileUrl: true,
               isPrimary: true,
@@ -80,8 +80,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             select: {
               id: true,
               status: true,
-              startTime: true,
-              endTime: true,
+              startDate: true,
+              endDate: true,
               currentPrice: true,
               totalBids: true,
             },
@@ -99,8 +99,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const processedListings = listings.map((listing) => {
       // معالجة الصور
       let mainImage = '';
-      if (listing.carImages && listing.carImages.length > 0) {
-        mainImage = listing.carImages[0].fileUrl;
+      if (listing.car_images && listing.car_images.length > 0) {
+        mainImage = listing.car_images[0].fileUrl;
       } else if (listing.images) {
         try {
           if (typeof listing.images === 'string') {
@@ -139,8 +139,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           ? {
               id: auction.id,
               status: auction.status,
-              startTime: auction.startTime,
-              endTime: auction.endTime,
+              startTime: auction.startDate,
+              endTime: auction.endDate,
               currentPrice: auction.currentPrice,
               totalBids: auction.totalBids,
             }

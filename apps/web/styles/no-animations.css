@@ -1,107 +1,96 @@
 /* ملف تعطيل جميع التأثيرات الحركية - لأداء أسرع وتجربة نظيفة */
 /* تم إنشاؤه في 2025-09-30 لإزالة كل التأثيرات المزعجة */
 
-/* تعطيل كل التأثيرات الحركية CSS */
-*,
-*::before,
-*::after {
+.no-animations *,
+.no-animations *::before,
+.no-animations *::after {
   animation-duration: 0s !important;
   animation-delay: 0s !important;
   transition-duration: 0s !important;
   transition-delay: 0s !important;
 }
 
-/* تعطيل التحويلات Transform عند Hover */
-* {
+.no-animations * {
   transform: none !important;
 }
 
-/* إزالة تأثيرات Tailwind الافتراضية */
-.transition,
-.transition-all,
-.transition-colors,
-.transition-opacity,
-.transition-shadow,
-.transition-transform,
-.duration-75,
-.duration-100,
-.duration-150,
-.duration-200,
-.duration-300,
-.duration-500,
-.duration-700,
-.duration-1000 {
+.no-animations .transition,
+.no-animations .transition-all,
+.no-animations .transition-colors,
+.no-animations .transition-opacity,
+.no-animations .transition-shadow,
+.no-animations .transition-transform,
+.no-animations .duration-75,
+.no-animations .duration-100,
+.no-animations .duration-150,
+.no-animations .duration-200,
+.no-animations .duration-300,
+.no-animations .duration-500,
+.no-animations .duration-700,
+.no-animations .duration-1000 {
   transition: none !important;
 }
 
-/* إزالة التأثيرات المتحركة Animations */
-.animate-spin,
-.animate-ping,
-.animate-pulse,
-.animate-bounce,
-.animate-fade-in,
-.animate-slide-in-right,
-.animate-scale-in,
-.animate-pulse-soft,
-.animate-shimmer {
+.no-animations .animate-spin,
+.no-animations .animate-ping,
+.no-animations .animate-pulse,
+.no-animations .animate-bounce,
+.no-animations .animate-fade-in,
+.no-animations .animate-slide-in-right,
+.no-animations .animate-scale-in,
+.no-animations .animate-pulse-soft,
+.no-animations .animate-shimmer {
   animation: none !important;
 }
 
-/* تعطيل Hover Scale */
-.hover\:scale-105:hover,
-.hover\:scale-110:hover,
-.hover\:scale-95:hover,
-.hover-scale:hover {
+.no-animations .hover\:scale-105:hover,
+.no-animations .hover\:scale-110:hover,
+.no-animations .hover\:scale-95:hover,
+.no-animations .hover-scale:hover {
   transform: none !important;
 }
 
-/* تعطيل Hover Translate */
-.hover\:translate-x-1:hover,
-.hover\:translate-y-1:hover,
-.hover\:-translate-y-1:hover,
-.hover\:-translate-y-2:hover {
+.no-animations .hover\:translate-x-1:hover,
+.no-animations .hover\:translate-y-1:hover,
+.no-animations .hover\:-translate-y-1:hover,
+.no-animations .hover\:-translate-y-2:hover {
   transform: none !important;
 }
 
-/* إزالة تأثيرات الظل المتحركة */
-.hover\:shadow-lg:hover,
-.hover\:shadow-xl:hover,
-.hover\:shadow-2xl:hover {
+.no-animations .hover\:shadow-lg:hover,
+.no-animations .hover\:shadow-xl:hover,
+.no-animations .hover\:shadow-2xl:hover {
   box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1) !important;
 }
 
-/* الحفاظ على Focus للوصولية فقط بدون تأثيرات */
-*:focus {
+.no-animations *:focus {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
 }
 
-*:focus:not(:focus-visible) {
+.no-animations *:focus:not(:focus-visible) {
   outline: none;
 }
 
-*:focus-visible {
+.no-animations *:focus-visible {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
 }
 
-/* تعطيل كل keyframes */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  .no-animations *,
+  .no-animations *::before,
+  .no-animations *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }
 
-/* فرض عدم وجود تأثيرات حتى في الوضع العادي */
-* {
+.no-animations * {
   animation-play-state: paused !important;
 }
 
-/* إلغاء will-change للأداء */
-* {
+.no-animations * {
   will-change: auto !important;
 }

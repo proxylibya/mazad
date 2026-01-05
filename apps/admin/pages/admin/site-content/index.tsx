@@ -27,6 +27,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '../../../components/AdminLayout';
+import { AnimatedPresence, AnimatedSection } from '../../../components/unified';
 
 // أنواع البيانات
 type SectionStatus = 'ACTIVE' | 'DISABLED' | 'MAINTENANCE' | 'COMING_SOON' | 'MEMBERS_ONLY';
@@ -748,14 +749,15 @@ export default function SiteContentPage() {
 
         {/* قائمة الأقسام */}
         <div className="space-y-4">
-          {sections.map((section) => {
+          {sections.map((section, index) => {
             const IconComponent = iconMap[section.icon || ''] || Cog6ToothIcon;
             const isExpanded = expandedSections.has(section.id);
             const colors = statusColors[section.status];
 
             return (
-              <div
+              <AnimatedSection
                 key={section.id}
+                delay={index * 40}
                 className={`overflow-hidden rounded-xl border-2 bg-slate-800 shadow-sm transition-all ${colors.border}`}
               >
                 {/* رأس القسم */}
@@ -820,7 +822,7 @@ export default function SiteContentPage() {
                 </div>
 
                 {/* محتوى موسع */}
-                {isExpanded && (
+                <AnimatedPresence show={isExpanded}>
                   <div className="border-t border-slate-700 bg-slate-900/50 p-4">
                     {/* رسالة مخصصة */}
                     {(section.status === 'MAINTENANCE' || section.status === 'COMING_SOON') && (
@@ -988,8 +990,8 @@ export default function SiteContentPage() {
                       </p>
                     </div>
                   </div>
-                )}
-              </div>
+                </AnimatedPresence>
+              </AnimatedSection>
             );
           })}
         </div>

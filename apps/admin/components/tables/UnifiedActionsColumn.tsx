@@ -18,6 +18,7 @@ import {
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import React, { useState } from 'react';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 // أنواع الإجراءات المتاحة
 export type ActionType =
@@ -142,65 +143,6 @@ const iconSizes: Record<string, string> = {
   md: 'h-5 w-5',
   lg: 'h-6 w-6',
 };
-
-/**
- * مكون نافذة التأكيد
- */
-interface ConfirmModalProps {
-  isOpen: boolean;
-  title: string;
-  message: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-  isDestructive?: boolean;
-  loading?: boolean;
-}
-
-function ConfirmModal({
-  isOpen,
-  title,
-  message,
-  onConfirm,
-  onCancel,
-  isDestructive = false,
-  loading = false,
-}: ConfirmModalProps) {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-800 p-6 shadow-2xl">
-        <h3 className="mb-4 text-lg font-bold text-white">{title}</h3>
-        <p className="mb-6 text-slate-300">{message}</p>
-        <div className="flex justify-end gap-3">
-          <button
-            onClick={onCancel}
-            disabled={loading}
-            className="rounded-lg bg-slate-700 px-4 py-2 text-white transition-colors hover:bg-slate-600 disabled:opacity-50"
-          >
-            إلغاء
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={loading}
-            className={`rounded-lg px-4 py-2 text-white transition-colors disabled:opacity-50 ${
-              isDestructive ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
-            }`}
-          >
-            {loading ? (
-              <span className="flex items-center gap-2">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-                جاري التنفيذ...
-              </span>
-            ) : (
-              'تأكيد'
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /**
  * مكون أزرار الإجراءات الموحد
@@ -329,9 +271,8 @@ export default function UnifiedActionsColumn({
         })}
       </div>
 
-      {/* نافذة التأكيد */}
-      <ConfirmModal
-        isOpen={confirmModal.isOpen}
+      <ConfirmDialog
+        open={confirmModal.isOpen}
         title={
           confirmModal.action?.confirmTitle ||
           defaultConfirmMessages[confirmModal.action?.type || 'delete'].title
@@ -340,12 +281,14 @@ export default function UnifiedActionsColumn({
           confirmModal.action?.confirmMessage ||
           defaultConfirmMessages[confirmModal.action?.type || 'delete'].message
         }
+        variant={
+          ['delete', 'ban', 'reject', 'suspend'].includes(confirmModal.action?.type || '')
+            ? 'danger'
+            : 'primary'
+        }
+        loading={loading}
         onConfirm={confirmAndExecute}
         onCancel={() => setConfirmModal({ isOpen: false, action: null })}
-        isDestructive={['delete', 'ban', 'reject', 'suspend'].includes(
-          confirmModal.action?.type || '',
-        )}
-        loading={loading}
       />
     </>
   );

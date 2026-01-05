@@ -37,6 +37,8 @@ import {
 import { formatCityRegion } from '../../utils/formatters';
 import { handlePhoneClickUnified } from '../../utils/phoneActions';
 
+const SITE_TEAM_USER_ID = 'site_team';
+
 interface ContactPageProps {
   seller: {
     id: string;
@@ -602,9 +604,7 @@ const ContactPage = ({
                           key={vehicle.id}
                           car={{
                             ...vehicle,
-                            images:
-                              vehicle.carImages?.map((img) => img.fileUrl) ||
-                              [],
+                            images: vehicle.carImages?.map((img) => img.fileUrl) || [],
                           }}
                         />
                       ))}
@@ -712,6 +712,33 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
       },
     });
 
+    let finalSeller = seller;
+    if (seller && seller.id === SITE_TEAM_USER_ID) {
+      try {
+        const record = await prisma.system_settings.findFirst({ where: { key: 'site_team' } });
+        const raw = record?.value
+          ? typeof record.value === 'string'
+            ? (JSON.parse(record.value as string) as any)
+            : (record.value as any)
+          : null;
+
+        const teamName = String(raw?.teamName || seller.name || 'فريق مزاد');
+        const phones = Array.isArray(raw?.phones)
+          ? raw.phones.map((p: any) => String(p || '').trim()).filter(Boolean)
+          : [];
+        const whatsappPhone = String(raw?.whatsappPhone || '').trim();
+        const teamPhone = phones.find(Boolean) || whatsappPhone || seller.phone || '';
+
+        finalSeller = {
+          ...seller,
+          name: teamName,
+          phone: teamPhone,
+        };
+      } catch {
+        // ignore parsing errors
+      }
+    }
+
     if (!seller) {
       return { notFound: true };
     }
@@ -758,8 +785,8 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
     return {
       props: {
         seller: {
-          ...seller,
-          createdAt: seller.createdAt.toISOString(),
+          ...(finalSeller as any),
+          createdAt: (finalSeller as any).createdAt.toISOString(),
         },
         initialVehicle,
         marketplaceVehicles: marketplaceVehicles || [],

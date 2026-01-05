@@ -3,20 +3,22 @@ import ExclamationCircleIcon from '@heroicons/react/24/outline/ExclamationCircle
 import EyeIcon from '@heroicons/react/24/outline/EyeIcon';
 import EyeSlashIcon from '@heroicons/react/24/outline/EyeSlashIcon';
 import LockClosedIcon from '@heroicons/react/24/outline/LockClosedIcon';
-import PhoneIcon from '@heroicons/react/24/outline/PhoneIcon';
 import UserIcon from '@heroicons/react/24/outline/UserIcon';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React, { useEffect, useState } from 'react';
+import PhoneInputField, { type Country } from '../components/PhoneInputField';
 import { BackIcon, ForwardIcon } from '../components/common/icons/RTLIcon';
 import { saveUserSession } from '../utils/authUtils';
 import { safeApiCall } from '../utils/hydrationErrorHandler';
+import { processPhoneNumber } from '../utils/phoneUtils';
 
 const LoginPage: React.FC = () => {
   const router = useRouter();
 
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [dialCode, setDialCode] = useState('+218');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -99,6 +101,11 @@ const LoginPage: React.FC = () => {
         throw new Error('يرجى إدخال كلمة المرور');
       }
 
+      const phoneResult = processPhoneNumber(`${dialCode}${phoneNumber.trim()}`);
+      const phoneForApi = phoneResult.isValid
+        ? phoneResult.fullNumber
+        : `${dialCode}${phoneNumber.trim()}`;
+
       // محاولة تسجيل الدخول باستخدام safeApiCall
       const data = await safeApiCall<{
         success: boolean;
@@ -111,7 +118,7 @@ const LoginPage: React.FC = () => {
       }>('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({
-          phone: phoneNumber.trim(),
+          phone: phoneForApi,
           password: password.trim(),
         }),
       });
@@ -146,30 +153,10 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  // تنسيق رقم الهاتف
-  const formatPhoneNumber = (value: string) => {
-    // إزالة جميع الأحرف غير الرقمية
-    const numbers = value.replace(/\D/g, '');
-
-    // إضافة +218 إذا لم تكن موجودة
-    if (numbers.length > 0 && !numbers.startsWith('218')) {
-      return '+218' + numbers;
-    } else if (numbers.startsWith('218')) {
-      return '+' + numbers;
-    }
-
-    return numbers ? '+' + numbers : '';
-  };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhoneNumber(e.target.value);
-    setPhoneNumber(formatted);
-  };
-
   return (
     <>
       <Head>
-        <title>تسجيل دخول الإدارة | موقع مزاد السيارات</title>
+        <title>تسجيل دخول الإدارة | سوق المزاد</title>
         <meta name="description" content="تسجيل دخول الإدارة للوصول إلى لوحة التحكم" />
       </Head>
 
@@ -213,22 +200,20 @@ const LoginPage: React.FC = () => {
               <form onSubmit={handleLogin} className="space-y-6">
                 {/* رقم الهاتف أو اسم المستخدم */}
                 <div>
-                  <label htmlFor="phone" className="mb-2 block text-sm font-medium text-gray-700">
-                    رقم الهاتف أو اسم المستخدم
-                  </label>
-                  <div className="input-icon-container relative">
-                    <input
-                      id="phone"
-                      type="text"
-                      value={phoneNumber}
-                      onChange={handlePhoneChange}
-                      placeholder="0920000000"
-                      className="input-with-right-icon block w-full rounded-lg border border-gray-300 py-3 text-right focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                    />
-                    <div className="input-icon-right force-show-icon">
-                      <PhoneIcon className="h-5 w-5 text-gray-400" />
-                    </div>
-                  </div>
+                  <PhoneInputField
+                    value={phoneNumber}
+                    onChange={(v) => {
+                      setPhoneNumber(v);
+                      if (error) setError('');
+                    }}
+                    onCountryChange={(c: Country) => {
+                      setDialCode(c.code);
+                    }}
+                    label="رقم الموبايل"
+                    required
+                    placeholder="أدخل رقم الموبايل"
+                    className="mb-2"
+                  />
                   <p className="mt-1 text-xs text-gray-500">للاختبار: admin أو أي رقم هاتف مسجل</p>
                 </div>
 

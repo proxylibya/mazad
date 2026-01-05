@@ -3,14 +3,16 @@
  * متوافق مع النظام الموحد والخدمات الجديدة
  */
 
-import { NextApiRequest, NextApiResponse } from 'next';
-import { IncomingForm, File as FormidableFile } from 'formidable';
+import { File as FormidableFile, IncomingForm } from 'formidable';
 import fs from 'fs';
+import { NextApiRequest, NextApiResponse } from 'next';
+import os from 'os';
 import path from 'path';
 import sharp from 'sharp';
-import prisma from '../../../lib/prisma';
-import { logger } from '../../../lib/core/logging/UnifiedLogger';
 import apiResponse from '../../../lib/api/response';
+import { uploadBufferToBlob } from '../../../lib/blob';
+import { logger } from '../../../lib/core/logging/UnifiedLogger';
+import prisma from '../../../lib/prisma';
 
 // تعطيل body parser والإعدادات المحسنة
 export const config = {
@@ -200,7 +202,7 @@ async function parseMultipartForm(req: NextApiRequest): Promise<{
   files: Record<string, FormidableFile | FormidableFile[]>;
 }> {
   return new Promise((resolve, reject) => {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'temp');
+    const uploadDir = path.join(os.tmpdir(), 'sooq-mazad', 'uploads', 'temp');
 
     // إنشاء المجلد إذا لم يكن موجوداً
     if (!fs.existsSync(uploadDir)) {
@@ -261,7 +263,7 @@ function getFieldValue(
 /**
  * التحقق من صحة ملف الصورة
  */
-function validateImageFile(file: FormidableFile): { isValid: boolean; error?: string } {
+function validateImageFile(file: FormidableFile): { isValid: boolean; error?: string; } {
   // التحقق من النوع
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
   if (!file.mimetype || !allowedTypes.includes(file.mimetype)) {
@@ -315,17 +317,11 @@ async function processAndSaveImage(
     const extension = path.extname(file.originalFilename || '') || '.jpg';
     const fileName = `${category}_${timestamp}_${randomString}${extension}`;
 
-    // إنشاء مجلد الحفظ
-    const saveDir = path.join(process.cwd(), 'public', 'images', 'cars', category);
-    if (!fs.existsSync(saveDir)) {
-      fs.mkdirSync(saveDir, { recursive: true });
-    }
+    // رفع الصورة إلى Vercel Blob
+    const inputBuffer = await fs.promises.readFile(file.filepath);
 
-    const finalPath = path.join(saveDir, fileName);
-
-    // معالجة الصورة بـ Sharp (تحسين الجودة والحجم)
-    await sharp(file.filepath)
-      .rotate() // تصحيح الاتجاه تلقائياً
+    const processedBuffer = await sharp(inputBuffer)
+      .rotate()
       .resize(1200, 900, {
         fit: 'inside',
         withoutEnlargement: true,
@@ -334,18 +330,26 @@ async function processAndSaveImage(
         quality: 85,
         progressive: true,
       })
-      .toFile(finalPath);
+      .toBuffer();
+
+    const folder = `images/cars/${category}`;
+    const uploaded = await uploadBufferToBlob({
+      buffer: processedBuffer,
+      filename: fileName,
+      contentType: 'image/jpeg',
+      folder,
+    });
 
     // حذف الملف المؤقت
     await cleanupTempFile(file.filepath);
 
     // إنشاء URL للصورة
-    const fileUrl = `/images/cars/${category}/${fileName}`;
+    const fileUrl = uploaded.url;
 
     // حفظ معلومات الصورة في قاعدة البيانات
     if (userId) {
       try {
-        await prisma.carImage.create({
+        await prisma.car_images.create({
           data: {
             fileName,
             fileUrl,
@@ -362,18 +366,6 @@ async function processAndSaveImage(
         logger.warn('تحذير: فشل في حفظ معلومات الصورة في قاعدة البيانات', dbError);
         // لا نوقف العملية
       }
-    }
-
-    // إنشاء نسخة WebP للأداء الأفضل
-    try {
-      const webpFileName = fileName.replace(/\.[^/.]+$/, '.webp');
-      const webpPath = path.join(saveDir, webpFileName);
-
-      await sharp(finalPath).webp({ quality: 80 }).toFile(webpPath);
-
-      logger.info('تم إنشاء نسخة WebP', { webpFileName });
-    } catch (webpError) {
-      logger.warn('تحذير: فشل في إنشاء نسخة WebP', webpError);
     }
 
     return {

@@ -18,6 +18,7 @@ import {
   KeyIcon,
   TrashIcon,
   UserCircleIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';

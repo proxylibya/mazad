@@ -14,6 +14,7 @@ import {
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import AdminLayout from '../../../components/AdminLayout';
+import ConfirmDialog from '../../../components/ui/ConfirmDialog';
 
 interface DeletedUser {
   id: string;
@@ -222,8 +223,11 @@ export default function DeletedUsers() {
                             {user.name?.charAt(0) || '?'}
                           </span>
                         </div>
-                        <div>
-                          <p className="font-medium text-slate-400 line-through">
+                        <div className="min-w-0">
+                          <p
+                            className="truncate font-medium text-slate-400 line-through"
+                            title={user.name || 'بدون اسم'}
+                          >
                             {user.name || 'بدون اسم'}
                           </p>
                           <p className="text-xs text-slate-500">محذوف</p>
@@ -270,58 +274,36 @@ export default function DeletedUsers() {
         )}
       </div>
 
-      {/* Restore Confirmation Modal */}
-      {restoreConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-800 p-6">
-            <h3 className="mb-4 text-lg font-bold text-white">تأكيد الاستعادة</h3>
-            <p className="mb-6 text-slate-300">
-              هل أنت متأكد من استعادة هذا المستخدم؟ سيتم إعادة تفعيل حسابه.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setRestoreConfirm(null)}
-                className="rounded-lg bg-slate-700 px-4 py-2 text-white transition-colors hover:bg-slate-600"
-              >
-                إلغاء
-              </button>
-              <button
-                onClick={() => handleRestore(restoreConfirm)}
-                className="rounded-lg bg-emerald-600 px-4 py-2 text-white transition-colors hover:bg-emerald-700"
-              >
-                استعادة
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!restoreConfirm}
+        title="تأكيد الاستعادة"
+        message="هل أنت متأكد من استعادة هذا المستخدم؟ سيتم إعادة تفعيل حسابه."
+        variant="primary"
+        confirmLabel="استعادة"
+        cancelLabel="إلغاء"
+        onCancel={() => setRestoreConfirm(null)}
+        onConfirm={() => restoreConfirm && handleRestore(restoreConfirm)}
+      />
 
-      {/* Permanent Delete Confirmation Modal */}
-      {permanentDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-xl border border-red-500/30 bg-slate-800 p-6">
-            <h3 className="mb-4 text-lg font-bold text-red-400">تحذير: حذف نهائي</h3>
-            <p className="mb-4 text-slate-300">هل أنت متأكد من الحذف النهائي لهذا المستخدم؟</p>
-            <p className="mb-6 rounded-lg bg-red-500/10 p-3 text-sm text-red-400">
+      <ConfirmDialog
+        open={!!permanentDeleteConfirm}
+        title="تحذير: حذف نهائي"
+        message={
+          <div className="space-y-3">
+            <p>هل أنت متأكد من الحذف النهائي لهذا المستخدم؟</p>
+            <p className="rounded-lg bg-red-500/10 p-3 text-sm text-red-400">
               هذا الإجراء لا يمكن التراجع عنه وسيتم حذف جميع بيانات المستخدم بشكل دائم.
             </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setPermanentDeleteConfirm(null)}
-                className="rounded-lg bg-slate-700 px-4 py-2 text-white transition-colors hover:bg-slate-600"
-              >
-                إلغاء
-              </button>
-              <button
-                onClick={() => handlePermanentDelete(permanentDeleteConfirm)}
-                className="rounded-lg bg-red-600 px-4 py-2 text-white transition-colors hover:bg-red-700"
-              >
-                حذف نهائي
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        }
+        variant="danger"
+        confirmLabel="حذف نهائي"
+        cancelLabel="إلغاء"
+        onCancel={() => setPermanentDeleteConfirm(null)}
+        onConfirm={() =>
+          permanentDeleteConfirm && handlePermanentDelete(permanentDeleteConfirm)
+        }
+      />
     </AdminLayout>
   );
 }

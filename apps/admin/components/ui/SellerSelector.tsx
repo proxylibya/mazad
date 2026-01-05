@@ -15,6 +15,7 @@ export interface SellerInfo {
   name: string;
   phone: string;
   isNew?: boolean; // هل هو مستخدم جديد سيتم إنشاؤه
+  isSiteTeam?: boolean;
 }
 
 interface User {
@@ -106,6 +107,7 @@ export default function SellerSelector({
       name: user.name || 'بدون اسم',
       phone: user.phone,
       isNew: false,
+      isSiteTeam: false,
     });
     setMode('selected');
     setShowDropdown(false);
@@ -130,6 +132,7 @@ export default function SellerSelector({
       name: newSellerName.trim(),
       phone: newSellerPhone.trim(),
       isNew: true,
+      isSiteTeam: false,
     });
     setMode('selected');
   };
@@ -160,9 +163,12 @@ export default function SellerSelector({
             <div>
               <p className="font-medium text-white">{value.name}</p>
               <p className="text-sm text-slate-400" dir="ltr">
-                {value.phone}
+                {value.phone || '—'}
               </p>
               {value.isNew && <span className="text-xs text-yellow-400">سيتم إنشاء حساب جديد</span>}
+              {value.isSiteTeam && (
+                <span className="text-xs text-indigo-300">منشور بواسطة فريق مزاد</span>
+              )}
               {!value.isNew && value.id && (
                 <span className="text-xs text-green-400">مستخدم مسجل</span>
               )}
@@ -324,6 +330,33 @@ export default function SellerSelector({
               </p>
             </div>
           )}
+
+          <div className="rounded-lg border border-slate-600 bg-slate-700/30 p-4">
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={!!value?.isSiteTeam}
+                onChange={(e) => {
+                  if (!e.target.checked) return;
+                  onChange({
+                    id: 'site_team',
+                    name: 'فريق مزاد',
+                    phone: '',
+                    isNew: false,
+                    isSiteTeam: true,
+                  });
+                  setMode('selected');
+                }}
+                className="mt-1 h-4 w-4 rounded border-slate-500 bg-slate-600 text-indigo-500"
+              />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-white">منشور بواسطة فريق مزاد</p>
+                <p className="mt-1 text-xs text-slate-400">
+                  سيتم استخدام بيانات فريق الموقع عند التواصل
+                </p>
+              </div>
+            </label>
+          </div>
         </div>
       )}
 

@@ -12,8 +12,8 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({
   children,
-  title = 'موقع مزاد السيارات',
-  description = 'أفضل موقع لبيع وشراء السيارات في ليبيا',
+  title = 'سوق المزاد',
+  description = 'منصة المزادات الأولى في ليبيا',
   keywords = 'مزاد سيارات, سيارات للبيع, سيارات ليبيا, مزادات السيارات, سوق السيارات',
   className = '',
 }) => {

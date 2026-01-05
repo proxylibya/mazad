@@ -3,17 +3,14 @@
  * Upload Auction Images API - Admin Panel
  */
 
-import { PrismaClient } from '@prisma/client';
 import formidable from 'formidable';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import os from 'os';
 import path from 'path';
+import { uploadBufferToBlob } from '../../../../lib/blob';
 
-// Prisma client singleton
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined; };
-const prisma = globalForPrisma.prisma ?? new PrismaClient();
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 const JWT_SECRET = process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET || 'sooq-mazad-admin-secret-key-min-32-chars!';
 const COOKIE_NAME = 'admin_session';
@@ -51,17 +48,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(401).json({ success: false, message: 'غير مصرح' });
         }
 
-        // إنشاء مجلد الرفع في apps/web/public ليكون متاحاً للعرض في تطبيق web
-        // هذا يضمن أن الصور المرفوعة من admin تظهر في web
-        const webPublicDir = path.resolve(process.cwd(), '..', 'web', 'public', 'uploads', 'auctions');
-        if (!fs.existsSync(webPublicDir)) {
-            fs.mkdirSync(webPublicDir, { recursive: true });
+        const tempDir = path.join(os.tmpdir(), 'sooq-mazad', 'admin', 'uploads', 'temp');
+        if (!fs.existsSync(tempDir)) {
+            fs.mkdirSync(tempDir, { recursive: true });
         }
-        const uploadDir = webPublicDir;
 
         // إعداد formidable
         const form = formidable({
-            uploadDir,
+            uploadDir: tempDir,
             keepExtensions: true,
             maxFileSize: 5 * 1024 * 1024, // 5MB
             filter: (part) => {
@@ -89,13 +83,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const timestamp = Date.now();
         const ext = path.extname(imageFile.originalFilename || '.jpg');
         const newFileName = `auction_${timestamp}${ext}`;
-        const newFilePath = path.join(uploadDir, newFileName);
 
-        // نقل الملف
-        fs.renameSync(imageFile.filepath, newFilePath);
+        const buffer = await fs.promises.readFile(imageFile.filepath);
+        const contentType = imageFile.mimetype || 'application/octet-stream';
+        const uploaded = await uploadBufferToBlob({
+            buffer,
+            filename: newFileName,
+            contentType,
+            folder: 'uploads/auctions',
+        });
+        await fs.promises.unlink(imageFile.filepath).catch(() => { });
 
-        // إنشاء URL للصورة (يستخدم مسار uploads/auctions المتاح في web)
-        const fileUrl = `/uploads/auctions/${newFileName}`;
+        const fileUrl = uploaded.url;
 
         return res.status(200).json({
             success: true,

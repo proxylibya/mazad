@@ -11,12 +11,12 @@
  * - Security Headers
  */
 
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import { NextApiRequest, NextApiResponse } from 'next';
-import prisma from '@/lib/prisma';
 import { keydb } from '@/lib/cache/keydb-unified';
-import { User, Role } from '@prisma/client';
+import prisma from '@/lib/prisma';
+import { Role } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { NextApiRequest, NextApiResponse } from 'next';
 
 // Constants
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-in-production';
@@ -61,7 +61,7 @@ export interface AuthSession {
 export class UnifiedAuthSystem {
   private static instance: UnifiedAuthSystem;
 
-  private constructor() {}
+  private constructor() { }
 
   /**
    * الحصول على مثيل واحد من النظام (Singleton Pattern)
@@ -163,7 +163,7 @@ export class UnifiedAuthSystem {
       // التحقق من محاولات الدخول الفاشلة
       const lockoutKey = `auth:lockout:${identifier}`;
       const isLockedOut = await keydb.get(lockoutKey);
-      
+
       if (isLockedOut) {
         throw new Error('الحساب مقفل مؤقتاً بسبب محاولات دخول فاشلة متعددة');
       }
@@ -180,18 +180,21 @@ export class UnifiedAuthSystem {
           status: 'ACTIVE'
         },
         include: {
-          password: true
+          user_passwords: true
         }
       });
 
-      if (!user || !user.password) {
+      if (!user || !user.user_passwords) {
         await this.recordFailedAttempt(identifier);
         throw new Error('بيانات الدخول غير صحيحة');
       }
 
       // التحقق من كلمة المرور
-      const isPasswordValid = await this.verifyPassword(password, user.password.hashedPassword);
-      
+      const isPasswordValid = await this.verifyPassword(
+        password,
+        user.user_passwords.hashedPassword,
+      );
+
       if (!isPasswordValid) {
         await this.recordFailedAttempt(identifier);
         throw new Error('بيانات الدخول غير صحيحة');
@@ -275,14 +278,14 @@ export class UnifiedAuthSystem {
     try {
       // التحقق من صحة رمز التحديث
       const decoded = this.verifyRefreshToken(refreshToken);
-      
+
       if (!decoded || !decoded.userId) {
         throw new Error('Invalid refresh token');
       }
 
       // الحصول على بيانات المستخدم
       const user = await prisma.users.findUnique({
-        where: { 
+        where: {
           id: decoded.userId,
           isDeleted: false,
           status: 'ACTIVE'
@@ -319,7 +322,7 @@ export class UnifiedAuthSystem {
   public async verifySession(sessionId: string): Promise<AuthSession | null> {
     try {
       const session = await keydb.get<AuthSession>(`auth:session:${sessionId}`);
-      
+
       if (!session) {
         return null;
       }
@@ -343,13 +346,13 @@ export class UnifiedAuthSystem {
   public async getUserFromToken(token: string): Promise<AuthUser | null> {
     try {
       const decoded = this.verifyAccessToken(token);
-      
+
       if (!decoded || !decoded.userId) {
         return null;
       }
 
       const user = await prisma.users.findUnique({
-        where: { 
+        where: {
           id: decoded.userId,
           isDeleted: false,
           status: 'ACTIVE'
@@ -384,7 +387,8 @@ export class UnifiedAuthSystem {
     const permissions: Record<Role, string[]> = {
       USER: ['read', 'create_listing', 'bid'],
       MODERATOR: ['read', 'create_listing', 'bid', 'moderate', 'delete_listing'],
-      ADMIN: ['*'] // جميع الصلاحيات
+      ADMIN: ['*'], // جميع الصلاحيات
+      SUPER_ADMIN: ['*'],
     };
 
     const userPermissions = permissions[user.role] || [];
@@ -397,15 +401,15 @@ export class UnifiedAuthSystem {
   private async recordFailedAttempt(identifier: string): Promise<void> {
     const attemptsKey = `auth:attempts:${identifier}`;
     const attempts = await keydb.incr(attemptsKey);
-    
+
     // تعيين مدة انتهاء الصلاحية للمحاولات
     await keydb.expire(attemptsKey, 3600); // ساعة واحدة
-    
+
     if (attempts >= MAX_LOGIN_ATTEMPTS) {
       // قفل الحساب
       const lockoutKey = `auth:lockout:${identifier}`;
       await keydb.set(lockoutKey, true, { ttl: LOCKOUT_DURATION / 1000 });
-      
+
       // حذف محاولات الفشل
       await keydb.del(attemptsKey);
     }
@@ -421,13 +425,16 @@ export class UnifiedAuthSystem {
     userAgent?: string
   ): Promise<void> {
     try {
-      await prisma.activityLog.create({
+      await prisma.activity_logs.create({
         data: {
+          id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
           userId,
-          action,
+          action: action as any,
+          entityType: 'AUTH',
+          entityId: userId,
+          description: action,
           ipAddress,
           userAgent,
-          timestamp: new Date()
         }
       });
     } catch (error) {
@@ -450,14 +457,14 @@ export class UnifiedAuthSystem {
       try {
         // الحصول على الرمز من الـ headers
         const authHeader = req.headers.authorization;
-        
+
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
           return res.status(401).json({ error: 'Unauthorized' });
         }
 
         const token = authHeader.substring(7);
         const user = await this.getUserFromToken(token);
-        
+
         if (!user) {
           return res.status(401).json({ error: 'Invalid token' });
         }
@@ -477,7 +484,7 @@ export class UnifiedAuthSystem {
   public roleMiddleware(allowedRoles: Role[]) {
     return (req: NextApiRequest, res: NextApiResponse, next: () => void) => {
       const user = (req as any).user as AuthUser;
-      
+
       if (!user) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
@@ -496,20 +503,20 @@ export const authSystem = UnifiedAuthSystem.getInstance();
 
 // تصدير وظائف سريعة للاستخدام
 export const auth = {
-  login: (identifier: string, password: string, ip?: string, ua?: string) => 
+  login: (identifier: string, password: string, ip?: string, ua?: string) =>
     authSystem.login(identifier, password, ip, ua),
-  logout: (sessionId: string, userId: string) => 
+  logout: (sessionId: string, userId: string) =>
     authSystem.logout(sessionId, userId),
-  refresh: (refreshToken: string) => 
+  refresh: (refreshToken: string) =>
     authSystem.refreshAccessToken(refreshToken),
-  verify: (sessionId: string) => 
+  verify: (sessionId: string) =>
     authSystem.verifySession(sessionId),
-  hash: (password: string) => 
+  hash: (password: string) =>
     authSystem.hashPassword(password),
-  check: (password: string, hash: string) => 
+  check: (password: string, hash: string) =>
     authSystem.verifyPassword(password, hash),
-  getUserFromToken: (token: string) => 
+  getUserFromToken: (token: string) =>
     authSystem.getUserFromToken(token),
-  hasPermission: (user: AuthUser, permission: string) => 
+  hasPermission: (user: AuthUser, permission: string) =>
     authSystem.hasPermission(user, permission)
 };

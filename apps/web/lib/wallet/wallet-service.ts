@@ -389,12 +389,10 @@ export class WalletService {
                     });
                 }
 
-                // Record sender transaction
                 await tx.transactions.create({
                     data: {
                         id: `${transactionId}_send`,
                         walletId: senderWallet.id,
-                        userId: request.senderId,
                         type: 'WITHDRAWAL',
                         amount: -request.amount,
                         currency,
@@ -407,12 +405,10 @@ export class WalletService {
                     },
                 });
 
-                // Record recipient transaction
                 await tx.transactions.create({
                     data: {
                         id: `${transactionId}_recv`,
                         walletId: recipientWallet.id,
-                        userId: recipientUser.id,
                         type: 'DEPOSIT',
                         amount: request.amount - feeCalc.feeAmount,
                         currency,
@@ -570,12 +566,10 @@ export class WalletService {
                     });
                 }
 
-                // Record swap transaction
                 await tx.transactions.create({
                     data: {
                         id: transactionId,
                         walletId: wallet.id,
-                        userId: request.userId,
                         type: 'TRANSFER',
                         amount: convertedAmount,
                         currency: toCurrency,

@@ -607,7 +607,9 @@ const ReviewCard = ({ review }) => {
           <div className="flex items-center gap-2">
             <ClockIcon className="h-4 w-4" />
             <span>
-              منذ {Math.floor((new Date() - new Date(review.date)) / (1000 * 60 * 60 * 24))} يوم
+              منذ{' '}
+              {Math.floor((Date.now() - new Date(review.date).getTime()) / (1000 * 60 * 60 * 24))}{' '}
+              يوم
             </span>
           </div>
           {review.verified && (

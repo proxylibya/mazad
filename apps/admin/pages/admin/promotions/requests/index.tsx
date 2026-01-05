@@ -375,8 +375,13 @@ export default function AdvertisingRequestsPage() {
                               className={`h-5 w-5 ${request.requestType === 'TEAM_CONTACT' ? 'text-purple-400' : 'text-blue-400'}`}
                             />
                           </div>
-                          <div>
-                            <p className="text-sm font-medium text-white">{typeConfig?.label}</p>
+                      <div>
+                            <p
+                              className="text-sm font-medium text-white truncate"
+                              title={typeConfig?.label}
+                            >
+                              {typeConfig?.label}
+                            </p>
                             <p className="text-xs text-slate-400">{request.id.slice(0, 8)}...</p>
                           </div>
                         </div>

@@ -37,4 +37,5 @@
 @import './avatars.css';
 @import './transport-cards.css';
 @import './utilities.css';
-@import './content-visibility.css'; /* منع وميض المحتوى FOUC */
+@import './content-visibility.css';
+@import './no-animations.css';

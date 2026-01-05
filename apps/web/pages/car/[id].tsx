@@ -348,7 +348,7 @@ const CarDetailsPage = () => {
                     <span>{formatYear(car.year)}</span>
                   </div>
 
-                  {car.mileage && (
+                  {car.mileage !== undefined && car.mileage !== null && (
                     <div className="flex items-center gap-2 text-gray-600">
                       <CogIcon className="h-5 w-5" />
                       <span>{formatDistance(car.mileage)}</span>

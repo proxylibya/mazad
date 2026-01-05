@@ -182,7 +182,7 @@ const AuctionFilter: React.FC<AuctionFilterProps> = ({
       <div className="space-y-4">
         <SelectField
           label="حالة المزاد"
-          options={auctionFilterData.auctionStatuses.map((status) => status.label || status)}
+          options={auctionFilterData.auctionStatuses}
           value={filters.auctionStatus}
           onChange={(value) => onFilterChange('auctionStatus', value)}
           placeholder="اختر حالة المزاد"
@@ -190,7 +190,7 @@ const AuctionFilter: React.FC<AuctionFilterProps> = ({
 
         <SelectField
           label="المدينة"
-          options={auctionFilterData.locations.map((location) => location.label || location)}
+          options={auctionFilterData.locations}
           value={filters.location}
           onChange={(value) => onFilterChange('location', value)}
           placeholder="اختر المدينة"
@@ -198,7 +198,7 @@ const AuctionFilter: React.FC<AuctionFilterProps> = ({
 
         <SelectField
           label="الماركة"
-          options={auctionFilterData.brands.map((brand) => brand.label || brand)}
+          options={auctionFilterData.brands}
           value={filters.brand}
           onChange={(value) => onFilterChange('brand', value)}
           placeholder="اختر الماركة"
@@ -206,7 +206,7 @@ const AuctionFilter: React.FC<AuctionFilterProps> = ({
 
         <SelectField
           label="الموديل"
-          options={auctionFilterData.models.map((model) => model.label || model)}
+          options={auctionFilterData.models}
           value={filters.model}
           onChange={(value) => onFilterChange('model', value)}
           placeholder="اختر الموديل"
@@ -250,7 +250,7 @@ const AuctionFilter: React.FC<AuctionFilterProps> = ({
 
         <SelectField
           label="حالة السيارة"
-          options={auctionFilterData.conditions.map((condition) => condition.label || condition)}
+          options={auctionFilterData.conditions}
           value={filters.condition}
           onChange={(value) => onFilterChange('condition', value)}
           placeholder="اختر الحالة"
@@ -258,7 +258,7 @@ const AuctionFilter: React.FC<AuctionFilterProps> = ({
 
         <SelectField
           label="الوقت المتبقي"
-          options={auctionFilterData.timeRemaining.map((time) => time.label || time)}
+          options={auctionFilterData.timeRemaining}
           value={filters.timeRemaining}
           onChange={(value) => onFilterChange('timeRemaining', value)}
           placeholder="اختر الوقت"
@@ -266,7 +266,7 @@ const AuctionFilter: React.FC<AuctionFilterProps> = ({
 
         <SelectField
           label="نوع الهيكل"
-          options={auctionFilterData.bodyTypes.map((type) => type.label || type)}
+          options={auctionFilterData.bodyTypes}
           value={filters.bodyType}
           onChange={(value) => onFilterChange('bodyType', value)}
           placeholder="اختر نوع الهيكل"
@@ -274,7 +274,7 @@ const AuctionFilter: React.FC<AuctionFilterProps> = ({
 
         <SelectField
           label="نوع الوقود"
-          options={auctionFilterData.fuelTypes.map((fuel) => fuel.label || fuel)}
+          options={auctionFilterData.fuelTypes}
           value={filters.fuelType}
           onChange={(value) => onFilterChange('fuelType', value)}
           placeholder="اختر نوع الوقود"

@@ -1,10 +1,12 @@
-import { prisma } from '@/lib/prisma';
 import { File as FormidableFile, IncomingForm } from 'formidable';
 import * as fs from 'fs';
 import * as jwt from 'jsonwebtoken';
 import { NextApiRequest, NextApiResponse } from 'next';
+import os from 'os';
 import * as path from 'path';
 import sharp from 'sharp';
+import { uploadBufferToBlob } from '../../../lib/blob';
+import { prisma } from '../../../lib/prisma';
 
 // تعطيل parser لملفات POST، تفعيل للـ DELETE
 export const config = {
@@ -210,14 +212,13 @@ async function handleUpload(req: NextApiRequest, res: NextApiResponse) {
     });
   } finally {
     // إغلاق اتصال Prisma
-    await prisma.$disconnect();
   }
 }
 
 // دالة لمعالجة النموذج والملفات
 async function parseForm(req: NextApiRequest): Promise<{ fields: any; files: any; }> {
   return new Promise((resolve, reject) => {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'temp');
+    const uploadDir = path.join(os.tmpdir(), 'sooq-mazad', 'uploads', 'temp');
 
     try {
       // إنشاء مجلد الرفع المؤقت إذا لم يكن موجوداً
@@ -362,27 +363,24 @@ async function processProfileImage(
       fileName: fileName,
     });
 
-    // إنشاء مجلد الصور الشخصية
-    const profileImagesDir = path.join(process.cwd(), 'public', 'images', 'profiles');
-
-    if (!fs.existsSync(profileImagesDir)) {
-      fs.mkdirSync(profileImagesDir, { recursive: true });
-    }
-
-    // مسار الملف النهائي
-    const finalPath = path.join(profileImagesDir, fileName);
-
     // التحقق من وجود الملف المؤقت
     if (!fs.existsSync(file.filepath)) {
       throw new Error(`الملف المؤقت غير موجود: ${file.filepath}`);
     }
 
     // إعادة ترميز الصورة وإزالة الميتاداتا وحماية من المحتوى الضار
-    await sharp(file.filepath)
+    const webpBuffer = await sharp(file.filepath)
       .rotate()
       .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 85 })
-      .toFile(finalPath);
+      .toBuffer();
+
+    const uploaded = await uploadBufferToBlob({
+      buffer: webpBuffer,
+      filename: fileName,
+      contentType: 'image/webp',
+      folder: 'images/profiles',
+    });
 
     // حذف الملف المؤقت بطريقة آمنة
     try {
@@ -395,7 +393,7 @@ async function processProfileImage(
     }
 
     // إنشاء URL للصورة
-    const imageUrl = `/images/profiles/${fileName}`;
+    const imageUrl = uploaded.url;
 
     return {
       imageUrl,
@@ -538,6 +536,5 @@ async function handleDelete(req: NextApiRequest, res: NextApiResponse) {
           : 'حدث خطأ في الخادم',
     });
   } finally {
-    await prisma.$disconnect();
   }
 }

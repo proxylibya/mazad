@@ -1,8 +1,8 @@
-import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
+import { NextApiRequest, NextApiResponse } from 'next';
 
 interface ManageStatusRequest {
-  action: 'pause' | 'resume' | 'end' | 'cancel';
+  action: 'upcoming' | 'live' | 'ended' | 'sold' | 'pause' | 'resume' | 'end' | 'cancel';
   reason?: string;
 }
 
@@ -33,8 +33,11 @@ export default async function handler(
     const { id: auctionId } = req.query;
     const { action, reason }: ManageStatusRequest = req.body;
 
+    const auctionIdStr = Array.isArray(auctionId) ? auctionId[0] : auctionId;
+    const actionStr = String(action || '').toLowerCase();
+
     // التحقق من صحة البيانات
-    if (!auctionId || !action) {
+    if (!auctionIdStr || !actionStr) {
       return res.status(400).json({
         success: false,
         message: 'بيانات غير مكتملة',
@@ -43,31 +46,33 @@ export default async function handler(
     }
 
     // التحقق من صحة العملية
-    const validActions = ['pause', 'resume', 'end', 'cancel'];
-    if (!validActions.includes(action)) {
+    const validActions = ['upcoming', 'live', 'ended', 'sold', 'pause', 'resume', 'end', 'cancel'];
+    if (!validActions.includes(actionStr)) {
       return res.status(400).json({
         success: false,
         message: 'عملية غير صحيحة',
-        error: 'Invalid action. Must be one of: pause, resume, end, cancel',
+        error: `Invalid action. Must be one of: ${validActions.join(', ')}`,
       });
     }
 
     // جلب بيانات المزاد
     const auction = await prisma.auctions.findUnique({
-      where: { id: parseInt(auctionId as string) },
+      where: { id: String(auctionIdStr) },
       include: {
-        car: {
-          include: {
-            user: true,
-          },
-        },
         bids: {
           include: {
-            user: true,
+            users: {
+              select: {
+                id: true,
+                name: true,
+                verified: true,
+              },
+            },
           },
           orderBy: {
             amount: 'desc',
           },
+          take: 1,
         },
       },
     });
@@ -92,7 +97,7 @@ export default async function handler(
     // }
 
     // التحقق من إمكانية تنفيذ العملية
-    const canPerformAction = validateAction(auction.status, action);
+    const canPerformAction = validateAction(auction.status, actionStr);
     if (!canPerformAction.valid) {
       return res.status(400).json({
         success: false,
@@ -103,74 +108,74 @@ export default async function handler(
 
     const now = new Date();
     let newStatus: string;
-    const updateData: any = {
-      updatedAt: now,
-    };
+    let shouldSetEndDate = false;
+    let shouldMarkCarSold = false;
 
-    // تحديد الحالة الجديدة وبيانات التحديث
-    switch (action) {
+    switch (actionStr) {
+      case 'upcoming':
+        newStatus = 'UPCOMING';
+        break;
+      case 'live':
+        newStatus = 'ACTIVE';
+        break;
+      case 'ended':
+        newStatus = 'ENDED';
+        shouldSetEndDate = true;
+        break;
+      case 'sold':
+        newStatus = 'ENDED';
+        shouldSetEndDate = true;
+        shouldMarkCarSold = true;
+        break;
       case 'pause':
-        // Since PAUSED is not in AuctionStatus enum, we'll use CANCELLED for paused auctions
-        newStatus = 'CANCELLED';
-        updateData.status = 'CANCELLED';
+        newStatus = 'SUSPENDED';
         break;
       case 'resume':
         newStatus = 'ACTIVE';
-        updateData.status = 'ACTIVE';
         break;
       case 'end':
         newStatus = 'ENDED';
-        updateData.status = 'ENDED';
-        updateData.endTime = now;
-        // تحديد الفائز إذا كان هناك مزايدات
-        if (auction.bids.length > 0) {
-          const highestBid = auction.bids[0];
-          updateData.winnerId = highestBid.bidderId;
-          updateData.finalPrice = highestBid.amount;
-        }
+        shouldSetEndDate = true;
         break;
       case 'cancel':
         newStatus = 'CANCELLED';
-        updateData.status = 'CANCELLED';
-        updateData.endTime = now;
+        shouldSetEndDate = true;
         break;
       default:
         throw new Error('Invalid action');
     }
 
+    const updateData: any = {
+      updatedAt: now,
+      status: newStatus,
+      ...(shouldSetEndDate ? { endDate: now } : {}),
+    };
+
     // تحديث المزاد
-    const updatedAuction = await prisma.auctions.update({
-      where: { id: parseInt(auctionId as string) },
+    await prisma.auctions.update({
+      where: { id: String(auctionIdStr) },
       data: updateData,
     });
 
-    // إنشاء سجل للعملية
-    await prisma.auctionLog.create({
-      data: {
-        auctionId: parseInt(auctionId as string),
-        action: `AUCTION_${action.toUpperCase()}`,
-        details: {
-          previousStatus: auction.status,
-          newStatus,
-          reason: reason || `${getActionText(action)} من قبل المالك`,
-          timestamp: now.toISOString(),
-        },
-        createdAt: now,
-      },
-    });
+    if (shouldMarkCarSold && auction.carId) {
+      await prisma.cars.update({
+        where: { id: auction.carId },
+        data: { status: 'SOLD' },
+      });
+    }
 
     // إرسال إشعارات للمزايدين (يمكن تطويرها لاحقاً)
     if (auction.bids.length > 0) {
-      await notifyBiddersOfStatusChange(auction.bids, action, auction.title);
+      await notifyBiddersOfStatusChange(auction.bids, actionStr, auction.title);
     }
 
     console.log(`[تم بنجاح] تم ${getActionText(action)} للمزاد ${auctionId}`);
 
     return res.status(200).json({
       success: true,
-      message: `تم ${getActionText(action)} بنجاح`,
+      message: `تم ${getActionText(actionStr)} بنجاح`,
       data: {
-        auctionId: auctionId as string,
+        auctionId: String(auctionIdStr),
         newStatus,
         updatedAt: now.toISOString(),
       },
@@ -184,60 +189,35 @@ export default async function handler(
       error:
         process.env.NODE_ENV === 'development' ? (error as Error).message : 'Internal server error',
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
 // دالة للتحقق من إمكانية تنفيذ العملية
 function validateAction(currentStatus: string, action: string) {
-  switch (action) {
-    case 'pause':
-      if (currentStatus !== 'ACTIVE') {
-        return {
-          valid: false,
-          message: 'لا يمكن إيقاف المزاد إلا إذا كان نشطاً',
-          error: 'Can only pause active auctions',
-        };
-      }
-      break;
-    case 'resume':
-      if (currentStatus !== 'PAUSED') {
-        return {
-          valid: false,
-          message: 'لا يمكن استئناف المزاد إلا إذا كان متوقفاً مؤقتاً',
-          error: 'Can only resume paused auctions',
-        };
-      }
-      break;
-    case 'end':
-      if (!['ACTIVE', 'PAUSED'].includes(currentStatus)) {
-        return {
-          valid: false,
-          message: 'لا يمكن إنهاء المزاد إلا إذا كان نشطاً أو متوقفاً مؤقتاً',
-          error: 'Can only end active or paused auctions',
-        };
-      }
-      break;
-    case 'cancel':
-      if (['ENDED', 'CANCELLED'].includes(currentStatus)) {
-        return {
-          valid: false,
-          message: 'لا يمكن إلغاء مزاد منتهي أو ملغي مسبقاً',
-          error: 'Cannot cancel already ended or cancelled auctions',
-        };
-      }
-      break;
+  const a = String(action || '').toLowerCase();
+  if (a === 'cancel' && ['ENDED', 'CANCELLED'].includes(String(currentStatus))) {
+    return {
+      valid: false,
+      message: 'لا يمكن إلغاء مزاد منتهي أو ملغي مسبقاً',
+      error: 'Cannot cancel already ended or cancelled auctions',
+    };
   }
-
   return { valid: true };
 }
 
 // دالة لتحويل العملية إلى نص عربي
 function getActionText(action: string): string {
   switch (action) {
+    case 'upcoming':
+      return 'تحديث المزاد إلى قادم';
+    case 'live':
+      return 'تحديث المزاد إلى مباشر';
+    case 'ended':
+      return 'إنهاء المزاد';
+    case 'sold':
+      return 'تأكيد البيع';
     case 'pause':
-      return 'إيقاف المزاد مؤقتاً';
+      return 'تعليق المزاد';
     case 'resume':
       return 'استئناف المزاد';
     case 'end':

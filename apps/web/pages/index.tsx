@@ -8,19 +8,21 @@ import {
   ShieldCheckIcon,
   TruckIcon,
 } from '@heroicons/react/24/outline';
+import { GetServerSideProps } from 'next';
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import AdvancedFooter from '../components/common/Footer/AdvancedFooter';
-import AdvancedHeroBackground from '../components/sections/AdvancedHeroBackground';
 import OpensooqNavbar from '../components/common/layout/OpensooqNavbar';
+import AdvancedHeroBackground from '../components/sections/AdvancedHeroBackground';
 import { useContent } from '../contexts/SimpleLocalizationContext';
 import { useSiteSections } from '../contexts/SiteSectionsContext';
 import { useFeaturedAds } from '../hooks/useFeaturedAds';
 import { usePageElements } from '../hooks/usePageElements';
 import { useFormattedStats } from '../hooks/useStats';
+import { prisma } from '../lib/prisma';
 
 // Fallback component للأخطاء
 const FallbackComponent = () => <div className="py-8 text-center"></div>;
@@ -83,23 +85,29 @@ const CarIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const Home = () => {
+const DEFAULT_BRANDING_SETTINGS = {
+  logoType: 'text' as const,
+  logoImageUrl: '',
+  siteName: 'سوق المزاد',
+  siteDescription: 'منصة المزادات الأولى في ليبيا',
+  showLogoInNavbar: true,
+  showSiteNameInNavbar: true,
+};
+
+type BrandingSettings = typeof DEFAULT_BRANDING_SETTINGS;
+
+interface HomeProps {
+  initialBranding: BrandingSettings | null;
+}
+
+const Home = ({ initialBranding }: HomeProps) => {
   const router = useRouter();
   const content = useContent();
   const [successMessage, setSuccessMessage] = useState('');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [user, setUser] = useState<Record<string, unknown> | null>(null);
 
-  interface BrandingSettings {
-    logoType: 'text' | 'image';
-    logoImageUrl: string;
-    siteName: string;
-    siteDescription: string;
-    showLogoInNavbar: boolean;
-    showSiteNameInNavbar: boolean;
-  }
-
-  const [branding, setBranding] = useState<BrandingSettings | null>(null);
+  const [branding, setBranding] = useState<BrandingSettings | null>(initialBranding);
 
   // استخدام بيانات افتراضية للبلد
   const country = { name: 'ليبيا', code: 'LY' };
@@ -206,6 +214,7 @@ const Home = () => {
         }
       } catch {}
     };
+    // تحديث البيانات في الخلفية للتأكد من أنها الأحدث
     loadBranding();
     return () => {
       cancelled = true;
@@ -239,11 +248,11 @@ const Home = () => {
   return (
     <>
       <Head>
-        <title>{branding?.siteName || content?.siteTitle || 'موقع مزاد السيارات'}</title>
+        <title>{branding?.siteName || content?.siteTitle || 'سوق المزاد'}</title>
         <meta
           name="description"
           content={
-            branding?.siteDescription || content?.siteDescription || 'أفضل موقع لبيع وشراء السيارات'
+            branding?.siteDescription || content?.siteDescription || 'منصة المزادات الأولى في ليبيا'
           }
         />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -332,12 +341,12 @@ const Home = () => {
             <div className="relative z-10 mx-auto max-w-7xl px-4 py-12">
               <div className="text-center">
                 <h1 className="mb-4 text-3xl font-bold md:text-5xl">
-                  {branding?.siteName || content?.siteTitle || 'موقع مزاد السيارات'}
+                  {branding?.siteName || content?.siteTitle || 'سوق المزاد'}
                 </h1>
                 <p className="mx-auto mb-8 max-w-2xl text-lg text-blue-100 md:text-xl">
                   {branding?.siteDescription ||
                     content?.welcomeMessage ||
-                    `أفضل موقع لبيع وشراء السيارات في ${country?.name || 'ليبيا'} والدول العربية`}
+                    `منصة المزادات الأولى في ${country?.name || 'ليبيا'}`}
                 </p>
 
                 {/* Simplified Search */}
@@ -705,12 +714,8 @@ const Home = () => {
             </div>
           )}
 
-          {/* تم حذف قسم أضف إعلانك - مميز */}
-
           {/* Business Advertisement Packages Section */}
           {isElementVisible('business_packages') && <BusinessPackagesSection />}
-
-          {/* Advanced Business Services - تم نقلها داخل BusinessPackagesSection */}
 
           {/* CTA Section */}
           <div className="mt-16 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-800 p-6 text-center text-white">
@@ -750,6 +755,37 @@ const Home = () => {
       />
     </>
   );
+};
+
+export const getServerSideProps: GetServerSideProps<HomeProps> = async () => {
+  try {
+    const record = await prisma.system_settings.findFirst({
+      where: { key: 'site_branding' },
+    });
+
+    let branding = DEFAULT_BRANDING_SETTINGS;
+
+    if (record && record.value) {
+      const value =
+        typeof record.value === 'string'
+          ? JSON.parse(record.value)
+          : (record.value as BrandingSettings);
+      branding = { ...DEFAULT_BRANDING_SETTINGS, ...value };
+    }
+
+    return {
+      props: {
+        initialBranding: branding,
+      },
+    };
+  } catch (error) {
+    console.error('Error fetching branding settings:', error);
+    return {
+      props: {
+        initialBranding: DEFAULT_BRANDING_SETTINGS,
+      },
+    };
+  }
 };
 
 export default Home;

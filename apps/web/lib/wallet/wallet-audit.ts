@@ -6,6 +6,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
+import type { ActivitySeverity, Prisma } from '@prisma/client';
 import type { Currency, WalletType } from './wallet-types';
 
 // ============================================
@@ -70,25 +71,24 @@ class WalletAuditService {
      */
     async log(audit: AuditLog): Promise<void> {
         try {
-            // Log to database
             await prisma.activity_logs.create({
                 data: {
                     id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                     userId: audit.userId,
                     entityType: 'WALLET',
                     entityId: 'wallet',
-                    action: audit.action,
-                    details: JSON.stringify({
-                        ...audit.details,
+                    action: 'UPDATE',
+                    description: audit.action,
+                    metadata: {
+                        auditAction: audit.action,
+                        details: audit.details,
                         success: audit.success,
                         errorMessage: audit.errorMessage,
-                    }),
+                    },
                     ipAddress: audit.ipAddress,
                     userAgent: audit.userAgent,
                     status: audit.success ? 'SUCCESS' : 'FAILED',
                     severity: this.getSeverity(audit.action),
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
                 },
             });
 
@@ -248,7 +248,7 @@ class WalletAuditService {
         }
     ): Promise<unknown[]> {
         try {
-            const where: Record<string, unknown> = {
+            const where: Prisma.activity_logsWhereInput = {
                 userId,
                 entityType: 'WALLET',
             };
@@ -258,12 +258,12 @@ class WalletAuditService {
             }
 
             if (options?.startDate || options?.endDate) {
-                where.createdAt = {};
+                where.createdAt = {} as any;
                 if (options.startDate) {
-                    (where.createdAt as Record<string, unknown>).gte = options.startDate;
+                    (where.createdAt as any).gte = options.startDate;
                 }
                 if (options.endDate) {
-                    (where.createdAt as Record<string, unknown>).lte = options.endDate;
+                    (where.createdAt as any).lte = options.endDate;
                 }
             }
 
@@ -286,7 +286,7 @@ class WalletAuditService {
     /**
      * تحديد مستوى الخطورة للعملية
      */
-    private getSeverity(action: AuditAction): string {
+    private getSeverity(action: AuditAction): ActivitySeverity {
         const highSeverity = [
             'TRANSFER_FAILED',
             'SWAP_FAILED',

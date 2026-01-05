@@ -28,6 +28,9 @@ export type { SpinnerProps } from './components/Spinner';
 export { Skeleton, SkeletonAvatar, SkeletonCard } from './components/Skeleton';
 export type { SkeletonProps } from './components/Skeleton';
 
+export { MapControlButton } from './components/MapControlButton';
+export type { MapControlButtonProps } from './components/MapControlButton';
+
 // ============ Data Display Components ============
 
 // Badge Component

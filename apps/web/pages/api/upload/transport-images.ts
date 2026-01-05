@@ -1,8 +1,10 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { IncomingForm, File as FormidableFile } from 'formidable';
+import { File as FormidableFile, IncomingForm } from 'formidable';
 import fs from 'fs';
-import path from 'path';
 import jwt from 'jsonwebtoken';
+import { NextApiRequest, NextApiResponse } from 'next';
+import os from 'os';
+import path from 'path';
+import { uploadBufferToBlob } from '../../../lib/blob';
 import { withUploadRateLimit } from '../../../utils/rateLimiter';
 
 // تعطيل parser الافتراضي لـ Next.js
@@ -127,12 +129,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<UploadResponse>
       });
     }
 
-    // إنشاء مجلد الحفظ النهائي
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'transport');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
     // إنشاء اسم ملف فريد
     const timestamp = Date.now();
     let fileExtension = '';
@@ -195,8 +191,15 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<UploadResponse>
     }
 
     const fileName = `transport_${timestamp}_${userId}${fileExtension}`;
-    const finalPath = path.join(uploadsDir, fileName);
-    const imageUrl = `/uploads/transport/${fileName}`;
+    const upload = await fs.promises.readFile(file.filepath);
+    const contentType = file.mimetype || 'application/octet-stream';
+    const uploaded = await uploadBufferToBlob({
+      buffer: upload,
+      filename: fileName,
+      contentType,
+      folder: 'uploads/transport',
+    });
+    const imageUrl = uploaded.url;
 
     console.log('معلومات اسم الملف:', {
       originalFilename: file.originalFilename,
@@ -205,48 +208,17 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<UploadResponse>
       mimetype: file.mimetype,
     });
 
-    // نقل الملف من المجلد المؤقت إلى المجلد النهائي
-    try {
-      console.log('بدء نسخ الملف من', file.filepath, 'إلى', finalPath);
+    await fs.promises.unlink(file.filepath).catch(() => { });
 
-      // التأكد من وجود الملف المؤقت
-      if (!fs.existsSync(file.filepath)) {
-        throw new Error(`الملف المؤقت غير موجود: ${file.filepath}`);
-      }
+    console.log('[نجح] عملية رفع الصورة مكتملة:', {
+      imageUrl,
+      fileSize: file.size,
+    });
 
-      // التأكد من وجود المجلد النهائي
-      const finalDir = path.dirname(finalPath);
-      if (!fs.existsSync(finalDir)) {
-        fs.mkdirSync(finalDir, { recursive: true });
-        console.log('تم إنشاء المجلد:', finalDir);
-      }
-
-      fs.copyFileSync(file.filepath, finalPath);
-      console.log('تم نسخ الملف بنجاح');
-
-      // التحقق من نجاح النسخ
-      if (!fs.existsSync(finalPath)) {
-        throw new Error('فشل في نسخ الملف إلى الموقع النهائي');
-      }
-
-      // حذف الملف المؤقت
-      fs.unlinkSync(file.filepath);
-      console.log('تم حذف الملف المؤقت');
-
-      console.log('[نجح] عملية رفع الصورة مكتملة:', {
-        finalPath,
-        imageUrl,
-        fileSize: fs.statSync(finalPath).size,
-      });
-
-      return res.status(200).json({
-        success: true,
-        imageUrl,
-      });
-    } catch (moveError) {
-      console.error('[فشل] خطأ في نقل الملف:', moveError);
-      throw moveError;
-    }
+    return res.status(200).json({
+      success: true,
+      imageUrl,
+    });
   } catch (error) {
     console.error('[فشل] خطأ في رفع صورة النقل:', {
       message: error instanceof Error ? error.message : error,
@@ -307,9 +279,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse<UploadResponse>
 };
 
 // دالة لمعالجة النموذج والملفات
-async function parseForm(req: NextApiRequest): Promise<{ fields: any; files: any }> {
+async function parseForm(req: NextApiRequest): Promise<{ fields: any; files: any; }> {
   return new Promise((resolve, reject) => {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'temp');
+    const uploadDir = path.join(os.tmpdir(), 'sooq-mazad', 'uploads', 'temp');
 
     // إنشاء مجلد الرفع المؤقت إذا لم يكن موجوداً
     if (!fs.existsSync(uploadDir)) {

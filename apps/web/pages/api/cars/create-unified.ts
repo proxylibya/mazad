@@ -413,7 +413,7 @@ async function processCarImages(carId: string, images: string[], userId: string)
       const imageUrl = images[i];
       if (!imageUrl || imageUrl.trim() === '') continue;
 
-      const carImage = await prisma.carImage.create({
+      const carImage = await prisma.car_images.create({
         data: {
           carId,
           fileName: `car_${carId}_${i + 1}.jpg`,

@@ -1,8 +1,10 @@
 import { File as FormidableFile, IncomingForm } from 'formidable';
 import fs from 'fs';
 import { NextApiRequest, NextApiResponse } from 'next';
+import os from 'os';
 import path from 'path';
 import sharp from 'sharp';
+import { uploadBufferToBlob } from '../../../lib/blob';
 import prisma from '../../../lib/prisma';
 import { verifyToken } from '../../../middleware/auth';
 import { imageManager } from '../../../utils/imageManager';
@@ -242,9 +244,12 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     const processingTime = Date.now() - startTime;
 
     // التأكد من صحة URL الصورة
-    const finalFileUrl = processedImage.fileUrl.startsWith('/')
-      ? processedImage.fileUrl
-      : `/${processedImage.fileUrl}`;
+    const finalFileUrl =
+      processedImage.fileUrl.startsWith('http://') || processedImage.fileUrl.startsWith('https://')
+        ? processedImage.fileUrl
+        : processedImage.fileUrl.startsWith('/')
+          ? processedImage.fileUrl
+          : `/${processedImage.fileUrl}`;
 
     const responseData = {
       success: true,
@@ -349,7 +354,7 @@ async function parseForm(req: NextApiRequest): Promise<{
   files: Record<string, FormidableFile | FormidableFile[]>;
 }> {
   return new Promise((resolve, reject) => {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'temp');
+    const uploadDir = path.join(os.tmpdir(), 'sooq-mazad', 'uploads', 'temp');
 
     try {
       // إنشاء مجلد الرفع المؤقت إذا لم يكن موجوداً
@@ -486,79 +491,40 @@ async function processCarImage(
     const extension = path.extname(file.originalFilename || '') || '.jpg';
     const fileName = `${category}_${userId || 'user'}_${listingId || 'listing'}_${timestamp}${extension}`;
 
-    // إنشاء مجلد الفئة
-    const categoryDir = path.join(process.cwd(), 'public', 'images', 'cars', category);
+    const originalBuffer = await fs.promises.readFile(file.filepath);
+    const originalContentType = file.mimetype || 'application/octet-stream';
 
-    try {
-      if (!fs.existsSync(categoryDir)) {
-        fs.mkdirSync(categoryDir, { recursive: true });
-      }
+    const baseName = path.parse(fileName).name;
+    const webpName = `${baseName}.webp`;
+    const thumbName = `${baseName}-thumb.webp`;
 
-      // التحقق من صلاحيات الكتابة في مجلد الفئة
-      fs.accessSync(categoryDir, fs.constants.W_OK);
-    } catch (dirError) {
-      console.error('[فشل] خطأ في إنشاء أو الوصول لمجلد الفئة:', dirError);
-      throw new Error(
-        `فشل في إنشاء مجلد الفئة: ${dirError instanceof Error ? dirError.message : dirError}`,
-      );
-    }
-
-    // المسار النهائي للملف
-    const finalPath = path.join(categoryDir, fileName);
-
-    try {
-      // نقل الملف من المجلد المؤقت إلى المجلد النهائي
-      fs.renameSync(file.filepath, finalPath);
-    } catch (moveError) {
-      console.error('[فشل] خطأ في نقل الملف:', moveError);
-      throw new Error(
-        `فشل في نقل الملف: ${moveError instanceof Error ? moveError.message : moveError}`,
-      );
-    }
-
-    // التحقق من نجاح النقل
-    if (!fs.existsSync(finalPath)) {
-      throw new Error('فشل في نقل الملف إلى المجلد النهائي');
-    }
-
-    // إنشاء URL للملف
-    const fileUrl = `/images/cars/${category}/${fileName}`;
-
-    console.log('[تم بنجاح] تم حفظ الصورة بنجاح:', {
-      fileName,
-      fileUrl,
-      fileSize: file.size,
-    });
-
-    // معالجة الصور باستخدام sharp: إنشاء نسخة WebP ومصغّر (thumbnail)
-    try {
-      const baseName = path.parse(fileName).name;
-      const webpName = `${baseName}.webp`;
-      const thumbName = `${baseName}-thumb.webp`;
-      const webpPath = path.join(categoryDir, webpName);
-      const thumbPath = path.join(categoryDir, thumbName);
-
-      await sharp(finalPath).rotate().webp({ quality: 80 }).toFile(webpPath);
-
-      await sharp(finalPath)
+    const [webpBuffer, thumbBuffer] = await Promise.all([
+      sharp(originalBuffer).rotate().webp({ quality: 80 }).toBuffer(),
+      sharp(originalBuffer)
         .rotate()
         .resize(480, 360, { fit: 'inside', withoutEnlargement: true })
         .webp({ quality: 75 })
-        .toFile(thumbPath);
+        .toBuffer(),
+    ]);
 
-      console.log('[تم بنجاح] تم إنشاء نسخ WebP و Thumbnail:', {
-        webp: `/images/cars/${category}/${webpName}`,
-        thumb: `/images/cars/${category}/${thumbName}`,
-      });
-    } catch (imgErr) {
-      console.warn('[تحذير] فشل جزئي في توليد نسخ WebP/Thumbnail:', imgErr);
-      // لا نفشل العملية إذا فشلت المعالجة الإضافية
-    }
+    const folder = `images/cars/${category}`;
+
+    const uploadedWebp = await uploadBufferToBlob({
+      buffer: webpBuffer,
+      filename: webpName,
+      contentType: 'image/webp',
+      folder,
+    });
+
+    await fs.promises.unlink(file.filepath).catch(() => { });
+
+    // نعتمد نسخة WebP كرابط أساسي للعرض
+    const fileUrl = uploadedWebp.url;
 
     // حفظ معلومات الصورة في قاعدة البيانات (اختياري)
     if (userId) {
       try {
-        const carImage = await prisma.carImage.create({
+        const carImage = await prisma.car_images.create({
           data: {
             fileName,
             fileUrl,

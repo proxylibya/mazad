@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import SelectField from '../ui/SelectField';
 
 interface YearRangeSelectorProps {
@@ -28,30 +28,34 @@ const YearRangeSelector: React.FC<YearRangeSelectorProps> = ({
 
   // فلترة سنوات "إلى" بناءً على سنة "من"
   const getToYearOptions = () => {
-    if (!fromYear) return yearOptions;
+    if (!fromYear || fromYear === 'جميع السنوات') return yearOptions;
 
     const fromYearNum = parseInt(fromYear);
-    const filteredYears = years.filter((year) => parseInt(year.value) <= fromYearNum);
+    if (!Number.isFinite(fromYearNum)) return yearOptions;
 
-    return [{ value: '', label: 'جميع السنوات' }, ...filteredYears];
+    const filteredYears = years.filter((year) => parseInt(year) <= fromYearNum);
+    return ['جميع السنوات', ...filteredYears];
   };
 
   // فلترة سنوات "من" بناءً على سنة "إلى"
   const getFromYearOptions = () => {
-    if (!toYear) return yearOptions;
+    if (!toYear || toYear === 'جميع السنوات') return yearOptions;
 
     const toYearNum = parseInt(toYear);
-    const filteredYears = years.filter((year) => parseInt(year.value) >= toYearNum);
+    if (!Number.isFinite(toYearNum)) return yearOptions;
 
-    return [{ value: '', label: 'جميع السنوات' }, ...filteredYears];
+    const filteredYears = years.filter((year) => parseInt(year) >= toYearNum);
+    return ['جميع السنوات', ...filteredYears];
   };
 
   const handleFromYearChange = (year: string) => {
     onFromYearChange(year);
 
     // إذا كانت سنة "إلى" أكبر من سنة "من" الجديدة، قم بإعادة تعيينها
-    if (toYear && year && parseInt(toYear) > parseInt(year)) {
-      onToYearChange('');
+    const toNum = parseInt(toYear || '');
+    const fromNum = parseInt(year || '');
+    if (toYear && year && Number.isFinite(toNum) && Number.isFinite(fromNum) && toNum > fromNum) {
+      onToYearChange('جميع السنوات');
     }
   };
 
@@ -59,8 +63,10 @@ const YearRangeSelector: React.FC<YearRangeSelectorProps> = ({
     onToYearChange(year);
 
     // إذا كانت سنة "من" أصغر من سنة "إلى" الجديدة، قم بإعادة تعيينها
-    if (fromYear && year && parseInt(fromYear) < parseInt(year)) {
-      onFromYearChange('');
+    const fromNum = parseInt(fromYear || '');
+    const toNum = parseInt(year || '');
+    if (fromYear && year && Number.isFinite(fromNum) && Number.isFinite(toNum) && fromNum < toNum) {
+      onFromYearChange('جميع السنوات');
     }
   };
 

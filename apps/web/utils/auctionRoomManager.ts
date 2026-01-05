@@ -2,7 +2,7 @@
  * Auction Room Manager
  */
 
-import prisma from '../lib/prisma';
+import { prisma } from '../lib/prisma';
 import {
   AuctionParticipant,
   AuctionRoomConfig,
@@ -152,7 +152,7 @@ export class AuctionRoomManager {
         data: {
           id: bid.bidId || `bid_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
           auctionId: bid.auctionId,
-          bidderId: bid.bidderId,
+          bidderId: bid.userId,
           amount: bid.amount,
         },
       });
@@ -181,12 +181,12 @@ export class AuctionRoomManager {
       // حساب نسبة زيادة السعر
       const auction = await prisma.auctions.findUnique({
         where: { id: auctionId },
-        select: { startingPrice: true },
+        select: { startPrice: true },
       });
 
       if (auction) {
         room.stats.priceIncreasePercentage =
-          ((bid.amount - auction.startingPrice) / auction.startingPrice) * 100;
+          ((bid.amount - auction.startPrice) / auction.startPrice) * 100;
       }
 
       // التحقق من إمكانية التمديد التلقائي

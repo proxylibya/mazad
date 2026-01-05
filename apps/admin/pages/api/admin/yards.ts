@@ -1,10 +1,7 @@
-import { PrismaClient } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 // Prisma client singleton
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined; };
-const prisma = globalForPrisma.prisma ?? new PrismaClient();
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+import { prisma } from '@/lib/prisma';
 
 // ===== API إدارة الساحات =====
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -266,17 +263,26 @@ async function deleteYard(req: NextApiRequest, res: NextApiResponse) {
         return res.status(400).json({ success: false, error: 'معرف الساحة مطلوب' });
     }
 
-    // التحقق من عدم وجود مزادات مرتبطة
-    const auctionsCount = await prisma.auctions.count({
-        where: { yardId: id as string }
+    // التحقق من وجود مزادات نشطة أو قادمة
+    const activeAuctionsCount = await prisma.auctions.count({
+        where: {
+            yardId: id as string,
+            status: { in: ['ACTIVE', 'PENDING', 'UPCOMING'] }
+        }
     });
 
-    if (auctionsCount > 0) {
+    if (activeAuctionsCount > 0) {
         return res.status(400).json({
             success: false,
-            error: `لا يمكن حذف الساحة لأنها تحتوي على ${auctionsCount} مزاد`
+            error: `لا يمكن حذف الساحة لأنها تحتوي على ${activeAuctionsCount} مزاد نشط أو قادم`
         });
     }
+
+    // فك ارتباط المزادات المنتهية (إن وجدت)
+    await prisma.auctions.updateMany({
+        where: { yardId: id as string },
+        data: { yardId: null }
+    });
 
     await prisma.yards.delete({ where: { id: id as string } });
 

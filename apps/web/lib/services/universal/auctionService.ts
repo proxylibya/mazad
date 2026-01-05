@@ -164,6 +164,8 @@ export async function getAuctionWithVehicle(auctionId: string): Promise<AuctionW
       return null;
     }
 
+    const auctionAny = auction as any;
+
     // جلب بيانات السيارة مع الصور
     const vehicle = await getVehicleWithImages(auction.carId);
 
@@ -177,43 +179,43 @@ export async function getAuctionWithVehicle(auctionId: string): Promise<AuctionW
 
     // جلب بيانات المشتري إذا كان المزاد مباع
     let buyerName = null;
-    if (auction.status === 'SOLD' && auction.bids && auction.bids.length > 0) {
+    if (auctionAny.status === 'SOLD' && auctionAny.bids && auctionAny.bids.length > 0) {
       // أعلى مزايد هو الفائز
-      buyerName = auction.bids[0]?.users?.name || null;
+      buyerName = auctionAny.bids[0]?.users?.name || null;
     }
 
     // رقم الهاتف للاتصال - أولوية: contactPhone من السيارة، ثم هاتف البائع
-    const contactPhone = (vehicle as any).contactPhone || auction.users?.phone || '';
+    const contactPhone = (vehicle as any).contactPhone || auctionAny.users?.phone || '';
 
     const auctionWithVehicle: any = {
-      ...auction,
+      ...auctionAny,
       // إضافة اسم المشتري إذا كان المزاد مباع
       buyerName: buyerName,
       // رقم الهاتف للاتصال على مستوى المزاد
       contactPhone: contactPhone,
       // إعادة تسمية الحقول للتوافق مع الواجهة
-      seller: auction.users,
+      seller: auctionAny.users,
       // إضافة حقول التوقيت للعداد - توحيد مع البطاقات (تحويل إلى ISO دائمًا)
-      auctionStartTime: auction.startDate ? new Date(auction.startDate).toISOString() : null,
-      auctionEndTime: auction.endDate ? new Date(auction.endDate).toISOString() : null,
-      startTime: auction.startDate,
-      endTime: auction.endDate,
+      auctionStartTime: auctionAny.startDate ? new Date(auctionAny.startDate).toISOString() : null,
+      auctionEndTime: auctionAny.endDate ? new Date(auctionAny.endDate).toISOString() : null,
+      startTime: auctionAny.startDate,
+      endTime: auctionAny.endDate,
       auctionType: (() => {
         const now = new Date();
-        const startTime = new Date(auction.startDate);
-        const endTime = new Date(auction.endDate);
+        const startTime = new Date(auctionAny.startDate);
+        const endTime = new Date(auctionAny.endDate);
 
         if (now < startTime) return 'upcoming';
         if (now > endTime) return 'ended';
         return 'live';
       })(),
       // بيانات المزايدة للعداد
-      startingPrice: auction.startPrice,
-      startingBid: auction.startPrice,
-      currentBid: auction.currentPrice,
-      bidCount: auction.totalBids,
+      startingPrice: auctionAny.startPrice,
+      startingBid: auctionAny.startPrice,
+      currentBid: auctionAny.currentPrice,
+      bidCount: auctionAny.totalBids,
       reservePrice: null,
-      minimumBidIncrement: auction.minimumBid ?? 500, // الحد الأدنى للزيادة من قاعدة البيانات
+      minimumBidIncrement: auctionAny.minimumBid ?? 500, // الحد الأدنى للزيادة من قاعدة البيانات
       car: {
         id: vehicle.id,
         title: vehicle.title,
@@ -261,10 +263,10 @@ export async function getAuctionWithVehicle(auctionId: string): Promise<AuctionW
         // رقم الهاتف للاتصال
         contactPhone: (vehicle as any).contactPhone,
         // إضافة بيانات العداد في Car object أيضاً للتوافق (ISO)
-        auctionStartTime: auction.startDate ? new Date(auction.startDate).toISOString() : null,
-        auctionEndTime: auction.endDate ? new Date(auction.endDate).toISOString() : null,
-        startingBid: auction.startPrice,
-        currentBid: auction.currentPrice
+        auctionStartTime: auctionAny.startDate ? new Date(auctionAny.startDate).toISOString() : null,
+        auctionEndTime: auctionAny.endDate ? new Date(auctionAny.endDate).toISOString() : null,
+        startingBid: auctionAny.startPrice,
+        currentBid: auctionAny.currentPrice
       }
     };
 
@@ -349,7 +351,7 @@ export async function getAuctionsWithVehicles(options: {
               mileage: true,
               location: true,
               images: true,
-              carImages: {
+              car_images: {
                 select: {
                   fileUrl: true,
                   isPrimary: true,
@@ -381,7 +383,7 @@ export async function getAuctionsWithVehicles(options: {
     ]);
 
     // معالجة الصور لكل مزاد
-    const processedAuctions: AuctionWithVehicle[] = auctions.map((auction) => {
+    const processedAuctions: AuctionWithVehicle[] = (auctions as any[]).map((auction) => {
       const resolvedImages = auction.cars ? resolveVehicleImages(auction.cars) : [];
       const now = new Date();
       const start = auction.startDate ? new Date(auction.startDate) : null;

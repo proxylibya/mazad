@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
-import Head from 'next/head';
-import { useRouter } from 'next/router';
-import Link from 'next/link';
-import PhoneIcon from '@heroicons/react/24/outline/PhoneIcon';
 import ArrowLeftIcon from '@heroicons/react/24/outline/ArrowLeftIcon';
-import CheckCircleIcon from '@heroicons/react/24/outline/CheckCircleIcon';
-import ExclamationTriangleIcon from '@heroicons/react/24/outline/ExclamationTriangleIcon';
-import ClockIcon from '@heroicons/react/24/outline/ClockIcon';
 import ArrowPathIcon from '@heroicons/react/24/outline/ArrowPathIcon';
+import CheckCircleIcon from '@heroicons/react/24/outline/CheckCircleIcon';
+import ClockIcon from '@heroicons/react/24/outline/ClockIcon';
+import ExclamationTriangleIcon from '@heroicons/react/24/outline/ExclamationTriangleIcon';
+import PhoneIcon from '@heroicons/react/24/outline/PhoneIcon';
+import Head from 'next/head';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
+import React, { useEffect, useRef, useState } from 'react';
 import { OpensooqNavbar } from '../components/common';
 import { processPhoneNumber } from '../utils/phoneUtils';
 
@@ -252,7 +252,9 @@ const VerifyPhonePage: React.FC = () => {
                   {[0, 1, 2, 3, 4, 5].map((index) => (
                     <input
                       key={index}
-                      ref={(el) => (codeInputRefs.current[index] = el)}
+                      ref={(el) => {
+                        codeInputRefs.current[index] = el;
+                      }}
                       type="text"
                       inputMode="numeric"
                       pattern="[0-9]*"

@@ -16,7 +16,9 @@
  * @author Sooq Mazad Team
  */
 
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
+
+import prisma from '@/lib/prisma';
 
 // ============================================
 // TYPES & INTERFACES
@@ -390,7 +392,7 @@ export class UnifiedSearchEngine {
     private cacheTimeout = 5 * 60 * 1000; // 5 minutes
 
     constructor(prismaClient?: PrismaClient) {
-        this.prisma = prismaClient || new PrismaClient();
+        this.prisma = prismaClient || prisma;
     }
 
     /**

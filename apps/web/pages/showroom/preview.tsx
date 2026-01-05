@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import ArrowLeftIcon from '@heroicons/react/24/outline/ArrowLeftIcon';
+import BuildingStorefrontIcon from '@heroicons/react/24/outline/BuildingStorefrontIcon';
+import CheckCircleIcon from '@heroicons/react/24/outline/CheckCircleIcon';
+import CogIcon from '@heroicons/react/24/outline/CogIcon';
+import EyeIcon from '@heroicons/react/24/outline/EyeIcon';
+import MapPinIcon from '@heroicons/react/24/outline/MapPinIcon';
+import PencilIcon from '@heroicons/react/24/outline/PencilIcon';
+import PhotoIcon from '@heroicons/react/24/outline/PhotoIcon';
+import RectangleStackIcon from '@heroicons/react/24/outline/RectangleStackIcon';
+import TruckIcon from '@heroicons/react/24/outline/TruckIcon';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
+import { useEffect, useState } from 'react';
 import { Layout } from '../../components/common';
 import useAuth from '../../hooks/useAuth';
-import ArrowLeftIcon from '@heroicons/react/24/outline/ArrowLeftIcon';
-import CheckCircleIcon from '@heroicons/react/24/outline/CheckCircleIcon';
-import BuildingStorefrontIcon from '@heroicons/react/24/outline/BuildingStorefrontIcon';
-import MapPinIcon from '@heroicons/react/24/outline/MapPinIcon';
-import PhotoIcon from '@heroicons/react/24/outline/PhotoIcon';
-import PencilIcon from '@heroicons/react/24/outline/PencilIcon';
-import EyeIcon from '@heroicons/react/24/outline/EyeIcon';
-import TruckIcon from '@heroicons/react/24/outline/TruckIcon';
-import CogIcon from '@heroicons/react/24/outline/CogIcon';
-import RectangleStackIcon from '@heroicons/react/24/outline/RectangleStackIcon';
 
 interface ShowroomData {
   name: string;
@@ -41,6 +41,7 @@ const ShowroomPreviewPage = () => {
   const [showroomData, setShowroomData] = useState<ShowroomData | null>(null);
   const [images, setImages] = useState<ShowroomImage[]>([]);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // التحقق من صلاحية الوصول (السماح أيضاً للمسؤول الإداري)
   useEffect(() => {
@@ -48,9 +49,12 @@ const ShowroomPreviewPage = () => {
 
     try {
       // التحقق من أن المستخدم معرض أو admin يقوم بإنشاء معرض
-      const isAdminCreating = typeof window !== 'undefined' 
-        ? localStorage.getItem('isAdminCreatingShowroom') === 'true' 
-        : false;
+      const isAdminCreating =
+        typeof window !== 'undefined'
+          ? localStorage.getItem('isAdminCreatingShowroom') === 'true'
+          : false;
+
+      setIsAdmin(isAdminCreating);
 
       if (!isAdminCreating && (!user || user.accountType !== 'SHOWROOM')) {
         router.push('/login');
@@ -85,9 +89,7 @@ const ShowroomPreviewPage = () => {
 
       // تشخيص الصور
       parsedImages.forEach((image: any, index: number) => {
-        console.log(
-          `      سيتم استخدام: ${image.serverUrl || image.url || '/placeholder.svg'}`,
-        );
+        console.log(`      سيتم استخدام: ${image.serverUrl || image.url || '/placeholder.svg'}`);
       });
 
       setImages(parsedImages);
@@ -221,8 +223,7 @@ const ShowroomPreviewPage = () => {
   };
 
   const handleEdit = (section: string) => {
-    const isAdminCreating = localStorage.getItem('isAdminCreatingShowroom') === 'true';
-    const basePath = isAdminCreating ? '/admin/showrooms/create' : '/showroom';
+    const basePath = isAdmin ? '/admin/showrooms/create' : '/showroom';
 
     if (section === 'details') {
       router.push(`${basePath}/create`);
@@ -232,8 +233,7 @@ const ShowroomPreviewPage = () => {
   };
 
   const handleBack = () => {
-    const isAdminCreating = localStorage.getItem('isAdminCreatingShowroom') === 'true';
-    if (isAdminCreating) {
+    if (isAdmin) {
       router.push('/admin/showrooms/create/upload-images');
     } else {
       router.push('/showroom/upload-images');
@@ -245,11 +245,11 @@ const ShowroomPreviewPage = () => {
       <Layout>
         <div className="flex min-h-screen items-center justify-center bg-gray-50">
           <div
-                      className="animate-spin rounded-full border-4 border-white border-t-blue-600 shadow-lg"
-                      style={{ width: 24, height: 24 }}
-                      role="status"
-                      aria-label="جاري التحميل"
-                    />
+            className="animate-spin rounded-full border-4 border-white border-t-blue-600 shadow-lg"
+            style={{ width: 24, height: 24 }}
+            role="status"
+            aria-label="جاري التحميل"
+          />
         </div>
       </Layout>
     );
@@ -443,11 +443,11 @@ const ShowroomPreviewPage = () => {
               {isPublishing ? (
                 <>
                   <div
-                      className="animate-spin rounded-full border-4 border-white border-t-blue-600 shadow-lg"
-                      style={{ width: 24, height: 24 }}
-                      role="status"
-                      aria-label="جاري التحميل"
-                    />
+                    className="animate-spin rounded-full border-4 border-white border-t-blue-600 shadow-lg"
+                    style={{ width: 24, height: 24 }}
+                    role="status"
+                    aria-label="جاري التحميل"
+                  />
                   <span>جاري النشر...</span>
                 </>
               ) : (

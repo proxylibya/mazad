@@ -121,11 +121,14 @@ export const NotificationPriorityByType: Record<DBNotificationType, Notification
   BID_OUTBID: 'high',
   AUCTION_ENDING: 'high',
   PAYMENT_REMINDER: 'urgent',
+  PAYMENT_OVERDUE: 'urgent',
   SALE_CONFIRMED: 'urgent',
   BID_ACCEPTED: 'high',
   NEW_BID_ON_YOUR_AUCTION: 'high',
   AUCTION_STARTED: 'medium',
   AUCTION_ENDED: 'medium',
+  AUCTION_CANCELLED: 'high',
+  MESSAGE: 'medium',
 };
 
 // دالة الحصول على الأولوية التلقائية

@@ -81,6 +81,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'res.cloudinary.com' },
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: '*.unsplash.com' },
+      { protocol: 'https', hostname: '*.public.blob.vercel-storage.com' },
       // OpenStreetMap Static Maps للساحات
       { protocol: 'https', hostname: 'staticmap.openstreetmap.de' },
       { protocol: 'https', hostname: 'tile.openstreetmap.org' },

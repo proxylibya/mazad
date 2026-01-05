@@ -1,11 +1,9 @@
-import React, { useState, useCallback } from 'react';
-import { useRouter } from 'next/router';
-import Image from 'next/image';
-import HeartIcon from '@heroicons/react/24/outline/HeartIcon';
-import TrashIcon from '@heroicons/react/24/outline/TrashIcon';
-import MapPinIcon from '@heroicons/react/24/outline/MapPinIcon';
-import CalendarIcon from '@heroicons/react/24/outline/CalendarIcon';
 import EyeIcon from '@heroicons/react/24/outline/EyeIcon';
+import MapPinIcon from '@heroicons/react/24/outline/MapPinIcon';
+import TrashIcon from '@heroicons/react/24/outline/TrashIcon';
+import Image from 'next/image';
+import { useRouter } from 'next/router';
+import React, { useCallback, useState } from 'react';
 
 interface CompactFavoriteCardProps {
   item: any;
@@ -165,11 +163,11 @@ const CompactFavoriteCard: React.FC<CompactFavoriteCardProps> = ({
             {imageLoading && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div
-                      className="animate-spin rounded-full border-4 border-white border-t-blue-600 shadow-lg"
-                      style={{ width: 24, height: 24 }}
-                      role="status"
-                      aria-label="جاري التحميل"
-                    />
+                  className="animate-spin rounded-full border-4 border-white border-t-blue-600 shadow-lg"
+                  style={{ width: 24, height: 24 }}
+                  role="status"
+                  aria-label="جاري التحميل"
+                />
               </div>
             )}
             <Image
@@ -219,11 +217,11 @@ const CompactFavoriteCard: React.FC<CompactFavoriteCardProps> = ({
                   )}
                 </div>
                 <div className="flex items-center gap-2 text-xs text-gray-600">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 text-gray-500">
                     <MapPinIcon className="h-3 w-3" />
                     <span>{item.location || 'غير محدد'}</span>
                   </div>
-                  {item.mileage && (
+                  {item.mileage !== undefined && item.mileage !== null && (
                     <span className="rounded bg-orange-50 px-1.5 py-0.5 font-medium text-orange-700">
                       {formatNumber(item.mileage)} كم
                     </span>
@@ -291,11 +289,11 @@ const CompactFavoriteCard: React.FC<CompactFavoriteCardProps> = ({
         {imageLoading && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div
-                      className="animate-spin rounded-full border-4 border-white border-t-blue-600 shadow-lg"
-                      style={{ width: 24, height: 24 }}
-                      role="status"
-                      aria-label="جاري التحميل"
-                    />
+              className="animate-spin rounded-full border-4 border-white border-t-blue-600 shadow-lg"
+              style={{ width: 24, height: 24 }}
+              role="status"
+              aria-label="جاري التحميل"
+            />
           </div>
         )}
         <Image
@@ -392,11 +390,11 @@ const CompactFavoriteCard: React.FC<CompactFavoriteCardProps> = ({
 
         {/* المسافة والموقع */}
         <div className="mb-2 flex items-center justify-between text-xs text-gray-600">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 text-gray-500">
             <MapPinIcon className="h-3 w-3" />
             <span className="truncate">{item.location || 'غير محدد'}</span>
           </div>
-          {item.mileage && (
+          {item.mileage !== undefined && item.mileage !== null && (
             <span className="rounded bg-orange-50 px-1.5 py-0.5 font-medium text-orange-700">
               {formatNumber(item.mileage)} كم
             </span>

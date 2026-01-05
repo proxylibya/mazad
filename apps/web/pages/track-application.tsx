@@ -484,7 +484,7 @@ const TrackApplicationPage = () => {
                                 : 'bg-gray-100 text-gray-700'
                           }`}
                         >
-                          {status}
+                          {String(status)}
                         </span>
                       </div>
                     ))}

@@ -3,6 +3,8 @@
  * تم تنظيف البيانات الوهمية - يعرض فقط البيانات الحقيقية
  */
 import { prisma } from '@/lib/prisma';
+import { formatMileage } from '@/utils/carTranslations';
+import { translateToArabic } from '@/utils/formatters';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -128,7 +130,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       return {
         ...auction,
-        // تحويل cars إلى car مع الصور المحسنة
+        // تحويل cars إلى car مع الصور المحسنة وتنسيق البيانات
         car: auction.cars ? {
           ...auction.cars,
           // تحويل car_images إلى carImages مع fileUrl
@@ -137,6 +139,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           images: imageUrls,
           // حذف car_images الأصلي
           car_images: undefined,
+          // ✅ تنسيق البيانات لتتوافق مع العرض (كما في SSR)
+          mileage: formatMileage(auction.cars.mileage),
+          fuelType: translateToArabic(auction.cars.fuelType),
+          transmission: translateToArabic(auction.cars.transmission),
+          condition: translateToArabic(auction.cars.condition),
+          bodyType: translateToArabic(auction.cars.bodyType),
+          color: translateToArabic(auction.cars.color),
         } : null,
         // إضافة الصور على مستوى المزاد أيضاً
         images: imageUrls,

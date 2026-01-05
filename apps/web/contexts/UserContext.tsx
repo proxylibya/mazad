@@ -1,4 +1,4 @@
-import React, { createContext, ReactNode, useContext, useEffect, useState, useRef } from 'react';
+import React, { ReactNode, createContext, useContext, useEffect, useRef, useState } from 'react';
 import { getUserSession } from '../utils/authUtils';
 
 // نوع بيانات المستخدم
@@ -116,7 +116,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     try {
       isUpdatingRef.current = true; // تفعيل flag
       localStorage.setItem('user', JSON.stringify(updatedUser));
-      
+
       if (process.env.NODE_ENV === 'development') {
         console.log('✅ تحديث المستخدم:', { id: updatedUser.id, fields: Object.keys(userData) });
       }
@@ -127,7 +127,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           detail: updatedUser,
         }),
       );
-      
+
       // إيقاف flag بعد فترة قصيرة
       setTimeout(() => {
         isUpdatingRef.current = false;
@@ -146,7 +146,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   // تسجيل الخروج
   const logout = async () => {
     try {
-      const { SafeLocalStorage } = await import('../utils/localStorage');
+      const { SafeLocalStorage } = await import('../utils/unifiedLocalStorage');
       SafeLocalStorage.clearUserData();
     } catch (error) {
       // في حالة فشل الاستيراد، استخدم الطريقة التقليدية
@@ -216,7 +216,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       if (isUpdatingRef.current) {
         return;
       }
-      
+
       if (e.key === 'user' || e.key === 'token') {
         if (process.env.NODE_ENV === 'development') {
           console.log('🔄 تغيير localStorage من تبويب آخر');

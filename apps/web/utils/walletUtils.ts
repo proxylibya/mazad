@@ -110,14 +110,87 @@ export const validateTRC20Address = (address: string): boolean => {
   return trc20Regex.test(address);
 };
 
-/**
- * Generate wallet attributes for different wallet types
- */
-export const generateWalletAttributes = (
+export type LocalWalletAttributes = {
+  id: string;
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  isActive: boolean;
+  currency: 'LYD';
+  features: string[];
+  limits: {
+    min: number;
+    max: number;
+    daily: number;
+    monthly: number;
+  };
+  fees: {
+    deposit: number;
+    withdrawal: number;
+    transfer: number;
+  };
+};
+
+export type GlobalWalletAttributes = {
+  id: string;
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  isActive: boolean;
+  currency: 'USD';
+  features: string[];
+  limits: {
+    min: number;
+    max: number;
+    daily: number;
+    monthly: number;
+  };
+  fees: {
+    deposit: number;
+    withdrawal: number;
+    transfer: number;
+  };
+};
+
+export type CryptoWalletAttributes = {
+  id: string;
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  isActive: boolean;
+  currency: string;
+  address: string;
+  network: 'TRC20' | 'SOLANA' | 'BEP20';
+  features: string[];
+  limits: {
+    min: number;
+    max: number;
+    daily: number;
+    monthly: number;
+  };
+  fees: {
+    deposit: number;
+    withdrawal: number;
+    networkFee: number;
+  };
+  confirmations: {
+    required: number;
+    fast: number;
+  };
+};
+
+export function generateWalletAttributes(walletType: 'LOCAL', userId: string): LocalWalletAttributes;
+export function generateWalletAttributes(walletType: 'GLOBAL', userId: string): GlobalWalletAttributes;
+export function generateWalletAttributes(
+  walletType: 'CRYPTO',
+  userId: string,
+  network?: 'TRC20' | 'SOLANA' | 'BEP20',
+): CryptoWalletAttributes;
+export function generateWalletAttributes(
   walletType: 'LOCAL' | 'GLOBAL' | 'CRYPTO',
   userId: string,
-  network: 'TRC20' | 'SOLANA' | 'BEP20' = 'TRC20',
-) => {
+  network?: 'TRC20' | 'SOLANA' | 'BEP20',
+): LocalWalletAttributes | GlobalWalletAttributes | CryptoWalletAttributes {
   const baseAttributes = {
     id: crypto.randomUUID(),
     userId,
@@ -125,6 +198,8 @@ export const generateWalletAttributes = (
     updatedAt: new Date(),
     isActive: true,
   };
+
+  const resolvedNetwork: 'TRC20' | 'SOLANA' | 'BEP20' = network ?? 'TRC20';
 
   switch (walletType) {
     case 'LOCAL':
@@ -169,12 +244,12 @@ export const generateWalletAttributes = (
       let features = ['إيداع فوري', 'أمان عالي'];
       let networkFee = 1;
 
-      if (network === 'SOLANA') {
+      if (resolvedNetwork === 'SOLANA') {
         address = generateSolanaAddress(userId);
         currency = 'USDT-SOL';
         features = ['سرعة فائقة', 'رسوم شبه معدومة', 'شبكة حديثة'];
         networkFee = 0.01;
-      } else if (network === 'BEP20') {
+      } else if (resolvedNetwork === 'BEP20') {
         address = generateBep20Address(userId);
         currency = 'USDT-BEP20';
         features = ['شبكة واسعة الانتشار', 'رسوم منخفضة', 'دعم المنصات'];
@@ -191,10 +266,10 @@ export const generateWalletAttributes = (
         ...baseAttributes,
         currency,
         address,
-        network,
+        network: resolvedNetwork,
         features,
         limits: {
-          min: network === 'SOLANA' ? 5 : 10,
+          min: resolvedNetwork === 'SOLANA' ? 5 : 10,
           max: 100000,
           daily: 50000,
           monthly: 500000,
@@ -205,8 +280,8 @@ export const generateWalletAttributes = (
           networkFee,
         },
         confirmations: {
-          required: network === 'SOLANA' ? 32 : network === 'BEP20' ? 15 : 20,
-          fast: network === 'SOLANA' ? 1 : 6,
+          required: resolvedNetwork === 'SOLANA' ? 32 : resolvedNetwork === 'BEP20' ? 15 : 20,
+          fast: resolvedNetwork === 'SOLANA' ? 1 : 6,
         },
       };
 

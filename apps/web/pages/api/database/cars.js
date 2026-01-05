@@ -59,7 +59,7 @@ export default async function handler(req, res) {
       where,
       take: take + 1, // جلب عنصر إضافي للتحقق من وجود صفحة تالية
       include: {
-        seller: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -69,7 +69,7 @@ export default async function handler(req, res) {
             profileImage: true,
           },
         },
-        carImages: {
+        car_images: {
           select: {
             id: true,
             fileName: true,
@@ -84,11 +84,11 @@ export default async function handler(req, res) {
             id: true,
             title: true,
             status: true,
-            startingPrice: true,
+            startPrice: true,
             currentPrice: true,
             totalBids: true,
-            startTime: true,
-            endTime: true,
+            startDate: true,
+            endDate: true,
             featured: true,
           },
           orderBy: { createdAt: 'desc' },
@@ -98,7 +98,7 @@ export default async function handler(req, res) {
             id: true,
             amount: true,
             createdAt: true,
-            bidder: {
+            users: {
               select: {
                 name: true,
                 phone: true,
@@ -122,7 +122,7 @@ export default async function handler(req, res) {
           select: {
             auctions: true,
             bids: true,
-            carImages: true,
+            car_images: true,
           },
         },
       },
@@ -131,11 +131,11 @@ export default async function handler(req, res) {
 
     // إضافة cursor إذا كان موجوداً
     if (cursor) {
-      queryOptions.cursor = { id: parseInt(cursor) };
+      queryOptions.cursor = { id: String(cursor) };
       queryOptions.skip = 1; // تخطي العنصر المستخدم كـ cursor
     }
 
-    const cars = await prisma.car.findMany(queryOptions);
+    const cars = await prisma.cars.findMany(queryOptions);
 
     // التحقق من وجود صفحة تالية
     const hasNextPage = cars.length > take;
@@ -144,7 +144,7 @@ export default async function handler(req, res) {
     }
 
     // جلب العدد الإجمالي للسيارات (اختياري - يمكن حذفه لتحسين الأداء)
-    const totalCars = await prisma.car.count({ where });
+    const totalCars = await prisma.cars.count({ where });
 
     // تنسيق البيانات
     const formattedCars = cars.map((car) => {
@@ -226,16 +226,16 @@ export default async function handler(req, res) {
 
         // بيانات البائع
         seller: {
-          id: car.seller.id,
-          name: car.seller.name,
-          phone: car.seller.phone,
-          accountType: car.seller.accountType,
-          verified: car.seller.verified,
-          profileImage: car.seller.profileImage,
+          id: car.users.id,
+          name: car.users.name,
+          phone: car.users.phone,
+          accountType: car.users.accountType,
+          verified: car.users.verified,
+          profileImage: car.users.profileImage,
         },
 
         // الصور
-        images: car.carImages.map((img) => ({
+        images: car.car_images.map((img) => ({
           id: img.id,
           fileName: img.fileName,
           url: img.fileUrl,
@@ -248,12 +248,12 @@ export default async function handler(req, res) {
           id: auction.id,
           title: auction.title,
           status: auction.status,
-          startingPrice: auction.startingPrice,
+          startingPrice: auction.startPrice,
           currentPrice: auction.currentPrice,
-          reservePrice: auction.reservePrice,
+          reservePrice: null,
           totalBids: auction.totalBids,
-          startTime: auction.startTime,
-          endTime: auction.endTime,
+          startTime: auction.startDate,
+          endTime: auction.endDate,
           featured: auction.featured,
         })),
 
@@ -262,14 +262,14 @@ export default async function handler(req, res) {
           id: bid.id,
           amount: bid.amount,
           createdAt: bid.createdAt,
-          bidder: bid.bidder.name,
+          bidder: bid.users.name,
         })),
 
         // الإحصائيات
         stats: {
           auctions: car._count.auctions,
           bids: car._count.bids,
-          images: car._count.carImages,
+          images: car._count.car_images,
           highestBid: car.bids.length > 0 ? car.bids[0].amount : 0,
         },
       };
@@ -310,7 +310,5 @@ export default async function handler(req, res) {
       error: 'خطأ في جلب بيانات السيارات',
       details: error.message,
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }

@@ -19,9 +19,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         yardId: null, // ✅ استبعاد مزادات الساحات - تظهر فقط في /yards/[slug]
       },
       include: {
-        car: {
+        cars: {
           include: {
-            seller: {
+            users: {
               select: {
                 id: true,
                 name: true,
@@ -46,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       },
       include: {
-        seller: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -60,25 +60,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       take: 6,
     });
 
-    await prisma.$disconnect();
-
     // معالجة البيانات
     const processedAuctions = auctions.map((auction) => ({
       id: auction.id,
       title: auction.title,
       currentPrice: auction.currentPrice,
-      endTime: auction.endTime,
+      endTime: auction.endDate,
       car: {
-        id: auction.car.id,
-        title: auction.car.title,
-        brand: auction.car.brand,
-        model: auction.car.model,
-        year: auction.car.year,
-        location: auction.car.location,
-        images: auction.car.images
-          ? auction.car.images.split(',').filter((img) => img.trim())
+        id: auction.cars?.id,
+        title: auction.cars?.title,
+        brand: auction.cars?.brand,
+        model: auction.cars?.model,
+        year: auction.cars?.year,
+        location: auction.cars?.location,
+        images: auction.cars?.images
+          ? auction.cars.images.split(',').filter((img) => img.trim())
           : ['/images/cars/default-car.svg'],
-        seller: auction.car.seller,
+        seller: auction.cars?.users,
       },
     }));
 
@@ -93,7 +91,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       images: car.images
         ? car.images.split(',').filter((img) => img.trim())
         : ['/images/cars/default-car.svg'],
-      seller: car.seller,
+      seller: car.users,
     }));
 
     return res.status(200).json({

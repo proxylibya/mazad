@@ -3,10 +3,14 @@
  * POST /api/upload/image
  */
 
-import type { NextApiRequest, NextApiResponse } from 'next';
 import formidable from 'formidable';
 import fs from 'fs';
-import { ImageOptimizer, UploadResult } from '@/lib/image-optimization';
+import type { NextApiRequest, NextApiResponse } from 'next';
+import os from 'os';
+import path from 'path';
+import sharp from 'sharp';
+import { uploadBufferToBlob } from '../../../lib/blob';
+import type { UploadResult } from '../../../lib/image-optimization';
 
 export const config = {
   api: {
@@ -19,7 +23,7 @@ interface UploadResponse {
   data?: {
     original: UploadResult;
     optimized?: UploadResult;
-    sizes?: { size: number; result: UploadResult }[];
+    sizes?: { size: number; result: UploadResult; }[];
     formats?: Record<string, UploadResult>;
   };
   error?: string;
@@ -35,7 +39,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
   try {
     // معالجة رفع الملف
+    const uploadDir = path.join(os.tmpdir(), 'sooq-mazad', 'uploads', 'temp');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
     const form = formidable({
+      uploadDir,
       maxFileSize: 10 * 1024 * 1024, // 10MB
       keepExtensions: true,
       filter: (part) => {
@@ -54,7 +64,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     }
 
     const file = fileArray[0];
-    const fileBuffer = fs.readFileSync(file.filepath);
+    const fileBuffer = await fs.promises.readFile(file.filepath);
     const fileName = file.originalFilename || 'image.jpg';
 
     // قراءة الإعدادات
@@ -66,14 +76,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     const width = fields.width?.[0] ? parseInt(fields.width[0], 10) : undefined;
     const height = fields.height?.[0] ? parseInt(fields.height[0], 10) : undefined;
 
-    const imageOptimizer = new ImageOptimizer();
+    async function uploadAsResult(params: {
+      buffer: Buffer;
+      filename: string;
+      contentType: string;
+      folder: string;
+    }): Promise<UploadResult> {
+      const meta = await sharp(params.buffer).metadata();
+      const uploaded = await uploadBufferToBlob({
+        buffer: params.buffer,
+        filename: params.filename,
+        contentType: params.contentType,
+        folder: params.folder,
+      });
+      return {
+        url: uploaded.url,
+        cdnUrl: uploaded.url,
+        fileName: params.filename,
+        size: params.buffer.length,
+        format: meta.format || 'unknown',
+        width: meta.width || 0,
+        height: meta.height || 0,
+      };
+    }
 
-    // حفظ الصورة الأصلية
-    const originalResult = await imageOptimizer.uploadToCDN(
-      fileBuffer,
-      fileName,
-      file.mimetype || 'image/jpeg',
-    );
+    const folder = 'uploads/images';
+    const originalResult = await uploadAsResult({
+      buffer: fileBuffer,
+      filename: fileName,
+      contentType: file.mimetype || 'image/jpeg',
+      folder,
+    });
 
     const responseData: UploadResponse['data'] = {
       original: originalResult,
@@ -81,38 +114,77 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
     // تحسين الصورة إذا مطلوب
     if (optimize) {
-      const optimizedResult = await imageOptimizer.processAndUpload(fileBuffer, fileName, {
-        format,
-        quality,
-        width,
-        height,
+      let pipeline = sharp(fileBuffer).rotate();
+      if (width || height) {
+        pipeline = pipeline.resize(width, height, { fit: 'inside', withoutEnlargement: true });
+      }
+      const optimizedBuffer =
+        format === 'avif'
+          ? await pipeline.avif({ quality: 75 }).toBuffer()
+          : await pipeline.webp({ quality }).toBuffer();
+
+      const optimizedName = fileName.replace(/\.[^/.]+$/, `.${format}`);
+      responseData.optimized = await uploadAsResult({
+        buffer: optimizedBuffer,
+        filename: optimizedName,
+        contentType: format === 'avif' ? 'image/avif' : 'image/webp',
+        folder,
       });
-      responseData.optimized = optimizedResult;
     }
 
     // إنشاء أحجام متعددة إذا مطلوب
     if (generateSizes) {
       const sizes = [320, 640, 768, 1024, 1280];
-      const multiSizeResult = await imageOptimizer.processWithMultipleSizes(
-        fileBuffer,
-        fileName,
-        sizes,
-        format,
-      );
-      responseData.sizes = multiSizeResult.sizes;
+      const results: { size: number; result: UploadResult; }[] = [];
+      for (const s of sizes) {
+        const resized = await sharp(fileBuffer)
+          .rotate()
+          .resize(s, undefined, { fit: 'inside', withoutEnlargement: true })
+          .toBuffer();
+
+        const out =
+          format === 'avif'
+            ? await sharp(resized).avif({ quality: 75 }).toBuffer()
+            : await sharp(resized).webp({ quality }).toBuffer();
+
+        const sizedName = fileName.replace(/\.[^/.]+$/, `_${s}.${format}`);
+        const r = await uploadAsResult({
+          buffer: out,
+          filename: sizedName,
+          contentType: format === 'avif' ? 'image/avif' : 'image/webp',
+          folder,
+        });
+        results.push({ size: s, result: r });
+      }
+      responseData.sizes = results;
     }
 
     // تحويل إلى صيغ متعددة إذا مطلوب
     if (multiFormat) {
-      const formats = await imageOptimizer.convertToMultipleFormats(fileBuffer, fileName, [
-        'webp',
-        'avif',
-      ]);
-      responseData.formats = formats;
+      const webpBuf = await sharp(fileBuffer).rotate().webp({ quality }).toBuffer();
+      const avifBuf = await sharp(fileBuffer).rotate().avif({ quality: 75 }).toBuffer();
+
+      const webpName = fileName.replace(/\.[^/.]+$/, '.webp');
+      const avifName = fileName.replace(/\.[^/.]+$/, '.avif');
+
+      responseData.formats = {
+        webp: await uploadAsResult({
+          buffer: webpBuf,
+          filename: webpName,
+          contentType: 'image/webp',
+          folder,
+        }),
+        avif: await uploadAsResult({
+          buffer: avifBuf,
+          filename: avifName,
+          contentType: 'image/avif',
+          folder,
+        }),
+      };
     }
 
     // حذف الملف المؤقت
-    fs.unlinkSync(file.filepath);
+    await fs.promises.unlink(file.filepath).catch(() => { });
 
     return res.status(200).json({
       success: true,

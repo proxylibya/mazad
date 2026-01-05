@@ -9,7 +9,9 @@ import MapPinIcon from '@heroicons/react/24/outline/MapPinIcon';
 import MinusIcon from '@heroicons/react/24/outline/MinusIcon';
 import PlusIcon from '@heroicons/react/24/outline/PlusIcon';
 import XMarkIcon from '@heroicons/react/24/outline/XMarkIcon';
+import { MapControlButton } from '@sooq-mazad/ui';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { AnimatedPresence } from '../unified/UnifiedAnimation';
 
 // إحداثيات المدن الليبية الرئيسية
 const LIBYAN_CITIES: { [key: string]: { lat: number; lng: number } } = {
@@ -370,15 +372,21 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+    <AnimatedPresence
+      show={isOpen}
+      variant="fade"
+      duration="fast"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+    >
       {/* خلفية داكنة */}
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
       {/* المودال */}
-      <div className="relative z-10 flex h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-slate-800 shadow-2xl">
+      <AnimatedPresence
+        show={isOpen}
+        className="relative z-10 flex h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-slate-800 shadow-2xl"
+      >
         {/* الرأس */}
         <div className="flex items-center justify-between border-b border-slate-700 bg-slate-800 px-6 py-4">
           <div className="flex items-center gap-3">
@@ -449,7 +457,7 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
         </div>
 
         {/* الخريطة */}
-        <div className="relative flex-1">
+        <div className="relative min-h-0 flex-1">
           {mapError ? (
             <div className="flex h-full items-center justify-center bg-slate-900">
               <div className="text-center">
@@ -459,33 +467,29 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
             </div>
           ) : (
             <>
-              <div ref={mapContainerRef} className="h-full w-full" style={{ minHeight: '300px' }} />
+              <div
+                ref={mapContainerRef}
+                className="h-full min-h-[260px] w-full max-[460px]:min-h-[160px] sm:min-h-[300px]"
+              />
 
               {/* أزرار التحكم */}
               <div className="absolute left-4 top-4 z-[1000] flex flex-col gap-2">
                 {/* تكبير */}
-                <button
-                  onClick={zoomIn}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-lg transition-all hover:bg-gray-100 active:scale-95"
-                  title="تكبير"
-                >
+                <MapControlButton onClick={zoomIn} label="تكبير">
                   <PlusIcon className="h-5 w-5 text-gray-700" />
-                </button>
+                </MapControlButton>
 
                 {/* تصغير */}
-                <button
-                  onClick={zoomOut}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-lg transition-all hover:bg-gray-100 active:scale-95"
-                  title="تصغير"
-                >
+                <MapControlButton onClick={zoomOut} label="تصغير">
                   <MinusIcon className="h-5 w-5 text-gray-700" />
-                </button>
+                </MapControlButton>
 
                 {/* موقعي */}
-                <button
+                <MapControlButton
                   onClick={getMyLocation}
+                  label="موقعي الحالي"
+                  unstyled
                   className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 shadow-lg transition-all hover:bg-blue-700 active:scale-95"
-                  title="موقعي الحالي"
                 >
                   <svg
                     className="h-5 w-5 text-white"
@@ -497,7 +501,7 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                     <circle cx="12" cy="12" r="3" />
                     <path d="M12 2v4m0 12v4m-10-10h4m12 0h4" />
                   </svg>
-                </button>
+                </MapControlButton>
               </div>
 
               {/* مؤشر التحميل */}
@@ -553,8 +557,8 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </AnimatedPresence>
+    </AnimatedPresence>
   );
 };
 

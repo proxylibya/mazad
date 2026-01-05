@@ -26,6 +26,15 @@ const defaultToolbar: RichTextEditorProps['toolbar'] = [
   'heading',
 ];
 
+type ToolbarItem = NonNullable<RichTextEditorProps['toolbar']>[number];
+
+type ToolbarButton = {
+  icon: string;
+  command: () => void;
+  title: string;
+  className?: string;
+};
+
 export function RichTextEditor({
   value = '',
   onChange,
@@ -84,7 +93,7 @@ export function RichTextEditor({
     }
   };
 
-  const toolbarButtons = {
+  const toolbarButtons: Record<ToolbarItem, ToolbarButton> = {
     bold: { icon: 'B', command: () => execCommand('bold'), title: 'عريض' },
     italic: { icon: 'I', command: () => execCommand('italic'), title: 'مائل', className: 'italic' },
     underline: {

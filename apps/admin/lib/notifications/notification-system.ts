@@ -55,11 +55,16 @@ class NotificationService {
     private notifications: NotificationItem[] = [];
     private listeners: Set<(stats: NotificationStats) => void> = new Set();
     private notificationListeners: Set<(notifications: NotificationItem[]) => void> = new Set();
+    private statsRequestController: AbortController | null = null;
 
     // جلب الإحصائيات من الخادم
     async fetchStats(): Promise<NotificationStats> {
         try {
-            const res = await fetch('/api/admin/notifications/stats');
+            this.statsRequestController?.abort();
+            const controller = new AbortController();
+            this.statsRequestController = controller;
+
+            const res = await fetch('/api/admin/notifications/stats', { signal: controller.signal });
             if (res.ok) {
                 const data = await res.json();
                 this.stats = {
@@ -69,7 +74,9 @@ class NotificationService {
                 };
             }
         } catch (error) {
-            console.error('Failed to fetch notification stats:', error);
+            if ((error as any)?.name !== 'AbortError') {
+                console.error('Failed to fetch notification stats:', error);
+            }
             // استخدام بيانات وهمية للتطوير
             this.stats = this.getMockStats();
         }
@@ -226,8 +233,13 @@ class NotificationService {
 
     // بدء التحديث التلقائي
     startAutoRefresh(intervalMs: number = 30000): () => void {
-        const interval = setInterval(() => this.fetchStats(), intervalMs);
-        return () => clearInterval(interval);
+        const interval = setInterval(() => {
+            void this.fetchStats();
+        }, intervalMs);
+        return () => {
+            clearInterval(interval);
+            this.statsRequestController?.abort();
+        };
     }
 }
 

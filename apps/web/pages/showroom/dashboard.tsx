@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import ArrowPathIcon from '@heroicons/react/24/outline/ArrowPathIcon';
+import BuildingStorefrontIcon from '@heroicons/react/24/outline/BuildingStorefrontIcon';
+import ExclamationTriangleIcon from '@heroicons/react/24/outline/ExclamationTriangleIcon';
+import PlusIcon from '@heroicons/react/24/outline/PlusIcon';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import PlusIcon from '@heroicons/react/24/outline/PlusIcon';
-import ExclamationTriangleIcon from '@heroicons/react/24/outline/ExclamationTriangleIcon';
-import BuildingStorefrontIcon from '@heroicons/react/24/outline/BuildingStorefrontIcon';
-import ArrowPathIcon from '@heroicons/react/24/outline/ArrowPathIcon';
+import { useEffect, useState } from 'react';
 import { OpensooqNavbar } from '../../components/common';
+import ConfirmationModal from '../../components/common/ui/ConfirmationModal';
 import AccountInfoCard from '../../components/showroom/dashboard/AccountInfoCard';
 import ShowroomManagementCard from '../../components/showroom/dashboard/ShowroomManagementCard';
-import ConfirmationModal from '../../components/common/ui/ConfirmationModal';
 import useAuth from '../../hooks/useAuth';
 
 interface ShowroomData {
@@ -130,7 +130,7 @@ const ShowroomDashboardPage = () => {
             verified: result.data.user.verified,
             accountType: user?.accountType || 'SHOWROOM',
             profileImage: user?.profileImage,
-            memberSince: user?.createdAt,
+            memberSince: user?.createdAt ? new Date(user.createdAt).toISOString() : undefined,
           });
         } else {
           setError(result.error || 'فشل في تحميل البيانات');

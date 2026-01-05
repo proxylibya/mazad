@@ -1,6 +1,6 @@
 // @ts-nocheck
 // API Client for connecting to the separated backend
-const API_URL = (process as any).env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+const API_URL = (process as any).env.NEXT_PUBLIC_API_URL || '/api';
 interface ApiResponse<T = any> {
   success?: boolean;
   data?: T;
@@ -132,15 +132,15 @@ export const apiClient = new ApiClient();
 // Auth specific methods
 export const authApi = {
   async login(phoneNumber: string, password: string) {
-    const response = await apiClient.post<{ user: any /* eslint-disable-line *//* auto-fixed */ /* auto-fixed */ /* auto-fixed */ /* eslint-disable-line */; token: string }>('/auth/login', {
+    const response = await apiClient.post<{ user: any /* eslint-disable-line *//* auto-fixed */ /* auto-fixed */ /* auto-fixed */ /* eslint-disable-line */; token: string; }>('/auth/login', {
       phoneNumber,
       password
     });
-    
+
     if (response.data?.token) {
       apiClient.setToken(response.data.token);
     }
-    
+
     return response;
   },
 
@@ -150,12 +150,12 @@ export const authApi = {
     phoneNumber: string;
     password: string;
   }) {
-    const response = await apiClient.post<{ user: any /* eslint-disable-line *//* auto-fixed */ /* auto-fixed */ /* auto-fixed */ /* eslint-disable-line */; token: string }>('/auth/register', data);
-    
+    const response = await apiClient.post<{ user: any /* eslint-disable-line *//* auto-fixed */ /* auto-fixed */ /* auto-fixed */ /* eslint-disable-line */; token: string; }>('/auth/register', data);
+
     if (response.data?.token) {
       apiClient.setToken(response.data.token);
     }
-    
+
     return response;
   },
 

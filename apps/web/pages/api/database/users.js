@@ -31,19 +31,19 @@ export default async function handler(req, res) {
     }
 
     // جلب المستخدمين مع البيانات المرتبطة
-    const users = await prisma.user.findMany({
+    const users = await prisma.users.findMany({
       where,
       skip,
       take,
       include: {
-        wallet: {
+        wallets: {
           include: {
-            localWallet: true,
-            globalWallet: true,
-            cryptoWallet: true,
+            local_wallets: true,
+            global_wallets: true,
+            crypto_wallets: true,
           },
         },
-        settings: {
+        user_settings: {
           select: {
             profileName: true,
             profileBio: true,
@@ -53,7 +53,7 @@ export default async function handler(req, res) {
             timezone: true,
           },
         },
-        transportProfile: {
+        transport_profiles: {
           select: {
             truckNumber: true,
             truckType: true,
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
             auctions: true,
             bids: true,
             messages: true,
-            transportServices: true,
+            transport_services: true,
           },
         },
       },
@@ -76,7 +76,7 @@ export default async function handler(req, res) {
     });
 
     // جلب العدد الإجمالي للمستخدمين
-    const totalUsers = await prisma.user.count({ where });
+    const totalUsers = await prisma.users.count({ where });
 
     // تنسيق البيانات
     const formattedUsers = users.map((user) => ({
@@ -92,41 +92,41 @@ export default async function handler(req, res) {
       updatedAt: user.updatedAt,
 
       // بيانات المحفظة
-      wallet: user.wallet
+      wallet: user.wallets
         ? {
-            id: user.wallet.id,
-            isActive: user.wallet.isActive,
-            localBalance: user.wallet.localWallet?.balance || 0,
-            globalBalance: user.wallet.globalWallet?.balance || 0,
-            cryptoBalance: user.wallet.cryptoWallet?.balance || 0,
+            id: user.wallets.id,
+            isActive: user.wallets.isActive,
+            localBalance: user.wallets.local_wallets?.balance || 0,
+            globalBalance: user.wallets.global_wallets?.balance || 0,
+            cryptoBalance: user.wallets.crypto_wallets?.balance || 0,
             totalBalance: {
-              LYD: user.wallet.localWallet?.balance || 0,
-              USD: user.wallet.globalWallet?.balance || 0,
-              USDT: user.wallet.cryptoWallet?.balance || 0,
+              LYD: user.wallets.local_wallets?.balance || 0,
+              USD: user.wallets.global_wallets?.balance || 0,
+              USDT: user.wallets.crypto_wallets?.balance || 0,
             },
           }
         : null,
 
       // الإعدادات الشخصية
-      profile: user.settings
+      profile: user.user_settings
         ? {
-            name: user.settings.profileName,
-            bio: user.settings.profileBio,
-            city: user.settings.profileCity,
-            avatar: user.settings.profileAvatar,
-            theme: user.settings.theme,
-            timezone: user.settings.timezone,
+            name: user.user_settings.profileName,
+            bio: user.user_settings.profileBio,
+            city: user.user_settings.profileCity,
+            avatar: user.user_settings.profileAvatar,
+            theme: user.user_settings.theme,
+            timezone: user.user_settings.timezone,
           }
         : null,
 
       // بيانات النقل (إن وجدت)
-      transport: user.transportProfile
+      transport: user.transport_profiles
         ? {
-            truckNumber: user.transportProfile.truckNumber,
-            truckType: user.transportProfile.truckType,
-            capacity: user.transportProfile.capacity,
-            serviceArea: user.transportProfile.serviceArea,
-            verified: user.transportProfile.verified,
+            truckNumber: user.transport_profiles.truckNumber,
+            truckType: user.transport_profiles.truckType,
+            capacity: user.transport_profiles.capacity,
+            serviceArea: user.transport_profiles.serviceArea,
+            verified: user.transport_profiles.verified,
           }
         : null,
 
@@ -136,7 +136,7 @@ export default async function handler(req, res) {
         auctions: user._count.auctions,
         bids: user._count.bids,
         messages: user._count.messages,
-        transportServices: user._count.transportServices,
+        transportServices: user._count.transport_services,
         totalActivity:
           user._count.cars + user._count.auctions + user._count.bids + user._count.messages,
       },
@@ -176,7 +176,5 @@ export default async function handler(req, res) {
       error: 'خطأ في جلب بيانات المستخدمين',
       details: error.message,
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }

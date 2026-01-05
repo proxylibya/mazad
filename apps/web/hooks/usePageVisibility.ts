@@ -1,8 +1,10 @@
 import {
-  usePageVisibilityContext,
-  usePageVisibilityCheck as usePageVisibilityCheckContext,
   useFilteredMenuItems as useFilteredMenuItemsContext,
+  usePageVisibilityCheck as usePageVisibilityCheckContext,
+  usePageVisibilityContext,
 } from '../contexts/PageVisibilityContext';
+
+type PageVisibilitySettings = Record<string, Record<string, boolean>>;
 
 /**
  * Hook لإدارة إعدادات رؤية الصفحات
@@ -22,7 +24,7 @@ export function usePageVisibilityCheck(pageId: string, userRole?: string) {
 /**
  * Hook لفلترة قائمة العناصر حسب الرؤية
  */
-export function useFilteredMenuItems<T extends { id?: string; href?: string; pageId?: string }>(
+export function useFilteredMenuItems<T extends { id?: string; href?: string; pageId?: string; }>(
   items: T[],
   userRole?: string,
 ) {

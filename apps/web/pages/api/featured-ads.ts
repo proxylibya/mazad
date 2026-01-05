@@ -99,7 +99,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 price: true,
                 images: true,
                 location: true,
-                seller: { select: { name: true, phone: true } },
+                users: { select: { name: true, phone: true } },
               },
             })
             : [],
@@ -109,9 +109,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               select: {
                 id: true,
                 title: true,
-                startingPrice: true,
+                startPrice: true,
                 currentPrice: true,
-                car: {
+                cars: {
                   select: {
                     title: true,
                     brand: true,
@@ -121,7 +121,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     location: true,
                   },
                 },
-                seller: { select: { name: true, phone: true } },
+                users: { select: { name: true, phone: true } },
               },
             })
             : [],
@@ -155,8 +155,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             : [],
         ]);
 
-        const carsMap = new Map(cars.map((c) => [c.id, c]));
-        const auctionsMap = new Map(auctions.map((a) => [a.id, a]));
+        const normalizedCars = cars.map((c: any) => ({
+          ...c,
+          seller: c.users,
+          users: undefined,
+        }));
+
+        const normalizedAuctions = auctions.map((a: any) => ({
+          ...a,
+          startingPrice: a.startPrice,
+          car: a.cars,
+          seller: a.users,
+          cars: undefined,
+          users: undefined,
+        }));
+
+        const carsMap = new Map(normalizedCars.map((c: any) => [c.id, c]));
+        const auctionsMap = new Map(normalizedAuctions.map((a: any) => [a.id, a]));
         const showroomsMap = new Map(showrooms.map((s) => [s.id, s]));
         const transportsMap = new Map(transports.map((t) => [t.id, t]));
 

@@ -275,6 +275,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     // جلب التقييمات الحقيقية
     const { rating, reviewsCount } = await getSellerRatings(seller.id);
 
+    const wallets = seller.wallets || [];
+    const activeWallets = wallets.filter((w) => w.isActive);
+    const localWallets = activeWallets.flatMap((w) => w.local_wallets || []);
+    const totalBalance = localWallets.reduce((sum, wallet) => sum + (wallet.balance || 0), 0);
+    const primaryCurrency =
+      localWallets.find((w) => w.currency === 'LYD')?.currency ||
+      localWallets[0]?.currency ||
+      'LYD';
+
     // تنسيق البيانات للإرسال
     const formattedSeller = {
       id: seller.id,
@@ -335,6 +344,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       isVerified: seller.verified,
       isOnline: true, // يمكن إضافة نظام تتبع الحالة لاحقاً
       coverImage: null,
+      walletSummary: {
+        hasWallet: activeWallets.length > 0,
+        totalBalance,
+        primaryCurrency,
+        activeWallets: activeWallets.length,
+      },
       // التخصصات بناءً على نوع الحساب
       specialties: seller.accountType === 'DEALER'
         ? ['بيع سيارات', 'معارض السيارات', 'تجارة السيارات']

@@ -3,8 +3,8 @@
  * خدمة حجز الأموال للمزادات
  */
 
-import { walletService } from './walletService';
 import { Currency } from '../types/payment';
+import { walletService } from './walletService';
 
 export interface AuctionReservation {
   id: string;
@@ -83,7 +83,7 @@ export class AuctionReservationService {
         auctionId,
         walletId: wallet.id,
         reservedAmount: totalReservation,
-        currency: wallet.currency,
+        currency: (wallet.currency as any) as Currency,
         status: 'ACTIVE',
         createdAt: new Date(),
         expiresAt: new Date(Date.now() + durationHours * 60 * 60 * 1000),
@@ -187,7 +187,7 @@ export class AuctionReservationService {
     userId: string,
     auctionId: string,
     finalBidAmount: number,
-  ): Promise<{ success: boolean; transactionId?: string; message: string }> {
+  ): Promise<{ success: boolean; transactionId?: string; message: string; }> {
     try {
       const reservation = await this.getActiveReservation(userId, auctionId);
 

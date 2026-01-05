@@ -23,7 +23,7 @@ const SimpleImageRenderer: React.FC<SimpleImageRendererProps> = ({
   alt = 'صورة السيارة',
   className = '',
   showNavigation = false,
-  priority = true, // تحميل فوري افتراضياً لحل مشكلة الشبكة
+  priority = false,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [errorImages, setErrorImages] = useState<Set<string>>(new Set());
@@ -48,6 +48,12 @@ const SimpleImageRenderer: React.FC<SimpleImageRendererProps> = ({
 
   const imageUrls = resolvedImages;
   const currentImage = useFallback ? fallbackImage : imageUrls[currentIndex] || fallbackImage;
+
+  const isUserUploadedImage =
+    typeof currentImage === 'string' &&
+    (currentImage.startsWith('/uploads/') ||
+      currentImage.includes('/images/cars/listings/') ||
+      currentImage.includes('/images/cars/auction-listings/'));
 
   // إعادة تعيين الحالة عند تغيير الصور المصدر
   useEffect(() => {
@@ -135,6 +141,7 @@ const SimpleImageRenderer: React.FC<SimpleImageRendererProps> = ({
         onLoad={handleImageLoad}
         priority={priority}
         quality={85}
+        unoptimized={isUserUploadedImage}
       />
 
       {/* أزرار التنقل */}

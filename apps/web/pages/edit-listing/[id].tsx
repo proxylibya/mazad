@@ -1,37 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
-import Head from 'next/head';
-import { Layout } from '../../components/common';
-import SelectField from '../../components/ui/SelectField';
-import { useUserContext } from '../../contexts/UserContext';
-import { processPhoneNumber } from '../../utils/phoneUtils';
-import PhoneInputField from '../../components/PhoneInputField';
-import { type Country } from '../../components/CountryCodeSelector';
-import { validatePrice } from '../../utils/validationUtils';
-import { scrollToFirstError } from '../../utils/formScrollUtils';
 import ArrowRightIcon from '@heroicons/react/24/outline/ArrowRightIcon';
-import { BackIcon } from '../../components/common/icons/RTLIcon';
+import CalendarIcon from '@heroicons/react/24/outline/CalendarIcon';
 import ChevronDownIcon from '@heroicons/react/24/outline/ChevronDownIcon';
 import ChevronUpIcon from '@heroicons/react/24/outline/ChevronUpIcon';
 import ClockIcon from '@heroicons/react/24/outline/ClockIcon';
-import CalendarIcon from '@heroicons/react/24/outline/CalendarIcon';
 import CogIcon from '@heroicons/react/24/outline/CogIcon';
-import SwatchIcon from '@heroicons/react/24/outline/SwatchIcon';
 import SparklesIcon from '@heroicons/react/24/outline/SparklesIcon';
+import SwatchIcon from '@heroicons/react/24/outline/SwatchIcon';
 import WrenchScrewdriverIcon from '@heroicons/react/24/outline/WrenchScrewdriverIcon';
+import Head from 'next/head';
+import { useRouter } from 'next/router';
+import { useEffect, useState } from 'react';
+import { type Country } from '../../components/CountryCodeSelector';
+import LocationPickerModal from '../../components/LocationPickerModal';
+import PhoneInputField from '../../components/PhoneInputField';
+import { Layout } from '../../components/common';
+import { BackIcon } from '../../components/common/icons/RTLIcon';
+import SelectField from '../../components/ui/SelectField';
+import { useUserContext } from '../../contexts/UserContext';
+import { libyanCities } from '../../data/libyan-cities';
 import {
+  bodyTypes,
   carBrands,
   carYears,
-  bodyTypes,
-  fuelTypes,
   conditions,
-  regionalSpecs,
   exteriorColors,
-  interiorColors,
+  fuelTypes,
   getModelsByBrand,
+  interiorColors,
+  regionalSpecs,
 } from '../../data/simple-filters';
-import { libyanCities } from '../../data/libyan-cities';
-import LocationPickerModal from '../../components/LocationPickerModal';
+import { scrollToFirstError } from '../../utils/formScrollUtils';
+import { processPhoneNumber } from '../../utils/phoneUtils';
+import { validatePrice } from '../../utils/validationUtils';
 
 interface FormData {
   brand: string;
@@ -150,7 +150,7 @@ const EditListingForm = () => {
       try {
         setIsLoading(true);
         const response = await fetch(`/api/cars/${id}`);
-        
+
         if (!response.ok) {
           throw new Error('فشل في تحميل البيانات');
         }
@@ -205,7 +205,6 @@ const EditListingForm = () => {
             },
           },
         });
-
       } catch (error) {
         console.error('خطأ في تحميل البيانات:', error);
         alert('حدث خطأ في تحميل بيانات الإعلان');
@@ -419,7 +418,7 @@ const EditListingForm = () => {
       }
 
       alert('تم حفظ التعديلات بنجاح');
-      
+
       // العودة لصفحة التفاصيل
       if (listingType === 'auction') {
         router.push(`/auction/${id}`);
@@ -457,10 +456,7 @@ const EditListingForm = () => {
   if (isLoading) return null;
 
   return (
-    <Layout
-      title="تعديل الإعلان"
-      description="قم بتعديل تفاصيل إعلانك"
-    >
+    <Layout title="تعديل الإعلان" description="قم بتعديل تفاصيل إعلانك">
       <Head>
         <title>تعديل الإعلان</title>
       </Head>
@@ -495,9 +491,7 @@ const EditListingForm = () => {
                   </div>
                 </div>
 
-                <p className="mb-4 text-sm text-gray-700">
-                  المعلومات الأساسية للسيارة مطلوبة
-                </p>
+                <p className="mb-4 text-sm text-gray-700">المعلومات الأساسية للسيارة مطلوبة</p>
 
                 <div className="rounded-lg border border-white bg-white p-4 shadow-sm">
                   <div className="space-y-4">
@@ -671,9 +665,7 @@ const EditListingForm = () => {
 
                     <div data-field="area">
                       <div className="space-y-2">
-                        <label className="block text-sm font-semibold text-gray-900">
-                          المنطقة
-                        </label>
+                        <label className="block text-sm font-semibold text-gray-900">المنطقة</label>
                         <input
                           type="text"
                           value={formData.area}
@@ -685,9 +677,7 @@ const EditListingForm = () => {
                               : 'border-gray-300 bg-white focus:border-blue-500 focus:ring-blue-200'
                           } focus:outline-none focus:ring-2`}
                         />
-                        {errors.area && (
-                          <p className="text-sm text-red-600">{errors.area}</p>
-                        )}
+                        {errors.area && <p className="text-sm text-red-600">{errors.area}</p>}
                         <p className="text-xs text-gray-500">
                           أدخل اسم المنطقة أو الحي داخل المدينة التي اخترتها
                         </p>
@@ -989,7 +979,7 @@ const EditListingForm = () => {
               )}
 
               {/* موقع السيارة - للسوق الفوري */}
-              {effectiveType !== 'auction' && (
+              {listingType !== 'auction' && (
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                   <div className="mb-2 flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -1064,7 +1054,7 @@ const EditListingForm = () => {
               )}
 
               {/* تقرير الفحص */}
-              {(
+              {
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                   <div className="mb-2 flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -1543,7 +1533,7 @@ const EditListingForm = () => {
                     )}
                   </div>
                 </div>
-              )}
+              }
             </div>
           </div>
 

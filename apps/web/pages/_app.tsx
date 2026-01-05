@@ -61,8 +61,6 @@ import '../lib/network/globalFetchHandler';
 // معالج الأخطاء العامة - يمنع توقف السيرفر عند أخطاء SSE
 import { initializeGlobalSocket } from '@/lib/socket/socket-initializer';
 
-// مكون معالج عام لتفعيل الإعدادات العالمية الخفيفة
-// يتضمن معالجة أخطاء MetaMask/Web3 بشكل كامل
 const GlobalErrorHandler = React.memo(({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     // تفعيل نظام الأرقام الغربية العالمي مرة واحدة
@@ -173,6 +171,126 @@ const GlobalErrorHandler = React.memo(({ children }: { children: React.ReactNode
 });
 GlobalErrorHandler.displayName = 'GlobalErrorHandler';
 
+type ThemeMode = 'light' | 'dark' | 'system';
+type AnimationMode = 'normal' | 'disabled';
+type LayoutWidth = 'normal' | 'wide' | 'full';
+type FontScale = 'sm' | 'md' | 'lg';
+
+interface ThemeSettings {
+  mode: ThemeMode;
+  primaryColor: string;
+  backgroundColor: string;
+  accentColor: string;
+  animations?: AnimationMode;
+  textColor?: string;
+  fontScale?: FontScale;
+  layoutWidth?: LayoutWidth;
+}
+
+function hexToHsl(value: string): string | null {
+  const hex = value.trim();
+  if (!hex) return null;
+  const normalized = hex.replace('#', '');
+  if (normalized.length !== 3 && normalized.length !== 6) return null;
+  const fullHex =
+    normalized.length === 3
+      ? normalized
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : normalized;
+  const r = parseInt(fullHex.substring(0, 2), 16) / 255;
+  const g = parseInt(fullHex.substring(2, 4), 16) / 255;
+  const b = parseInt(fullHex.substring(4, 6), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r:
+        h = (g - b) / d + (g < b ? 6 : 0);
+        break;
+      case g:
+        h = (b - r) / d + 2;
+        break;
+      case b:
+        h = (r - g) / d + 4;
+        break;
+      default:
+        break;
+    }
+    h /= 6;
+  }
+  const hh = Math.round(h * 360);
+  const ss = Math.round(s * 100);
+  const ll = Math.round(l * 100);
+  return `${hh} ${ss}% ${ll}%`;
+}
+
+function applyTheme(settings: ThemeSettings) {
+  if (typeof window === 'undefined') return;
+  const root = document.documentElement;
+  const mode = settings.mode || 'system';
+  const animationsMode: AnimationMode = settings.animations || 'normal';
+  if (mode === 'dark') {
+    root.classList.add('dark');
+  } else if (mode === 'light') {
+    root.classList.remove('dark');
+  } else if (window.matchMedia) {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (prefersDark) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }
+  if (animationsMode === 'disabled') {
+    root.classList.add('no-animations');
+  } else {
+    root.classList.remove('no-animations');
+  }
+  if (settings.primaryColor) {
+    const hsl = hexToHsl(settings.primaryColor);
+    if (hsl) {
+      root.style.setProperty('--primary', hsl);
+    }
+  }
+  if (settings.backgroundColor) {
+    const hsl = hexToHsl(settings.backgroundColor);
+    if (hsl) {
+      root.style.setProperty('--background', hsl);
+    }
+  }
+  if (settings.accentColor) {
+    const hsl = hexToHsl(settings.accentColor);
+    if (hsl) {
+      root.style.setProperty('--accent', hsl);
+    }
+  }
+  if (settings.textColor) {
+    const hsl = hexToHsl(settings.textColor);
+    if (hsl) {
+      root.style.setProperty('--text-color', hsl);
+    }
+  }
+  const fontScale = settings.fontScale || 'md';
+  const layoutWidth = settings.layoutWidth || 'normal';
+  const fontScaleValue =
+    fontScale === 'sm' ? '0.95' : fontScale === 'lg' ? '1.05' : '1';
+  const layoutWidthValue =
+    layoutWidth === 'wide'
+      ? '1280px'
+      : layoutWidth === 'full'
+        ? '100%'
+        : '1100px';
+  root.style.setProperty('--font-scale', fontScaleValue);
+  root.style.setProperty('--container-max-width', layoutWidthValue);
+}
+
 // مكون تتبع التحليلات التلقائي
 const AnalyticsTracker = React.memo(({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
@@ -224,6 +342,24 @@ export default function App({ Component, pageProps }: AppProps) {
     if (typeof window !== 'undefined') {
       void initializeGlobalSocket();
     }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadTheme = async () => {
+      try {
+        const res = await fetch('/api/site-theme');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled && data?.settings) {
+          applyTheme(data.settings as ThemeSettings);
+        }
+      } catch {}
+    };
+    void loadTheme();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (

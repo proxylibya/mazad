@@ -1,6 +1,3 @@
-import CheckCircleIcon from '@heroicons/react/24/outline/CheckCircleIcon';
-import WrenchScrewdriverIcon from '@heroicons/react/24/outline/WrenchScrewdriverIcon';
-
 import { useEffect, useState } from 'react';
 import { SafeLocalStorage } from '../utils/unifiedLocalStorage';
 
@@ -81,11 +78,11 @@ export default function SafeStorageProvider({ children }: SafeStorageProviderPro
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
           <div
-                      className="animate-spin rounded-full border-4 border-white border-t-blue-600 shadow-lg"
-                      style={{ width: 24, height: 24 }}
-                      role="status"
-                      aria-label="جاري التحميل"
-                    />
+            className="animate-spin rounded-full border-4 border-white border-t-blue-600 shadow-lg"
+            style={{ width: 24, height: 24 }}
+            role="status"
+            aria-label="جاري التحميل"
+          />
           <p className="text-gray-600">جاري تحميل التطبيق...</p>
         </div>
       </div>
@@ -155,7 +152,7 @@ export function StorageDiagnostics() {
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       const data = {
-        storageSize: SafeLocalStorage.getStorageSize(),
+        storageSize: SafeLocalStorage.getSize(),
         allKeys: SafeLocalStorage.getAllKeys(),
         exportedData: SafeLocalStorage.exportData(),
         userAgent: navigator.userAgent,

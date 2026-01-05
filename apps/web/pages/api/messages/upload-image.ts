@@ -1,10 +1,11 @@
 import { Fields, Files, File as FormidableFile, IncomingForm } from 'formidable';
 import fs from 'fs';
 import { NextApiRequest } from 'next';
+import os from 'os';
 import path from 'path';
 import { NextApiResponseServerIO } from '../../../types/next';
 // Removed unused imports
-import { UPLOAD_CONFIG } from '@/utils/uploadConfig';
+import { uploadBufferToBlob } from '../../../lib/blob';
 import { verifyToken } from '../../../middleware/auth';
 import { withUploadRateLimit } from '../../../utils/rateLimiter';
 
@@ -187,7 +188,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponseServerIO) => {
 // دالة لمعالجة النموذج والملفات
 async function parseForm(req: NextApiRequest): Promise<{ fields: Fields; files: Files; }> {
   return new Promise((resolve, reject) => {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'messages', 'temp');
+    const uploadDir = path.join(os.tmpdir(), 'sooq-mazad', 'messages', 'temp');
 
     // إنشاء مجلد الرفع المؤقت إذا لم يكن موجوداً
     if (!fs.existsSync(uploadDir)) {
@@ -287,33 +288,21 @@ async function processImageFile(
   const extension = path.extname(file.originalFilename || '');
   const fileName = `message_${conversationId}_${userId}_${timestamp}${extension}`;
 
-  // إنشاء مجلد المحادثة ضمن المسار العام ليُخدم عبر /uploads/
-  const messagesRoot = path.join(process.cwd(), UPLOAD_CONFIG.PATHS.MESSAGES);
-  const conversationDir = path.join(messagesRoot, conversationId);
-  if (!fs.existsSync(conversationDir)) {
-    fs.mkdirSync(conversationDir, { recursive: true });
-  }
+  // رفع الصورة إلى Vercel Blob
+  const buffer = await fs.promises.readFile(file.filepath);
+  const contentType = file.mimetype || 'application/octet-stream';
+  const uploaded = await uploadBufferToBlob({
+    buffer,
+    filename: fileName,
+    contentType,
+    folder: `uploads/messages/${conversationId}`,
+  });
 
-  // المسار النهائي للملف
-  const finalPath = path.join(conversationDir, fileName);
+  // حذف الملف المؤقت
+  await fs.promises.unlink(file.filepath).catch(() => { });
 
-  // نقل الملف من المجلد المؤقت إلى المجلد النهائي
-  try {
-    fs.renameSync(file.filepath, finalPath);
-  } catch (error) {
-    console.error('خطأ في نقل الملف:', error);
-    // محاولة نسخ الملف إذا فشل النقل
-    try {
-      fs.copyFileSync(file.filepath, finalPath);
-      fs.unlinkSync(file.filepath);
-    } catch (copyError) {
-      console.error('خطأ في نسخ الملف:', copyError);
-      throw new Error('فشل في حفظ الملف');
-    }
-  }
-
-  // إنشاء URL للملف (يتوافق مع Nginx alias و Next dev)
-  const fileUrl = `/uploads/messages/${conversationId}/${fileName}`;
+  // إنشاء URL للملف
+  const fileUrl = uploaded.url;
 
   // تحديد نوع الصورة
   const imageType = file.mimetype?.split('/')[1] || 'unknown';
@@ -325,7 +314,7 @@ async function processImageFile(
     fileSize: file.size,
     uploadId,
     imageType,
-    filePath: finalPath,
+    filePath: uploaded.pathname,
     conversationId,
     uploadedBy: userId,
     uploadedAt: new Date().toISOString(),

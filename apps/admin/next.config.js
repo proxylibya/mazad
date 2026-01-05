@@ -1,10 +1,18 @@
 const path = require('path');
 
+const OUTPUT_TRACE_ROOT = path.join(__dirname, '../../');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
   swcMinify: true,
   poweredByHeader: false,
+  outputFileTracing: true,
+
+  experimental: {
+    // Monorepo: اجعل tracing root هو جذر المستودع لتجنّب فقدان ملفات runtime عند النشر على Vercel
+    outputFileTracingRoot: OUTPUT_TRACE_ROOT,
+  },
 
   typescript: {
     ignoreBuildErrors: true,
@@ -23,6 +31,7 @@ const nextConfig = {
 
   images: {
     unoptimized: true, // تعطيل تحسين الصور لأنها من خادم آخر
+    remotePatterns: [{ protocol: 'https', hostname: '*.public.blob.vercel-storage.com' }],
   },
 
   webpack: (config) => {
@@ -45,6 +54,14 @@ const nextConfig = {
       {
         source: '/',
         destination: '/admin',
+      },
+      {
+        source: '/api/admin/:path*',
+        destination: '/api/admin/:path*',
+      },
+      {
+        source: '/api/:path*',
+        destination: `${webAppUrl}/api/:path*`,
       },
       // توجيه طلبات الصور إلى تطبيق الـ web (port 3021)
       {

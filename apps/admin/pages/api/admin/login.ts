@@ -9,25 +9,12 @@
  * - رسائل خطأ واضحة بالعربية
  */
 
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { serialize } from 'cookie';
 import jwt from 'jsonwebtoken';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-// Prisma client singleton with error handling
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined; };
-let prisma: PrismaClient;
-
-try {
-    prisma = globalForPrisma.prisma ?? new PrismaClient({
-        log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-    });
-    if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
-} catch (err) {
-    console.error('[Admin Login] Failed to initialize Prisma:', err);
-    prisma = new PrismaClient();
-}
+import { prisma } from '@/lib/prisma';
 
 // Configuration
 const JWT_SECRET = process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET || 'sooq-mazad-admin-secret-key-min-32-chars!';

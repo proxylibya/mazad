@@ -4,11 +4,9 @@
  * Version: 3.0 - Production Ready
  */
 
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { CrudService, ApiResponse } from '../api/unified-api-system';
-
-const prisma = new PrismaClient();
+import { prisma, dbHelpers } from '../prisma';
 
 // ==========================================
 // TYPES
@@ -105,16 +103,8 @@ export class UserService extends CrudService {
         },
       });
 
-      // Create wallet
-      await prisma.wallets.create({
-        data: {
-          userId: user.id,
-          localBalance: 0,
-          globalBalance: 0,
-          cryptoBalance: 0,
-          isActive: true,
-        },
-      });
+      // Create wallet using the unified wallet helper
+      await dbHelpers.createUserWallet(user.id);
 
       // Log activity
       if (createdBy) {

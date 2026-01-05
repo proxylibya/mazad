@@ -9,6 +9,7 @@ interface SimpleCircularAuctionTimerProps {
   startingBid?: string | number;
   reservePrice?: string | number | undefined;
   auctionStatus?: 'upcoming' | 'live' | 'ended' | 'sold';
+  size?: 'compact' | 'medium' | 'large' | string;
   externalTick?: number;
 }
 

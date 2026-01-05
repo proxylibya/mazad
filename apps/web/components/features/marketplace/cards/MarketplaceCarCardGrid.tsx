@@ -179,7 +179,7 @@ const MarketplaceCarCardGrid: React.FC<MarketplaceCarCardGridProps> = ({ car }) 
             src={carImages[currentImageIndex] || '/images/cars/default-car.svg'}
             alt={car.title}
             className="h-full w-full object-cover"
-            loading="eager"
+            loading="lazy"
             onError={(e) => {
               // في حالة فشل تحميل الصورة، استخدم الصورة الافتراضية
               const target = e.target as HTMLImageElement;
@@ -351,4 +351,7 @@ const MarketplaceCarCardGrid: React.FC<MarketplaceCarCardGridProps> = ({ car }) 
   );
 };
 
-export default MarketplaceCarCardGrid;
+export default React.memo(
+  MarketplaceCarCardGrid,
+  (prevProps, nextProps) => prevProps.car.id === nextProps.car.id,
+);

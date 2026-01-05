@@ -14,8 +14,8 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({
   children,
   title,
   subtitle,
-  pageTitle = 'موقع مزاد السيارات',
-  description = 'منصة مزاد السيارات الرائدة في ليبيا',
+  pageTitle = 'سوق المزاد',
+  description = 'منصة المزادات الأولى في ليبيا',
 }) => {
   return (
     <>

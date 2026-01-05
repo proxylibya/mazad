@@ -5,6 +5,8 @@
  * يوفر مكونات وأدوات موحدة لجميع صفحات لوحة التحكم
  */
 
+import type React from 'react';
+
 // ================== TYPES ==================
 
 export type EntityStatus =
@@ -356,8 +358,17 @@ export interface TableColumn<T = unknown> {
     sortable?: boolean;
     width?: string;
     align?: 'left' | 'center' | 'right';
+    truncate?: boolean;
+    maxLength?: number;
     render?: (value: unknown, row: T) => React.ReactNode;
     imageConfig?: ImageConfig;
+}
+
+export const DEFAULT_TABLE_TEXT_MAX_LENGTH = 25;
+
+export function truncateText(text: unknown, maxLength: number = DEFAULT_TABLE_TEXT_MAX_LENGTH): string {
+    const normalized = String(text ?? '');
+    return normalized.length > maxLength ? `${normalized.slice(0, maxLength)}...` : normalized;
 }
 
 export interface TableConfig<T = unknown> {

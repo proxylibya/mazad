@@ -112,10 +112,10 @@ export const selectCarDetails = {
 export const selectAuctionBasic = {
   id: true,
   title: true,
-  startingPrice: true,
+  startPrice: true,
   currentPrice: true,
-  startTime: true,
-  endTime: true,
+  startDate: true,
+  endDate: true,
   status: true,
   featured: true,
   views: true,
@@ -125,10 +125,10 @@ export const selectAuctionBasic = {
 
 export const selectAuctionPreview = {
   ...selectAuctionBasic,
-  car: {
+  cars: {
     select: selectCarBasic,
   },
-  seller: {
+  users: {
     select: {
       id: true,
       name: true,
@@ -141,11 +141,10 @@ export const selectAuctionPreview = {
 export const selectAuctionDetails = {
   ...selectAuctionBasic,
   description: true,
-  highestBidderId: true,
-  car: {
+  cars: {
     select: selectCarDetails,
   },
-  seller: {
+  users: {
     select: selectUserBasic,
   },
   bids: {
@@ -153,7 +152,7 @@ export const selectAuctionDetails = {
       id: true,
       amount: true,
       createdAt: true,
-      bidder: {
+      users: {
         select: {
           id: true,
           name: true,

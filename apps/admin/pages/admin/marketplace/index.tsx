@@ -3,7 +3,6 @@
  * Marketplace Management - Updated with Unified System
  */
 import {
-  ExclamationTriangleIcon,
   EyeIcon,
   PencilSquareIcon,
   PlusIcon,
@@ -15,6 +14,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '../../../components/AdminLayout';
+import ConfirmDialog from '../../../components/ui/ConfirmDialog';
 import {
   CommonFilters,
   SimpleToast,
@@ -221,7 +221,7 @@ export default function MarketplacePage() {
       header: 'الإعلان',
       accessor: 'title',
       type: 'custom',
-      render: (_, row) => (
+      render: (value, row) => (
         <div className="flex items-center gap-3">
           <UnifiedImage
             src={row.images?.[0] || null}
@@ -231,7 +231,9 @@ export default function MarketplacePage() {
           />
           <div>
             <div className="flex items-center gap-2">
-              <p className="font-medium text-white">{row.title}</p>
+              <p className="font-medium text-white" title={row.title}>
+                {String(value || '')}
+              </p>
               {row.featured && <StarIconSolid className="h-4 w-4 text-yellow-400" />}
             </div>
             <p className="text-xs text-slate-400">{row.category}</p>
@@ -420,47 +422,26 @@ export default function MarketplacePage() {
         sortable={true}
       />
 
-      {/* Delete Confirmation Modal */}
-      {deleteModal.open && deleteModal.listing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="mx-4 w-full max-w-md rounded-xl border border-slate-700 bg-slate-800 p-6 shadow-2xl">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="rounded-full bg-red-500/20 p-3">
-                <ExclamationTriangleIcon className="h-6 w-6 text-red-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-white">تأكيد الحذف</h3>
+      <ConfirmDialog
+        open={deleteModal.open && !!deleteModal.listing}
+        title="تأكيد الحذف"
+        message={
+          deleteModal.listing && (
+            <div className="space-y-3">
+              <p>هل أنت متأكد من حذف هذا الإعلان؟</p>
+              <p className="rounded-lg bg-slate-700/50 p-3 text-sm text-white">
+                {deleteModal.listing.title}
+              </p>
             </div>
-
-            <p className="mb-2 text-slate-300">هل أنت متأكد من حذف هذا الإعلان؟</p>
-            <p className="mb-6 rounded-lg bg-slate-700/50 p-3 text-sm text-white">
-              {deleteModal.listing.title}
-            </p>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteModal({ open: false, listing: null })}
-                className="flex-1 rounded-lg border border-slate-600 bg-slate-700 px-4 py-2.5 text-white transition-colors hover:bg-slate-600"
-              >
-                إلغاء
-              </button>
-              <button
-                onClick={confirmDelete}
-                disabled={actionLoading === deleteModal.listing.id}
-                className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-white transition-colors hover:bg-red-700 disabled:opacity-50"
-              >
-                {actionLoading === deleteModal.listing.id ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-                    جاري الحذف...
-                  </span>
-                ) : (
-                  'تأكيد الحذف'
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          )
+        }
+        variant="danger"
+        confirmLabel="تأكيد الحذف"
+        cancelLabel="إلغاء"
+        loading={!!deleteModal.listing && actionLoading === deleteModal.listing.id}
+        onCancel={() => setDeleteModal({ open: false, listing: null })}
+        onConfirm={confirmDelete}
+      />
     </AdminLayout>
   );
 }

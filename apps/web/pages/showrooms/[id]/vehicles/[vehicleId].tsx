@@ -1,9 +1,3 @@
-import Head from 'next/head';
-import { useRouter } from 'next/router';
-import React, { useEffect, useState } from 'react';
-import { UnifiedNavigationArrows } from '../../../../components/ui/NavigationArrows';
-import SafetyTips from '../../../../components/SafetyTips';
-import ArrowTopRightOnSquareIcon from '@heroicons/react/24/outline/ArrowTopRightOnSquareIcon';
 import BuildingOfficeIcon from '@heroicons/react/24/outline/BuildingOfficeIcon';
 import BuildingStorefrontIcon from '@heroicons/react/24/outline/BuildingStorefrontIcon';
 import CalendarIcon from '@heroicons/react/24/outline/CalendarIcon';
@@ -13,38 +7,39 @@ import CheckCircleIcon from '@heroicons/react/24/outline/CheckCircleIcon';
 import ClipboardDocumentIcon from '@heroicons/react/24/outline/ClipboardDocumentIcon';
 import ClockIcon from '@heroicons/react/24/outline/ClockIcon';
 import CogIcon from '@heroicons/react/24/outline/CogIcon';
-import DevicePhoneMobileIcon from '@heroicons/react/24/outline/DevicePhoneMobileIcon';
+import CreditCardIcon from '@heroicons/react/24/outline/CreditCardIcon';
+import DocumentCheckIcon from '@heroicons/react/24/outline/DocumentCheckIcon';
 import DocumentTextIcon from '@heroicons/react/24/outline/DocumentTextIcon';
 import ExclamationTriangleIcon from '@heroicons/react/24/outline/ExclamationTriangleIcon';
 import EyeIcon from '@heroicons/react/24/outline/EyeIcon';
 import FireIcon from '@heroicons/react/24/outline/FireIcon';
+import GlobeAltIcon from '@heroicons/react/24/outline/GlobeAltIcon';
 import HeartIcon from '@heroicons/react/24/outline/HeartIcon';
 import MapIcon from '@heroicons/react/24/outline/MapIcon';
 import MapPinIcon from '@heroicons/react/24/outline/MapPinIcon';
 import PaintBrushIcon from '@heroicons/react/24/outline/PaintBrushIcon';
 import PhoneIcon from '@heroicons/react/24/outline/PhoneIcon';
 import ShareIcon from '@heroicons/react/24/outline/ShareIcon';
+import ShieldCheckIcon from '@heroicons/react/24/outline/ShieldCheckIcon';
 import SparklesIcon from '@heroicons/react/24/outline/SparklesIcon';
 import StarIcon from '@heroicons/react/24/outline/StarIcon';
 import TruckIcon from '@heroicons/react/24/outline/TruckIcon';
 import UserGroupIcon from '@heroicons/react/24/outline/UserGroupIcon';
-import UserIcon from '@heroicons/react/24/outline/UserIcon';
-import GlobeAltIcon from '@heroicons/react/24/outline/GlobeAltIcon';
-import DocumentCheckIcon from '@heroicons/react/24/outline/DocumentCheckIcon';
-import ShieldCheckIcon from '@heroicons/react/24/outline/ShieldCheckIcon';
-import CreditCardIcon from '@heroicons/react/24/outline/CreditCardIcon';
 import XMarkIcon from '@heroicons/react/24/outline/XMarkIcon';
-import InformationCircleIcon from '@heroicons/react/24/outline/InformationCircleIcon';
 import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
+import Head from 'next/head';
 import Link from 'next/link';
-import { OpensooqNavbar } from '../../../../components/common';
-import { useFavorites } from '../../../../hooks/useFavorites';
-import useAuth from '../../../../hooks/useAuth';
+import { useRouter } from 'next/router';
+import React, { useEffect, useState } from 'react';
 import CarFeaturesDisplay from '../../../../components/CarFeaturesDisplay';
-import CategorizedFeaturesDisplay from '../../../../components/CategorizedFeaturesDisplay';
-import SellerInfoSimple from '../../../../components/SellerInfoSimple';
-import LoginModal from '../../../../components/auth/LoginModal';
 import CarLocationSection from '../../../../components/CarLocationSection';
+import CategorizedFeaturesDisplay from '../../../../components/CategorizedFeaturesDisplay';
+import SafetyTips from '../../../../components/SafetyTips';
+import LoginModal from '../../../../components/auth/LoginModal';
+import { OpensooqNavbar } from '../../../../components/common';
+import { UnifiedNavigationArrows } from '../../../../components/ui/NavigationArrows';
+import useAuth from '../../../../hooks/useAuth';
+import { useFavorites } from '../../../../hooks/useFavorites';
 
 // واجهة بيانات السيارة
 interface Car {
@@ -1051,7 +1046,7 @@ export default function ShowroomVehicleDetails() {
           <LoginModal
             isOpen={showAuthModal}
             onClose={() => setShowAuthModal(false)}
-            onSuccess={handleAuthSuccess}
+            onLoginSuccess={handleAuthSuccess}
           />
         )}
       </div>

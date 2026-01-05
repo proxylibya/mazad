@@ -1,8 +1,8 @@
-import React, { useCallback } from 'react';
 import { InfiniteScrollGrid } from '@/components/virtualized/VirtualizedGrid';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
-import Link from 'next/link';
 import Image from 'next/image';
+import Link from 'next/link';
+import { useCallback } from 'react';
 
 interface Car {
   id: string;
@@ -120,7 +120,7 @@ export function VirtualizedCarsList({
             </div>
 
             <div className="mb-3 flex items-center gap-4 text-sm text-gray-500">
-              {car.mileage && (
+              {car.mileage !== undefined && car.mileage !== null && (
                 <div className="flex items-center gap-1">
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path

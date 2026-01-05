@@ -3,8 +3,8 @@
  * يستخدم next/dynamic لتأخير تحميل مكتبة Leaflet الثقيلة
  */
 
-import dynamic from 'next/dynamic';
 import MapPinIcon from '@heroicons/react/24/outline/MapPinIcon';
+import dynamic from 'next/dynamic';
 
 // Loading component للخرائط
 const MapLoadingFallback = ({ height = '200px' }: { height?: string }) => (
@@ -25,25 +25,25 @@ const MapLoadingFallback = ({ height = '200px' }: { height?: string }) => (
 );
 
 // Dynamic import لـ SafeLeafletMap
-export const DynamicSafeLeafletMap = dynamic(() => import('../maps/SafeLeafletMap'), {
+export const DynamicSafeLeafletMap = dynamic<any>(() => import('../maps/SafeLeafletMap'), {
   loading: () => <MapLoadingFallback />,
   ssr: false, // الخرائط لا تحتاج SSR
 });
 
 // Dynamic import لـ InteractiveMap
-export const DynamicInteractiveMap = dynamic(() => import('../common/maps/InteractiveMap'), {
+export const DynamicInteractiveMap = dynamic<any>(() => import('../common/maps/InteractiveMap'), {
   loading: () => <MapLoadingFallback height="400px" />,
   ssr: false,
 });
 
 // Dynamic import لـ MarketplaceMapView
-export const DynamicMarketplaceMapView = dynamic(() => import('../maps/MarketplaceMapView'), {
+export const DynamicMarketplaceMapView = dynamic<any>(() => import('../maps/MarketplaceMapView'), {
   loading: () => <MapLoadingFallback height="500px" />,
   ssr: false,
 });
 
 // Dynamic import لـ SimpleMap
-export const DynamicSimpleMap = dynamic(() => import('../common/maps/SimpleMap'), {
+export const DynamicSimpleMap = dynamic<any>(() => import('../common/maps/SimpleMap'), {
   loading: () => <MapLoadingFallback height="300px" />,
   ssr: false,
 });

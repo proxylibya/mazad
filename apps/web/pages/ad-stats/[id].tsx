@@ -6,6 +6,7 @@ import ChartBarIcon from '@heroicons/react/24/outline/ChartBarIcon';
 import ChatBubbleLeftIcon from '@heroicons/react/24/outline/ChatBubbleLeftIcon';
 import ComputerDesktopIcon from '@heroicons/react/24/outline/ComputerDesktopIcon';
 import DevicePhoneMobileIcon from '@heroicons/react/24/outline/DevicePhoneMobileIcon';
+import ExclamationTriangleIcon from '@heroicons/react/24/outline/ExclamationTriangleIcon';
 import EyeIcon from '@heroicons/react/24/outline/EyeIcon';
 import GlobeAltIcon from '@heroicons/react/24/outline/GlobeAltIcon';
 import HeartIcon from '@heroicons/react/24/outline/HeartIcon';

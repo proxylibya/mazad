@@ -6,27 +6,16 @@
  * جميع الملفات الأخرى يجب أن تستورد من هنا
  */
 
-import { Prisma, PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+
+import prismaClient from '../prisma';
 
 // ============================================
 // Singleton Pattern
 // ============================================
 
-const globalForPrisma = globalThis as unknown as {
-    prisma: PrismaClient | undefined;
-};
-
-// إنشاء PrismaClient واحد فقط
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({
-    log: process.env.NODE_ENV === 'development'
-        ? ['error', 'warn']
-        : ['error'],
-    errorFormat: 'pretty',
-});
-
-if (process.env.NODE_ENV !== 'production') {
-    globalForPrisma.prisma = prisma;
-}
+export const prisma = prismaClient;
 
 // ============================================
 // Database Helpers
@@ -60,6 +49,7 @@ export const db = {
      * قطع الاتصال
      */
     async disconnect(): Promise<void> {
+        if (process.env.PRISMA_MANUAL_CONNECTION !== 'true') return;
         await prisma.$disconnect();
     },
 
@@ -67,6 +57,7 @@ export const db = {
      * إعادة الاتصال
      */
     async reconnect(): Promise<void> {
+        if (process.env.PRISMA_MANUAL_CONNECTION !== 'true') return;
         await prisma.$disconnect();
         await prisma.$connect();
     },

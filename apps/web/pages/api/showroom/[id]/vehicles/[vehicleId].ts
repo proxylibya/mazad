@@ -1,5 +1,5 @@
-import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
+import { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         showroomId: showroomId as string,
       },
       include: {
-        seller: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -26,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             verified: true,
           },
         },
-        carImages: {
+        car_images: {
           select: {
             id: true,
             fileName: true,
@@ -60,7 +60,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       transmission: car.transmission,
       location: car.location,
       description: car.description,
-      images: car.carImages?.map((img) => img.fileUrl) || ['/images/cars/default-car.svg'],
+      images: car.car_images?.map((img) => img.fileUrl) || ['/images/cars/default-car.svg'],
       features: car.features ? car.features.split(',').filter((f) => f.trim()) : [],
       extractedFeatures: car.extractedFeatures
         ? car.extractedFeatures.split(',').filter((f) => f.trim())
@@ -75,8 +75,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ? car.technicalFeatures.split(',').filter((f) => f.trim())
         : [],
       showroomId: car.showroomId,
-      user: car.seller,
-      seller: car.seller,
+      user: car.users,
+      seller: car.users,
       contactPhone: car.contactPhone,
       color: car.color,
       interiorColor: car.interiorColor,
@@ -111,7 +111,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: error.message,
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }

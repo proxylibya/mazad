@@ -3,13 +3,11 @@
  * يستخدم من قبل صفحات الموقع لمعرفة العناصر المخفية والظاهرة
  */
 
-import { PrismaClient } from '@prisma/client';
 import { NextApiRequest, NextApiResponse } from 'next';
 
+import prisma from '../../lib/prisma';
+
 // Prisma client singleton
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined; };
-const prisma = globalForPrisma.prisma ?? new PrismaClient();
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 // البيانات الافتراضية للأقسام
 const DEFAULT_SECTIONS: Record<string, { status: string; showInNavbar: boolean; }> = {

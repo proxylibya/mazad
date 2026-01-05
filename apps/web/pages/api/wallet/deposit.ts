@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { generateUniqueId } from '@/lib/wallet/wallet-utils';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { RateLimitConfigs, withApiRateLimit } from '../../../utils/rateLimiter';
 
@@ -75,18 +76,37 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     });
 
     if (!wallet) {
+      const now = new Date();
       wallet = await prisma.wallets.create({
         data: {
+          id: generateUniqueId('wallet'),
           userId,
           local_wallets: {
-            create: { balance: 0, currency: 'LYD' },
+            create: {
+              id: generateUniqueId('local'),
+              balance: 0,
+              currency: 'LYD',
+              updatedAt: now,
+            },
           },
           global_wallets: {
-            create: { balance: 0, currency: 'USD' },
+            create: {
+              id: generateUniqueId('global'),
+              balance: 0,
+              currency: 'USD',
+              updatedAt: now,
+            },
           },
           crypto_wallets: {
-            create: { balance: 0, currency: 'USDT-TRC20', network: 'TRC20' },
+            create: {
+              id: generateUniqueId('crypto'),
+              balance: 0,
+              currency: 'USDT-TRC20',
+              network: 'TRC20',
+              updatedAt: now,
+            },
           },
+          updatedAt: now,
         },
         include: {
           local_wallets: true,
@@ -131,8 +151,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     });
 
     // إنشاء معاملة
+    const transactionId = generateUniqueId('txn');
     const transaction = await prisma.transactions.create({
       data: {
+        id: transactionId,
         walletId: wallet.id,
         amount: netAmount,
         type: 'DEPOSIT',
@@ -146,6 +168,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         originalCurrency: currency,
         paymentMethodId,
         metadata: metadata || {},
+        updatedAt: new Date(),
       },
     });
 

@@ -10,13 +10,11 @@
  * - تسجيل معلومات الطلب (IP, User Agent)
  */
 
-import { PrismaClient } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
+import prisma from '../../lib/prisma';
+
 // Prisma client singleton
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined; };
-const prisma = globalForPrisma.prisma ?? new PrismaClient();
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 // أنواع الخدمات الإعلانية المتاحة
 const VALID_SERVICE_TYPES = [

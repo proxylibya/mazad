@@ -15,6 +15,63 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout';
 
+const DASHBOARD_ICON_STYLES: Record<
+  string,
+  {
+    bg: string;
+    text: string;
+    ring: string;
+    hoverBg: string;
+  }
+> = {
+  users: {
+    bg: 'bg-cyan-500/10',
+    text: 'text-cyan-400',
+    ring: 'ring-cyan-500/25',
+    hoverBg: 'group-hover:bg-cyan-500/15',
+  },
+  auctions: {
+    bg: 'bg-emerald-500/10',
+    text: 'text-emerald-400',
+    ring: 'ring-emerald-500/25',
+    hoverBg: 'group-hover:bg-emerald-500/15',
+  },
+  transport: {
+    bg: 'bg-amber-500/10',
+    text: 'text-amber-400',
+    ring: 'ring-amber-500/25',
+    hoverBg: 'group-hover:bg-amber-500/15',
+  },
+  showrooms: {
+    bg: 'bg-fuchsia-500/10',
+    text: 'text-fuchsia-400',
+    ring: 'ring-fuchsia-500/25',
+    hoverBg: 'group-hover:bg-fuchsia-500/15',
+  },
+  wallets: {
+    bg: 'bg-pink-500/10',
+    text: 'text-pink-400',
+    ring: 'ring-pink-500/25',
+    hoverBg: 'group-hover:bg-pink-500/15',
+  },
+  admins: {
+    bg: 'bg-indigo-500/10',
+    text: 'text-indigo-400',
+    ring: 'ring-indigo-500/25',
+    hoverBg: 'group-hover:bg-indigo-500/15',
+  },
+  default: {
+    bg: 'bg-blue-500/10',
+    text: 'text-blue-400',
+    ring: 'ring-blue-500/25',
+    hoverBg: 'group-hover:bg-blue-500/15',
+  },
+};
+
+const getDashboardIconStyle = (id: string) => {
+  return DASHBOARD_ICON_STYLES[id] || DASHBOARD_ICON_STYLES.default;
+};
+
 interface DashboardStats {
   totalUsers: number;
   totalAuctions: number;
@@ -60,6 +117,7 @@ export default function AdminDashboard() {
 
   const statCards = [
     {
+      id: 'users',
       name: 'المستخدمين',
       href: '/admin/users',
       icon: UsersIcon,
@@ -68,6 +126,7 @@ export default function AdminDashboard() {
       bgLight: 'bg-blue-500/10',
     },
     {
+      id: 'auctions',
       name: 'المزادات',
       href: '/admin/auctions',
       icon: CurrencyDollarIcon,
@@ -76,6 +135,7 @@ export default function AdminDashboard() {
       bgLight: 'bg-emerald-500/10',
     },
     {
+      id: 'transport',
       name: 'خدمات النقل',
       href: '/admin/transport',
       icon: TruckIcon,
@@ -84,6 +144,7 @@ export default function AdminDashboard() {
       bgLight: 'bg-amber-500/10',
     },
     {
+      id: 'showrooms',
       name: 'المعارض',
       href: '/admin/showrooms',
       icon: BuildingStorefrontIcon,
@@ -92,6 +153,7 @@ export default function AdminDashboard() {
       bgLight: 'bg-purple-500/10',
     },
     {
+      id: 'wallets',
       name: 'المحافظ',
       href: '/admin/wallets',
       icon: WalletIcon,
@@ -100,6 +162,7 @@ export default function AdminDashboard() {
       bgLight: 'bg-pink-500/10',
     },
     {
+      id: 'admins',
       name: 'المديرين',
       href: '/admin/admins',
       icon: ShieldCheckIcon,
@@ -134,11 +197,16 @@ export default function AdminDashboard() {
                     {(item.count ?? 0).toLocaleString('ar-LY')}
                   </p>
                 </div>
-                <div
-                  className={`bg-gradient-to-br ${item.color} rounded-xl p-4 transition-transform group-hover:scale-110`}
-                >
-                  <item.icon className="h-6 w-6 text-white" />
-                </div>
+                {(() => {
+                  const style = getDashboardIconStyle(item.id);
+                  return (
+                    <div
+                      className={`flex h-14 w-14 items-center justify-center rounded-xl ${style.bg} ${style.hoverBg} ring-1 ${style.ring} transition-all duration-200 group-hover:scale-110`}
+                    >
+                      <item.icon className={`h-7 w-7 ${style.text}`} />
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </Link>

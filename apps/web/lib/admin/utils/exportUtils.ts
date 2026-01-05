@@ -1,7 +1,6 @@
-import * as XLSX from 'xlsx';
+import { font } from '@/lib/admin/fonts/amiri-regular';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { font } from '@/lib/admin/fonts/amiri-regular';
 
 // Extend jsPDF types
 declare module 'jspdf' {
@@ -35,59 +34,65 @@ export function exportToExcel(
   options: ExportOptions
 ) {
   try {
-    // إنشاء workbook جديد
-    const wb = XLSX.utils.book_new();
-
-    // تحضير البيانات
+    const BOM = '\uFEFF';
     const headers = columns.map(col => col.label);
-    const rows = data.map(item => 
+
+    const rows = data.map(item =>
       columns.map(col => {
         const value = item[col.key];
         if (value === null || value === undefined) return '';
         if (typeof value === 'object') return JSON.stringify(value);
-        return value;
+        return String(value);
       })
     );
 
-    // إضافة المعلومات الأساسية
-    const sheetData = [];
-    
+    const lines: string[] = [];
+
     if (options.title) {
-      sheetData.push([options.title]);
-      sheetData.push([]); // سطر فارغ
+      lines.push(options.title);
+      lines.push('');
     }
-    
+
     if (options.subtitle) {
-      sheetData.push([options.subtitle]);
-      sheetData.push([]); // سطر فارغ
+      lines.push(options.subtitle);
+      lines.push('');
     }
-    
+
     if (options.date) {
-      sheetData.push([`التاريخ: ${new Date().toLocaleDateString('ar-LY')}`]);
-      sheetData.push([]); // سطر فارغ
+      lines.push(`التاريخ: ${new Date().toLocaleDateString('ar-LY')}`);
+      lines.push('');
     }
 
-    // إضافة الهيدر والبيانات
-    sheetData.push(headers);
-    sheetData.push(...rows);
+    const escapeCell = (value: string) => {
+      if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+        const escaped = value.replace(/"/g, '""');
+        return `"${escaped}"`;
+      }
+      return value;
+    };
 
-    // إضافة معلومات الملخص
-    sheetData.push([]); // سطر فارغ
-    sheetData.push([`إجمالي السجلات: ${data.length}`]);
-    sheetData.push([`تاريخ التصدير: ${new Date().toLocaleString('ar-LY')}`]);
+    lines.push(headers.map(h => escapeCell(h)).join(','));
+    rows.forEach(r => {
+      lines.push(r.map(c => escapeCell(c)).join(','));
+    });
 
-    // إنشاء ورقة العمل
-    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+    lines.push('');
+    lines.push(`إجمالي السجلات: ${data.length}`);
+    lines.push(`تاريخ التصدير: ${new Date().toLocaleString('ar-LY')}`);
 
-    // تحديد عرض الأعمدة
-    const colWidths = columns.map(col => ({ wch: col.width || 15 }));
-    ws['!cols'] = colWidths;
+    const content = BOM + lines.join('\n');
 
-    // إضافة الورقة للملف
-    XLSX.utils.book_append_sheet(wb, ws, options.sheetName || 'البيانات');
+    const blob = new Blob([content], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
 
-    // تصدير الملف
-    XLSX.writeFile(wb, `${options.filename}.xlsx`);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${options.filename}.xlsx`);
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
     return true;
   } catch (error) {
@@ -233,19 +238,19 @@ export function exportToCSV(
   try {
     // إعداد BOM لدعم UTF-8
     const BOM = '\uFEFF';
-    
+
     // تحضير الهيدر
     const headers = columns.map(col => col.label).join(',');
-    
+
     // تحضير الصفوف
     const rows = data.map(item => {
       return columns.map(col => {
         const value = item[col.key];
         if (value === null || value === undefined) return '""';
-        
+
         // معالجة القيم الخاصة
         let processed = String(value);
-        
+
         // إذا كانت القيمة تحتوي على فاصلة أو اقتباس أو سطر جديد
         if (processed.includes(',') || processed.includes('"') || processed.includes('\n')) {
           // استبدال الاقتباسات المزدوجة
@@ -253,45 +258,45 @@ export function exportToCSV(
           // وضع القيمة بين اقتباسات
           processed = `"${processed}"`;
         }
-        
+
         return processed;
       }).join(',');
     }).join('\n');
-    
+
     // دمج كل شيء
     let csvContent = BOM;
-    
+
     if (options.title) {
       csvContent += `"${options.title}"\n\n`;
     }
-    
+
     if (options.subtitle) {
       csvContent += `"${options.subtitle}"\n\n`;
     }
-    
+
     if (options.date) {
       csvContent += `"التاريخ: ${new Date().toLocaleDateString('ar-LY')}"\n\n`;
     }
-    
+
     csvContent += headers + '\n' + rows;
-    
+
     // إضافة معلومات الملخص
     csvContent += `\n\n"إجمالي السجلات: ${data.length}"`;
     csvContent += `\n"تاريخ التصدير: ${new Date().toLocaleString('ar-LY')}"`;
-    
+
     // إنشاء Blob وتحميله
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    
+
     link.setAttribute('href', url);
     link.setAttribute('download', `${options.filename}.csv`);
     link.style.visibility = 'hidden';
-    
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     return true;
   } catch (error) {
     console.error('CSV export error:', error);

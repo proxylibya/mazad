@@ -46,7 +46,7 @@ if (typeof window !== 'undefined') {
       } catch (fetchError) {
         // التقاط أخطاء SILENT_ABORT من إضافات المتصفح (مثل frame_ant.js)
         if (isSilentAbortError(fetchError)) {
-          return new Response(null, { status: 0 });
+          return new Response(null, { status: 499 });
         }
         throw fetchError;
       }
@@ -96,7 +96,7 @@ if (typeof window !== 'undefined') {
             String((error as { message?: unknown; }).message).includes('SILENT_ABORT')));
       if (isAbortLike) {
         // تجاهل صامت تماماً - لا نرمي الخطأ
-        return new Response(null, { status: 0 });
+        return new Response(null, { status: 499 });
       }
 
       // تحسين رسالة الخطأ
@@ -136,4 +136,3 @@ if (typeof window !== 'undefined') {
 }
 
 export { };
-

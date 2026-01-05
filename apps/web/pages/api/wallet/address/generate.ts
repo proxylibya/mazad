@@ -1,5 +1,6 @@
 import CryptoSecurity from '@/lib/crypto-security';
 import { prisma } from '@/lib/prisma';
+import { generateUniqueId } from '@/lib/wallet/wallet-utils';
 import {
   generateBep20Address,
   generateSolanaAddress,
@@ -66,33 +67,47 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     if (!wallet) {
-      // إنشاء محفظة جديدة مع جميع الأنواع
+      const now = new Date();
       const localAttributes = generateWalletAttributes('LOCAL', userId);
       const globalAttributes = generateWalletAttributes('GLOBAL', userId);
-      // تمرير الشبكة المطلوبة
       const cryptoAttributes = generateWalletAttributes('CRYPTO', userId, network);
 
       wallet = await prisma.wallets.create({
         data: {
+          id: generateUniqueId('wallet'),
           userId,
+          createdAt: now,
+          updatedAt: now,
           local_wallets: {
             create: {
+              id: localAttributes.id,
               balance: 0,
               currency: localAttributes.currency,
+              isActive: true,
+              createdAt: now,
+              updatedAt: now,
             },
           },
           global_wallets: {
             create: {
+              id: globalAttributes.id,
               balance: 0,
               currency: globalAttributes.currency,
+              isActive: true,
+              createdAt: now,
+              updatedAt: now,
             },
           },
           crypto_wallets: {
             create: {
+              id: cryptoAttributes.id,
               balance: 0,
               currency: cryptoAttributes.currency,
               address: cryptoAttributes.address,
               network: cryptoAttributes.network,
+              isActive: true,
+              createdAt: now,
+              updatedAt: now,
             },
           },
         },
@@ -113,11 +128,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const cryptoAttributes = generateWalletAttributes('CRYPTO', userId, network);
         cryptoWallet = await prisma.crypto_wallets.create({
           data: {
+            id: cryptoAttributes.id,
             walletId: wallet.id,
             balance: 0,
             currency: cryptoAttributes.currency,
             address: cryptoAttributes.address,
             network: cryptoAttributes.network,
+            isActive: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
           },
         });
       }
@@ -179,14 +198,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       });
 
-      // إنشاء سجل في النشاط
       await prisma.activity_logs.create({
         data: {
-          userId,
+          id: generateUniqueId('activity'),
           action: 'UPDATE', // Changed from CREATE since we update usually
           entityType: 'CRYPTO_WALLET_ADDRESS',
           entityId: cryptoWallet.id,
           description: `تم تحديث عنوان محفظة رقمية جديد: ${newAddress} (${network})`,
+          users: {
+            connect: {
+              id: userId,
+            },
+          },
           metadata: {
             address: newAddress,
             network: network,

@@ -184,14 +184,14 @@ export function sanitizeCarListingData(data: Partial<CarListingData>): Partial<C
   const sanitized: Partial<CarListingData> = {};
 
   // تنظيف النصوص
-  Object.keys(data).forEach((key) => {
-    const value = data[key as keyof CarListingData];
+  (Object.keys(data) as Array<keyof CarListingData>).forEach((key) => {
+    const value = data[key];
 
     if (typeof value === 'string') {
       // إزالة المسافات الزائدة
-      sanitized[key as keyof CarListingData] = value.trim() as any;
+      (sanitized as any)[key] = value.trim();
     } else {
-      sanitized[key as keyof CarListingData] = value as any;
+      (sanitized as any)[key] = value;
     }
   });
 

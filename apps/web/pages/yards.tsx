@@ -6,10 +6,10 @@
 
 import { OpensooqNavbar } from '@/components/common';
 import AdvancedFooter from '@/components/common/Footer/AdvancedFooter';
-import Globe3D from '@/components/ui/Globe3D';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { dayLabels, type Yard, type YardStats } from '@/data/yards-data';
 import {
+  ArrowLeftIcon,
   BuildingOfficeIcon,
   CalendarDaysIcon,
   CheckBadgeIcon,
@@ -18,6 +18,7 @@ import {
   MapPinIcon,
   PhoneIcon,
   StarIcon,
+  UserIcon,
 } from '@heroicons/react/24/outline';
 import { getCityNames, getMainCities } from '@sooq-mazad/utils';
 import Head from 'next/head';
@@ -251,237 +252,213 @@ export default function YardsPage() {
               )}
             </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {filteredYards.map((yard) => {
                 const hasRealImage =
                   !!yard.image &&
                   !yard.image.includes('default-yard') &&
                   !yard.image.includes('placeholder');
+
                 return (
                   <Link
                     key={yard.id}
                     href={`/yards/${yard.slug}`}
-                    className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:border-blue-400 hover:shadow-xl"
+                    className="group relative flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:border-blue-400 hover:shadow-xl hover:ring-1 hover:ring-blue-400"
                   >
-                    {/* الكرة الأرضية ثلاثية الأبعاد مع اسم الساحة */}
-                    <div className="relative h-56 overflow-hidden bg-gradient-to-br from-slate-800 to-slate-950">
-                      {/* صورة الساحة إذا وُجدت */}
+                    {/* قسم الصورة - الجزء العلوي */}
+                    <div className="relative h-44 w-full shrink-0 overflow-hidden bg-gray-100">
                       {hasRealImage ? (
                         <>
                           <Image
                             src={yard.image}
                             alt={yard.name}
                             fill
-                            className="object-cover transition-transform duration-300 group-hover:scale-105"
+                            className="object-cover transition-transform duration-500 group-hover:scale-105"
                             onError={(e) => {
                               (e.target as HTMLImageElement).style.display = 'none';
                             }}
                           />
-                          {/* طبقة تدرج للنص */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent" />
-                          {/* اسم الساحة */}
-                          <div className="absolute bottom-0 left-0 right-0 p-5">
-                            <h3 className="text-2xl font-extrabold leading-tight text-white drop-shadow-lg">
-                              {yard.name}
-                            </h3>
-                            <div className="mt-2 flex items-center gap-2 text-white/95">
-                              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500 shadow-lg">
-                                <MapPinIcon className="h-3.5 w-3.5 text-white" />
-                              </div>
-                              <span className="text-base font-medium">
-                                {yard.city}
-                                {yard.area ? ` - ${yard.area}` : ''}
-                              </span>
-                            </div>
-                          </div>
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60 transition-opacity group-hover:opacity-40" />
                         </>
                       ) : (
-                        // الكرة الأرضية الثلاثية الأبعاد مع معلومات مفيدة
-                        <Globe3D
-                          yardName={yard.name}
-                          city={`${yard.city}${yard.area ? ` - ${yard.area}` : ''}`}
-                          activeAuctions={yard.activeAuctions}
-                          rating={yard.rating}
-                          verified={yard.verified}
-                          auctionDays={yard.auctionDays}
-                        />
-                      )}
+                        <div className="relative flex h-full w-full flex-col overflow-hidden bg-slate-900">
+                          {/* الخلفية الشبكية والمؤثرات */}
+                          <div className="absolute inset-0">
+                            {/* Grid Pattern */}
+                            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
 
-                      {/* Badges */}
-                      <div className="absolute right-3 top-3 z-10 flex gap-2">
-                        {yard.featured && (
-                          <span className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 px-3 py-1.5 text-xs font-bold text-white shadow-lg">
-                            <StarIcon className="h-4 w-4 fill-current" />
-                            مميز
-                          </span>
-                        )}
-                        {yard.verified && (
-                          <span className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 px-3 py-1.5 text-xs font-bold text-white shadow-lg">
-                            <CheckBadgeIcon className="h-4 w-4" />
-                            موثق
-                          </span>
-                        )}
-                      </div>
+                            {/* Radar Scan Effect */}
+                            <div className="absolute inset-0 overflow-hidden opacity-30">
+                              <div className="absolute -left-[50%] -top-[50%] h-[200%] w-[200%] animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0_340deg,rgba(59,130,246,0.2)_360deg)]"></div>
+                            </div>
 
-                      {/* عداد المزادات النشطة - يظهر فقط إذا كانت هناك صورة */}
-                      {hasRealImage && yard.activeAuctions > 0 && (
-                        <div className="absolute left-3 top-3 z-10">
-                          <div className="flex items-center gap-2 rounded-full bg-gradient-to-r from-red-600 to-red-500 px-3 py-1.5 text-xs font-bold text-white shadow-lg backdrop-blur-sm">
-                            <span className="relative flex h-2 w-2">
-                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75"></span>
-                              <span className="relative inline-flex h-2 w-2 rounded-full bg-white"></span>
-                            </span>
-                            <span>{yard.activeAuctions} مزاد</span>
+                            {/* Ambient Glow */}
+                            <div className="absolute left-1/2 top-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-600/20 blur-3xl"></div>
+                          </div>
+
+                          {/* المحتوى الرئيسي */}
+                          <div className="relative z-10 flex h-full flex-col justify-between p-4">
+                            {/* Header */}
+                            <div className="text-center">
+                              <h3 className="truncate text-lg font-bold text-white drop-shadow-md">
+                                {yard.name}
+                              </h3>
+                              <div className="mx-auto mt-1 h-0.5 w-16 rounded-full bg-gradient-to-r from-transparent via-blue-500 to-transparent shadow-[0_0_8px_#3b82f6]"></div>
+                            </div>
+
+                            {/* Center 3D Element */}
+                            <div className="relative flex flex-1 items-center justify-center py-2">
+                              <div className="group/icon relative">
+                                <div className="absolute inset-0 animate-ping rounded-xl bg-blue-500 opacity-10 duration-1000"></div>
+                                <div className="relative flex h-14 w-14 transform items-center justify-center rounded-xl border border-blue-500/30 bg-gradient-to-br from-slate-800 to-slate-900 shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all duration-500 group-hover:-translate-y-2 group-hover:scale-110 group-hover:shadow-[0_0_30px_rgba(59,130,246,0.5)]">
+                                  <BuildingOfficeIcon className="h-7 w-7 text-blue-400 drop-shadow-[0_0_5px_rgba(96,165,250,0.8)]" />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Footer Stats (HUD Style) */}
+                            <div className="grid grid-cols-2 gap-3">
+                              {/* Auctions Count */}
+                              <div className="relative overflow-hidden rounded-lg border border-blue-500/20 bg-slate-800/60 p-1.5 text-center backdrop-blur-sm">
+                                <div className="absolute inset-0 bg-blue-500/5"></div>
+                                <p className="text-[10px] text-blue-300/80">المزادات</p>
+                                <p className="font-mono text-sm font-bold text-blue-400">
+                                  {yard.activeAuctions}
+                                </p>
+                              </div>
+
+                              {/* Bids Count (Simulated for UI) */}
+                              <div className="relative overflow-hidden rounded-lg border border-amber-500/20 bg-slate-800/60 p-1.5 text-center backdrop-blur-sm">
+                                <div className="absolute inset-0 bg-amber-500/5"></div>
+                                <p className="text-[10px] text-amber-300/80">المزايدات</p>
+                                <p className="font-mono text-sm font-bold text-amber-400">
+                                  {yard.activeAuctions > 0
+                                    ? Math.floor(yard.activeAuctions * 4.2)
+                                    : 0}
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       )}
                     </div>
 
-                    {/* Content */}
-                    <div className="p-5">
-                      {/* اسم الساحة - للبطاقات بدون صورة واضحة */}
-                      {!hasRealImage && (
-                        <h3 className="mb-3 text-lg font-bold text-gray-900">{yard.name}</h3>
-                      )}
-
-                      {/* الوصف */}
-                      {yard.description && (
-                        <p className="line-clamp-2 text-sm leading-relaxed text-gray-600">
-                          {yard.description}
-                        </p>
-                      )}
-
-                      {/* قسم مواعيد المزاد */}
-                      {(yard.auctionDays.length > 0 ||
-                        (yard.auctionTimeFrom && yard.auctionTimeTo)) && (
-                        <div className="mt-4 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
-                          <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-blue-900">
-                            <CalendarDaysIcon className="h-4 w-4" />
-                            مواعيد المزاد
-                          </h4>
-
-                          {/* أيام المزاد */}
-                          {yard.auctionDays.length > 0 && (
-                            <div className="mb-3">
-                              <span className="mb-2 block text-xs font-medium text-blue-700">
-                                أيام العمل:
+                    {/* قسم المعلومات - الجزء السفلي */}
+                    <div className="flex flex-1 flex-col justify-between bg-white p-3.5">
+                      {/* الجزء العلوي: العنوان والموقع */}
+                      <div>
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h3 className="line-clamp-1 text-base font-bold text-gray-900 transition-colors group-hover:text-blue-600">
+                              {yard.name}
+                            </h3>
+                            <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-gray-500">
+                              <MapPinIcon className="h-3 w-3 text-gray-400" />
+                              <span>
+                                {yard.city}
+                                {yard.area && `، ${yard.area}`}
                               </span>
-                              <div className="flex flex-wrap gap-1.5">
-                                {yard.auctionDays.map((day) => (
-                                  <span
-                                    key={day}
-                                    className="rounded-lg bg-white px-2.5 py-1 text-xs font-semibold text-blue-700 shadow-sm"
-                                  >
-                                    {dayLabels[day] || day}
-                                  </span>
-                                ))}
-                              </div>
                             </div>
-                          )}
+                          </div>
 
-                          {/* وقت المزاد */}
-                          {yard.auctionTimeFrom && yard.auctionTimeTo && (
-                            <div className="flex items-center gap-2 rounded-lg bg-white/80 px-3 py-2">
-                              <ClockIcon className="h-4 w-4 text-blue-600" />
-                              <div className="flex items-center gap-1">
-                                <span className="text-xs text-blue-600">من</span>
-                                <span className="font-bold text-blue-800" dir="ltr">
-                                  {(() => {
-                                    const formatTime = (time: string) => {
-                                      const [hours, minutes] = time.split(':').map(Number);
-                                      const period = hours >= 12 ? 'م' : 'ص';
-                                      const hour12 = hours % 12 || 12;
-                                      return `${hour12}:${minutes.toString().padStart(2, '0')}${period}`;
-                                    };
-                                    return formatTime(yard.auctionTimeFrom!);
-                                  })()}
-                                </span>
-                                <span className="text-xs text-blue-600">إلى</span>
-                                <span className="font-bold text-blue-800" dir="ltr">
-                                  {(() => {
-                                    const formatTime = (time: string) => {
-                                      const [hours, minutes] = time.split(':').map(Number);
-                                      const period = hours >= 12 ? 'م' : 'ص';
-                                      const hour12 = hours % 12 || 12;
-                                      return `${hour12}:${minutes.toString().padStart(2, '0')}${period}`;
-                                    };
-                                    return formatTime(yard.auctionTimeTo!);
-                                  })()}
-                                </span>
-                              </div>
+                          {/* التقييم */}
+                          {yard.rating && yard.rating > 0 && (
+                            <div className="flex items-center gap-1 rounded-md border border-amber-100 bg-amber-50 px-1.5 py-0.5">
+                              <span className="text-xs font-bold text-amber-700">
+                                {yard.rating}
+                              </span>
+                              <StarIcon className="h-3 w-3 fill-amber-400 text-amber-400" />
                             </div>
                           )}
                         </div>
-                      )}
 
-                      {/* قسم الموقع والتواصل */}
-                      <div className="mt-4 space-y-3">
-                        {/* العنوان */}
-                        {yard.address && (
-                          <div className="flex items-start gap-3 rounded-xl bg-gray-50 p-3">
-                            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gray-600">
-                              <MapPinIcon className="h-4 w-4 text-white" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <span className="mb-0.5 block text-[10px] font-medium text-gray-500">
-                                العنوان
-                              </span>
-                              <span className="line-clamp-2 text-sm font-medium text-gray-800">
-                                {yard.address}
+                        {/* شريط المعلومات السريع */}
+                        <div className="mt-3 space-y-2 border-t border-gray-100 pt-2">
+                          <div className="flex items-center justify-between rounded-md bg-gray-50 px-2.5 py-1.5">
+                            <span className="text-[10px] font-medium text-gray-500">
+                              المزادات النشطة
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <div
+                                className={`h-1.5 w-1.5 rounded-full ${yard.activeAuctions > 0 ? 'animate-pulse bg-green-500' : 'bg-gray-300'}`}
+                              ></div>
+                              <span
+                                className={`text-[10px] font-bold ${yard.activeAuctions > 0 ? 'text-green-700' : 'text-gray-500'}`}
+                              >
+                                {yard.activeAuctions} مزاد
                               </span>
                             </div>
                           </div>
-                        )}
 
-                        {/* أرقام التواصل */}
-                        {(yard.phone || yard.managerPhone) && (
-                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                            {yard.phone && (
-                              <a
-                                href={`tel:${yard.phone}`}
-                                onClick={(e) => e.stopPropagation()}
-                                className="flex items-center gap-3 rounded-xl bg-green-50 p-3 transition-colors hover:bg-green-100"
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="flex flex-col gap-0.5 px-1">
+                              <div className="flex items-center gap-1.5 text-gray-500">
+                                <CalendarDaysIcon className="h-3 w-3" />
+                                <span className="text-[9px]">أيام العمل</span>
+                              </div>
+                              <span className="truncate text-[10px] font-semibold text-gray-700">
+                                {yard.auctionDays && yard.auctionDays.length > 0
+                                  ? yard.auctionDays.map((d) => dayLabels[d] || d).join('، ')
+                                  : 'غير محدد'}
+                              </span>
+                            </div>
+
+                            <div className="flex flex-col gap-0.5 px-1">
+                              <div className="flex items-center gap-1.5 text-gray-500">
+                                <MapPinIcon className="h-3 w-3" />
+                                <span className="text-[9px]">العنوان</span>
+                              </div>
+                              <span
+                                className="truncate text-[10px] font-medium text-gray-600"
+                                title={yard.address}
                               >
-                                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-green-600">
-                                  <PhoneIcon className="h-4 w-4 text-white" />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <span className="mb-0.5 block text-[10px] font-medium text-green-600">
-                                    هاتف الساحة
-                                  </span>
-                                  <span
-                                    className="block truncate text-sm font-bold text-green-800"
-                                    dir="ltr"
-                                  >
-                                    {yard.phone}
-                                  </span>
-                                </div>
-                              </a>
-                            )}
-                            {yard.managerPhone && yard.managerPhone !== yard.phone && (
-                              <a
-                                href={`tel:${yard.managerPhone}`}
-                                onClick={(e) => e.stopPropagation()}
-                                className="flex items-center gap-3 rounded-xl bg-blue-50 p-3 transition-colors hover:bg-blue-100"
-                              >
-                                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-blue-600">
-                                  <PhoneIcon className="h-4 w-4 text-white" />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <span className="mb-0.5 block text-[10px] font-medium text-blue-600">
-                                    هاتف المدير
-                                  </span>
-                                  <span
-                                    className="block truncate text-sm font-bold text-blue-800"
-                                    dir="ltr"
-                                  >
-                                    {yard.managerPhone}
-                                  </span>
-                                </div>
-                              </a>
-                            )}
+                                {yard.address || 'العنوان غير متوفر'}
+                              </span>
+                            </div>
                           </div>
-                        )}
+                        </div>
+                      </div>
+
+                      {/* الجزء السفلي: أزرار التواصل والإجراءات */}
+                      <div className="mt-3 flex items-center justify-between gap-2 border-t border-gray-100 pt-3">
+                        <div className="flex items-center gap-2">
+                          {/* أزرار التواصل المصغرة */}
+                          {(yard.phone || yard.managerPhone) && (
+                            <div className="flex gap-1.5">
+                              {yard.phone && (
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    window.location.href = `tel:${yard.phone}`;
+                                  }}
+                                  className="group/btn flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-600 shadow-sm transition-colors hover:bg-green-50 hover:text-green-600"
+                                  title="اتصال بالساحة"
+                                >
+                                  <PhoneIcon className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                              {yard.managerPhone && (
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    window.location.href = `tel:${yard.managerPhone}`;
+                                  }}
+                                  className="group/btn flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-600 shadow-sm transition-colors hover:bg-blue-50 hover:text-blue-600"
+                                  title="اتصال بالمدير"
+                                >
+                                  <UserIcon className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1 text-blue-600 transition-colors group-hover:text-blue-700">
+                          <span className="text-[10px] font-bold group-hover:underline">
+                            عرض التفاصيل
+                          </span>
+                          <ArrowLeftIcon className="h-3 w-3 transition-transform group-hover:-translate-x-1" />
+                        </div>
                       </div>
                     </div>
                   </Link>

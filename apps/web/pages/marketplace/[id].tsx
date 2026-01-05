@@ -145,7 +145,7 @@ const MarketplaceCarDetails: React.FC<MarketplaceCarDetailsProps> = ({
         const defaultData = {
           id: id as string,
           title: `سيارة للبيع - ${id}`,
-          price: '0 د.ل',
+          price: 0,
         };
 
         const safeListing = sanitizeCarListing(defaultData);
@@ -351,13 +351,21 @@ const MarketplaceCarDetails: React.FC<MarketplaceCarDetailsProps> = ({
 
   const _nextImage = () => {
     if (!listing) return;
-    const imagesLength = listing.images?.length || 1;
+    const imagesLength = Array.isArray(listing.images)
+      ? listing.images.length
+      : listing.images
+        ? 1
+        : 1;
     setCurrentImageIndex((prev) => (prev + 1) % imagesLength);
   };
 
   const _prevImage = () => {
     if (!listing) return;
-    const imagesLength = listing.images?.length || 1;
+    const imagesLength = Array.isArray(listing.images)
+      ? listing.images.length
+      : listing.images
+        ? 1
+        : 1;
     setCurrentImageIndex((prev) => (prev - 1 + imagesLength) % imagesLength);
   };
 
@@ -397,6 +405,12 @@ const MarketplaceCarDetails: React.FC<MarketplaceCarDetailsProps> = ({
       </>
     );
   }
+
+  const imagesArr = Array.isArray(listing.images)
+    ? listing.images
+    : listing.images
+      ? [listing.images]
+      : [];
 
   return (
     <>
@@ -456,7 +470,8 @@ const MarketplaceCarDetails: React.FC<MarketplaceCarDetailsProps> = ({
             </Link>
             <span className="mx-2 text-gray-500">/</span>
             <span className="text-gray-700">
-              {listing.specifications?.brand || listing.title} {listing.specifications?.model || ''}
+              {String(listing.specifications?.brand || listing.title)}{' '}
+              {String(listing.specifications?.model || '')}
             </span>
           </nav>
 
@@ -467,7 +482,7 @@ const MarketplaceCarDetails: React.FC<MarketplaceCarDetailsProps> = ({
               <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 <div className="group relative">
                   <img
-                    src={getImageSrc((listing.images || [])[currentImageIndex], currentImageIndex)}
+                    src={getImageSrc(imagesArr[currentImageIndex], currentImageIndex)}
                     alt={listing.title || 'سيارة'}
                     className="h-96 w-full object-cover"
                     onError={() => handleImageError(currentImageIndex)}
@@ -477,15 +492,15 @@ const MarketplaceCarDetails: React.FC<MarketplaceCarDetailsProps> = ({
                   <UnifiedNavigationArrows
                     onPrevious={() =>
                       setCurrentImageIndex((prev) =>
-                        prev === 0 ? (listing.images?.length || 1) - 1 : prev - 1,
+                        prev === 0 ? (imagesArr.length || 1) - 1 : prev - 1,
                       )
                     }
                     onNext={() =>
                       setCurrentImageIndex((prev) =>
-                        prev === (listing.images?.length || 1) - 1 ? 0 : prev + 1,
+                        prev === (imagesArr.length || 1) - 1 ? 0 : prev + 1,
                       )
                     }
-                    show={listing.images && listing.images.length > 1}
+                    show={imagesArr.length > 1}
                   />
 
                   {/* أزرار الإجراءات */}
@@ -533,7 +548,7 @@ const MarketplaceCarDetails: React.FC<MarketplaceCarDetailsProps> = ({
                   {/* معلومات الصور والمشاهدات */}
                   <div className="absolute bottom-4 right-4 flex items-center gap-1 rounded-full bg-black/70 px-3 py-1 text-sm text-white backdrop-blur-sm">
                     <CameraIcon className="h-4 w-4" />
-                    {listing.images?.length || 0} صور
+                    {imagesArr.length} صور
                   </div>
                   <div className="absolute bottom-4 left-4 flex items-center gap-1 rounded-full bg-black/70 px-3 py-1 text-sm text-white backdrop-blur-sm">
                     <EyeIcon className="h-4 w-4" />
@@ -543,7 +558,7 @@ const MarketplaceCarDetails: React.FC<MarketplaceCarDetailsProps> = ({
 
                 {/* الصور المصغرة */}
                 <div className="flex gap-2 overflow-x-auto p-4">
-                  {(listing.images || []).map((image: string, index: number) => (
+                  {imagesArr.map((image: string, index: number) => (
                     <button
                       key={index}
                       onClick={() => setCurrentImageIndex(index)}
@@ -1111,7 +1126,7 @@ const MarketplaceCarDetails: React.FC<MarketplaceCarDetailsProps> = ({
                       )}
 
                       {/* سنة الصنع */}
-                      {(listing as any)?.year && (
+                      {(listing as any)?.year !== undefined && (listing as any)?.year !== null && (
                         <div className="car-spec-card spec-basic">
                           <div className="car-spec-label">
                             <svg
@@ -1164,28 +1179,29 @@ const MarketplaceCarDetails: React.FC<MarketplaceCarDetailsProps> = ({
                       )}
 
                       {/* المسافة المقطوعة */}
-                      {(listing as any)?.mileage && (
-                        <div className="car-spec-card spec-basic">
-                          <div className="car-spec-label">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              strokeWidth="1.5"
-                              stroke="currentColor"
-                              className="car-spec-icon"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z"
-                              ></path>
-                            </svg>
-                            <span>المسافة المقطوعة</span>
+                      {(listing as any).mileage !== undefined &&
+                        (listing as any).mileage !== null && (
+                          <div className="car-spec-card spec-basic">
+                            <div className="car-spec-label">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                strokeWidth="1.5"
+                                stroke="currentColor"
+                                className="car-spec-icon"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z"
+                                ></path>
+                              </svg>
+                              <span>المسافة المقطوعة</span>
+                            </div>
+                            <div className="car-spec-value">{(listing as any).mileage} كم</div>
                           </div>
-                          <div className="car-spec-value">{(listing as any).mileage} كم</div>
-                        </div>
-                      )}
+                        )}
 
                       {/* نوع الوقود */}
                       {(listing as any)?.fuelType && (
@@ -1248,15 +1264,16 @@ const MarketplaceCarDetails: React.FC<MarketplaceCarDetailsProps> = ({
                       )}
 
                       {/* سعة المحرك */}
-                      {(listing as any)?.engineSize && (
-                        <div className="car-spec-card spec-general">
-                          <div className="car-spec-label">
-                            <CogIcon className="car-spec-icon" />
-                            <span>سعة المحرك</span>
+                      {(listing as any).engineSize !== undefined &&
+                        (listing as any).engineSize !== null && (
+                          <div className="car-spec-card spec-general">
+                            <div className="car-spec-label">
+                              <CogIcon className="car-spec-icon" />
+                              <span>سعة المحرك</span>
+                            </div>
+                            <div className="car-spec-value">{(listing as any).engineSize} لتر</div>
                           </div>
-                          <div className="car-spec-value">{(listing as any).engineSize} لتر</div>
-                        </div>
-                      )}
+                        )}
 
                       {/* المواصفات الإقليمية */}
                       {(listing as any)?.regionalSpec && (
@@ -1301,15 +1318,16 @@ const MarketplaceCarDetails: React.FC<MarketplaceCarDetailsProps> = ({
                       )}
 
                       {/* عدد المقاعد */}
-                      {(listing as any)?.seatCount && (
-                        <div className="car-spec-card spec-design">
-                          <div className="car-spec-label">
-                            <UserGroupIcon className="car-spec-icon" />
-                            <span>عدد المقاعد</span>
+                      {(listing as any).seatCount !== undefined &&
+                        (listing as any).seatCount !== null && (
+                          <div className="car-spec-card spec-design">
+                            <div className="car-spec-label">
+                              <UserGroupIcon className="car-spec-icon" />
+                              <span>عدد المقاعد</span>
+                            </div>
+                            <div className="car-spec-value">{(listing as any).seatCount} مقعد</div>
                           </div>
-                          <div className="car-spec-value">{(listing as any).seatCount} مقعد</div>
-                        </div>
-                      )}
+                        )}
 
                       {/* رقم الشاسيه */}
                       {(listing as any)?.chassisNumber && (
@@ -2298,7 +2316,7 @@ export async function getServerSideProps({ params }: { params: { id: string } })
             manualData:
               typeof directCar.manualInspectionData === 'string'
                 ? JSON.parse(directCar.manualInspectionData)
-                : directCar.manualInspectionData ?? null,
+                : (directCar.manualInspectionData ?? null),
           },
 
           // بيانات الموقع
@@ -2449,7 +2467,7 @@ export async function getServerSideProps({ params }: { params: { id: string } })
         manualData:
           typeof (car as any).manualInspectionData === 'string'
             ? JSON.parse((car as any).manualInspectionData)
-            : (car as any).manualInspectionData ?? null,
+            : ((car as any).manualInspectionData ?? null),
       },
 
       // بيانات الموقع - من قاعدة البيانات
@@ -2497,7 +2515,7 @@ export async function getServerSideProps({ params }: { params: { id: string } })
     const defaultListing = {
       id: params.id,
       title: 'سيارة للبيع',
-      price: '0 د.ل',
+      price: 0,
       description: 'وصف غير متوفر',
       location: 'غير محدد',
       views: 0,

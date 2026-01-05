@@ -1,4 +1,4 @@
-import type { NextApiRequest, NextApiResponse, NextApiHandler } from 'next';
+import type { NextApiHandler, NextApiRequest, NextApiResponse } from 'next';
 import keydbClient from '../keydb';
 import logger from '../logger';
 
@@ -82,28 +82,22 @@ export default function withInvalidateCache(
             const duration = Date.now() - startTime;
 
             if (logging) {
-              logger.info(
-                {
-                  patterns,
-                  keysDeleted: totalDeleted,
-                  durationMs: duration,
-                  method: req.method,
-                  url: req.url,
-                },
-                'Cache invalidated after successful operation',
-              );
+              logger.info('Cache invalidated after successful operation', {
+                patterns,
+                keysDeleted: totalDeleted,
+                durationMs: duration,
+                method: req.method,
+                url: req.url,
+              });
             }
           } catch (error) {
             // لا نريد أن يفشل الـ API بسبب خطأ في إلغاء الكاش
-            logger.error(
-              {
-                error: error instanceof Error ? error.message : error,
-                patterns,
-                method: req.method,
-                url: req.url,
-              },
-              'Failed to invalidate cache',
-            );
+            logger.error('Failed to invalidate cache', {
+              error: error instanceof Error ? error.message : error,
+              patterns,
+              method: req.method,
+              url: req.url,
+            });
           }
         })();
       }
@@ -129,7 +123,7 @@ export default function withInvalidateCache(
  */
 export async function invalidateCache(
   patterns: string[],
-): Promise<{ deleted: number; duration: number }> {
+): Promise<{ deleted: number; duration: number; }> {
   const startTime = Date.now();
   let totalDeleted = 0;
 
@@ -145,23 +139,20 @@ export async function invalidateCache(
     const duration = Date.now() - startTime;
 
     logger.info(
+      'Manual cache invalidation completed',
       {
         patterns,
         keysDeleted: totalDeleted,
         durationMs: duration,
       },
-      'Manual cache invalidation completed',
     );
 
     return { deleted: totalDeleted, duration };
   } catch (error) {
-    logger.error(
-      {
-        error: error instanceof Error ? error.message : error,
-        patterns,
-      },
-      'Failed to manually invalidate cache',
-    );
+    logger.error('Failed to manually invalidate cache', {
+      error: error instanceof Error ? error.message : error,
+      patterns,
+    });
     throw error;
   }
 }

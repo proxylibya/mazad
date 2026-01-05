@@ -23,6 +23,55 @@ export function formatCurrency(
     }
 }
 
+export function initWebsiteNumberConverter(): void {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+        return;
+    }
+
+    const w = window as any;
+    if (w.__westernNumeralsConverterInitialized) {
+        return;
+    }
+    w.__westernNumeralsConverterInitialized = true;
+
+    document.addEventListener(
+        'input',
+        (e) => {
+            const target = e.target as HTMLInputElement | HTMLTextAreaElement | null;
+            if (!target) return;
+
+            const isInput = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
+            if (!isInput) return;
+
+            const inputType = (target as HTMLInputElement).type;
+            if (
+                target instanceof HTMLInputElement &&
+                inputType &&
+                !['text', 'tel', 'search', 'number', 'email', 'url', 'password'].includes(inputType)
+            ) {
+                return;
+            }
+
+            const value = target.value;
+            if (!value) return;
+
+            const converted = toEnglishNumbers(value);
+            if (converted !== value) {
+                const start = (target as any).selectionStart;
+                const end = (target as any).selectionEnd;
+                target.value = converted;
+                try {
+                    if (typeof start === 'number' && typeof end === 'number') {
+                        (target as any).setSelectionRange(start, end);
+                    }
+                } catch {
+                }
+            }
+        },
+        { passive: true },
+    );
+}
+
 /**
  * تنسيق الأرقام
  */
@@ -131,4 +180,5 @@ export default {
     toArabicNumbers,
     convertToWesternNumerals,
     formatCurrencyWholeNumbers,
+    initWebsiteNumberConverter,
 };

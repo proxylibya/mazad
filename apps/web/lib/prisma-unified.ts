@@ -6,34 +6,12 @@
  * جميع الملفات الأخرى يجب أن تستورد من هنا
  */
 
-import { PrismaClient, Prisma } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
-// ============================================
-// 🔧 Singleton Pattern
-// ============================================
+import prisma from './prisma';
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
-/**
- * إنشاء Prisma Client مع الإعدادات المثلى
- */
-function createPrismaClient(): PrismaClient {
-  return new PrismaClient({
-    log: process.env.NODE_ENV === 'development' 
-      ? ['error', 'warn'] 
-      : ['error'],
-    errorFormat: 'pretty',
-  });
-}
-
-// Singleton instance
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
-}
+export { prisma };
 
 // ============================================
 // 🛡️ حماية الاستعلامات
@@ -73,6 +51,7 @@ export async function checkDatabaseConnection(): Promise<boolean> {
  */
 export async function disconnectDatabase(): Promise<void> {
   try {
+    if (process.env.PRISMA_MANUAL_CONNECTION !== 'true') return;
     await prisma.$disconnect();
     console.log('[Database] Disconnected successfully');
   } catch (error) {
@@ -85,6 +64,9 @@ export async function disconnectDatabase(): Promise<void> {
  */
 export async function reconnectDatabase(): Promise<boolean> {
   try {
+    if (process.env.PRISMA_MANUAL_CONNECTION !== 'true') {
+      return await checkDatabaseConnection();
+    }
     await prisma.$disconnect();
     await prisma.$connect();
     return await checkDatabaseConnection();
@@ -149,7 +131,7 @@ export async function safeTransaction<T>(
   maxRetries: number = 3
 ): Promise<T> {
   let lastError: Error | null = null;
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await prisma.$transaction(operation, {
@@ -159,13 +141,13 @@ export async function safeTransaction<T>(
     } catch (error) {
       lastError = error as Error;
       console.warn(`[Database] Transaction attempt ${attempt} failed:`, error);
-      
+
       if (attempt < maxRetries) {
         await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
       }
     }
   }
-  
+
   throw lastError;
 }
 
@@ -175,3 +157,6 @@ export async function safeTransaction<T>(
 
 export { Prisma };
 export default prisma;
+
+export type { PrismaClient };
+

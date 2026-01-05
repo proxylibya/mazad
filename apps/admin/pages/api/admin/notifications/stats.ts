@@ -2,13 +2,9 @@
  * API إحصائيات الإشعارات
  * يجلب عدادات الإشعارات لجميع الأقسام
  */
-import { PrismaClient } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-// Prisma client singleton
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined; };
-const prisma = globalForPrisma.prisma ?? new PrismaClient();
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+import { prisma } from '@/lib/prisma';
 
 // دالة للحصول على الإحصائيات من قاعدة البيانات
 async function getDbStats() {

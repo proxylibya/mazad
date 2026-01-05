@@ -138,20 +138,14 @@ export const PageVisibilityProvider: React.FC<PageVisibilityProviderProps> = ({ 
     try {
       setLoading(true);
       setError(null);
-      setHasFetched(true); // منع المحاولات المتكررة
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // timeout 5 ثواني
+      setHasFetched(true);
 
       const response = await fetch('/api/page-settings', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
-        signal: controller.signal,
       });
-
-      clearTimeout(timeoutId);
 
       if (!response.ok) {
         // في حالة فشل API، استخدم الإعدادات الافتراضية بدون إظهار خطأ

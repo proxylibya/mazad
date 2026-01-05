@@ -1,6 +1,6 @@
-import fs from 'fs';
 import { NextApiRequest, NextApiResponse } from 'next';
 import path from 'path';
+import { uploadBufferToBlob } from '../../../lib/blob';
 
 // تعطيل body parser الافتراضي لـ Next.js
 export const config = {
@@ -110,13 +110,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     console.log('[API] بدء معالجة طلب رفع تقرير الفحص');
 
-    // التأكد من وجود المجلد
-    const inspectionDir = path.join(process.cwd(), 'public', 'uploads', 'inspection-reports');
-    if (!fs.existsSync(inspectionDir)) {
-      fs.mkdirSync(inspectionDir, { recursive: true });
-      console.log('[API] تم إنشاء مجلد تقارير الفحص');
-    }
-
     // تحليل البيانات المرسلة
     const { file, userId } = await parseFormData(req);
 
@@ -158,13 +151,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const extension = path.extname(file.fileName) || '.jpg';
     const safeUserId = userId.replace(/[^a-zA-Z0-9_-]/g, '_');
     const newFileName = `inspection_report_${safeUserId}_${timestamp}${extension}`;
-    const filePath = path.join(inspectionDir, newFileName);
 
-    // حفظ الملف
-    fs.writeFileSync(filePath, file.buffer);
+    // رفع الملف إلى Vercel Blob
+    const uploaded = await uploadBufferToBlob({
+      buffer: file.buffer,
+      filename: newFileName,
+      contentType: file.mimeType,
+      folder: `uploads/inspection-reports/${safeUserId}`,
+    });
 
     const uploadId = `inspection_${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
-    const fileUrl = `/uploads/inspection-reports/${newFileName}`;
+    const fileUrl = uploaded.url;
     const fileType = file.mimeType.startsWith('image/') ? 'image' : 'pdf';
 
     console.log('[API] تم حفظ الملف بنجاح:', {

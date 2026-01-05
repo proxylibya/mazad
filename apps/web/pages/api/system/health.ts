@@ -3,11 +3,11 @@
  * System Health and Performance Monitoring API
  */
 
-import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
-import { performanceMonitor } from '../../../utils/performance-monitor';
-import { logger, LogLevel } from '../../../utils/advanced-logger';
+import { NextApiRequest, NextApiResponse } from 'next';
 import { errorHandlerMiddleware } from '../../../utils/advanced-error-handler';
+import { LogLevel, logger } from '../../../utils/advanced-logger';
+import { performanceMonitor } from '../../../utils/performance-monitor';
 
 // فحص صحة قاعدة البيانات
 async function checkDatabaseHealth(): Promise<{
@@ -207,8 +207,6 @@ async function handleHealthCheck(req: NextApiRequest, res: NextApiResponse): Pro
       status: 'critical',
       timestamp: new Date().toISOString(),
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }
 

@@ -260,6 +260,12 @@ export function sanitizeCarListing(car: CarListing): CarListing {
     };
 }
 
+export type SafeAuctionData = Record<string, any>;
+
+export function sanitizeAuctionData(auction: any): SafeAuctionData {
+    return auction as SafeAuctionData;
+}
+
 export default {
     isValidEmail,
     isValidLibyanPhone,
@@ -279,4 +285,5 @@ export default {
     ensureNumber,
     ensureBoolean,
     sanitizeCarListing,
+    sanitizeAuctionData,
 };

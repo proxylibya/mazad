@@ -97,6 +97,25 @@ interface FormData {
   seller?: SellerInfo | null;
 }
 
+type SiteTeamSettings = {
+  phones?: string[];
+  whatsappPhone?: string;
+};
+
+function normalizeSiteTeamPhoneForUnifiedInput(raw: string) {
+  const digits = String(raw || '').replace(/[^\d]/g, '');
+  if (!digits) return '';
+
+  if (digits.startsWith('218')) {
+    const rest = digits.slice(3);
+    return rest.startsWith('0') ? rest.slice(1) : rest;
+  }
+
+  if (digits.startsWith('0') && digits.length >= 10) return digits.slice(1);
+
+  return digits;
+}
+
 export default function CreateAuctionPage() {
   const router = useRouter();
 
@@ -152,6 +171,7 @@ export default function CreateAuctionPage() {
   const [isAdditionalDetailsOpen, setIsAdditionalDetailsOpen] = useState(false);
   const [showInspectionReport, setShowInspectionReport] = useState(false);
   const [inspectionReportType, setInspectionReportType] = useState<'file' | 'manual'>('manual');
+  const [siteTeamPhone, setSiteTeamPhone] = useState<string>('');
 
   // إعدادات المزاد من API
   const [auctionSettings, setAuctionSettings] = useState<{
@@ -196,6 +216,47 @@ export default function CreateAuctionPage() {
     fetchSettings();
   }, []);
 
+  useEffect(() => {
+    const fetchSiteTeam = async () => {
+      try {
+        const res = await fetch('/api/admin/site-team');
+        const data = (await res.json()) as { success?: boolean; settings?: SiteTeamSettings };
+
+        if (data?.success) {
+          const phone =
+            (data.settings?.phones || []).find((p) => String(p || '').trim()) ||
+            String(data.settings?.whatsappPhone || '').trim();
+          if (phone) setSiteTeamPhone(phone);
+        }
+      } catch {}
+    };
+
+    fetchSiteTeam();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedSeller?.isSiteTeam) return;
+    const normalized = normalizeSiteTeamPhoneForUnifiedInput(siteTeamPhone);
+
+    if (!normalized) return;
+
+    setFormData((prev) => {
+      if (prev.contactPhone === normalized) return prev;
+      return { ...prev, contactPhone: normalized };
+    });
+  }, [selectedSeller?.isSiteTeam, siteTeamPhone]);
+
+  useEffect(() => {
+    if (selectedSeller?.isSiteTeam) return;
+    const normalized = normalizeSiteTeamPhoneForUnifiedInput(siteTeamPhone);
+    if (!normalized) return;
+
+    setFormData((prev) => {
+      if (prev.contactPhone !== normalized) return prev;
+      return { ...prev, contactPhone: '' };
+    });
+  }, [selectedSeller?.isSiteTeam, siteTeamPhone]);
+
   // تحديث الموديلات عند تغيير الماركة
   useEffect(() => {
     if (formData.brand) {
@@ -224,6 +285,10 @@ export default function CreateAuctionPage() {
     }
   };
 
+  const normalizedSiteTeamPhone = normalizeSiteTeamPhoneForUnifiedInput(siteTeamPhone);
+  const isSiteTeamSeller = !!selectedSeller?.isSiteTeam;
+  const shouldRequireContactPhone = !isSiteTeamSeller || !normalizedSiteTeamPhone;
+
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
 
@@ -246,12 +311,14 @@ export default function CreateAuctionPage() {
       }
     }
 
-    if (!formData.contactPhone?.trim()) {
-      newErrors.contactPhone = 'رقم الهاتف مطلوب';
+    if (shouldRequireContactPhone) {
+      if (!formData.contactPhone?.trim()) {
+        newErrors.contactPhone = 'رقم الهاتف مطلوب';
+      }
     }
 
     // التحقق من بيانات البائع
-    if (!selectedSeller || !selectedSeller.phone) {
+    if (!selectedSeller || (!selectedSeller.isSiteTeam && !selectedSeller.phone)) {
       newErrors.seller = 'يرجى تحديد البائع';
     }
 
@@ -642,7 +709,8 @@ export default function CreateAuctionPage() {
               <div className="space-y-2">
                 <UnifiedPhoneInput
                   label="رقم الهاتف"
-                  required
+                  required={shouldRequireContactPhone}
+                  disabled={isSiteTeamSeller && !!siteTeamPhone}
                   value={formData.contactPhone}
                   onChange={(v: string) => handleInputChange('contactPhone', v)}
                   placeholder="أدخل رقم الهاتف"

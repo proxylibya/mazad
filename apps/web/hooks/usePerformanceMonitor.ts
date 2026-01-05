@@ -2,7 +2,7 @@
  * Performance Monitor Hooks - خطافات مراقبة الأداء
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 // نوع بيانات الأداء
 interface PerformanceMetrics {
@@ -200,9 +200,11 @@ export function usePagePerformance() {
       )[0] as PerformanceNavigationTiming;
       const paint = performance.getEntriesByType('paint');
 
+      const navStart = navigation.startTime || 0;
+
       const metrics = {
-        loadTime: navigation.loadEventEnd - navigation.navigationStart,
-        domContentLoaded: navigation.domContentLoadedEventEnd - navigation.navigationStart,
+        loadTime: navigation.loadEventEnd - navStart,
+        domContentLoaded: navigation.domContentLoadedEventEnd - navStart,
         firstPaint: paint.find((entry) => entry.name === 'first-paint')?.startTime || 0,
         firstContentfulPaint:
           paint.find((entry) => entry.name === 'first-contentful-paint')?.startTime || 0,

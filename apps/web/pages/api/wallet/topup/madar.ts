@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
+import crypto from 'crypto';
 
 interface MadarTopupRequest {
   userId: string;
@@ -29,6 +30,10 @@ const mockMadarCards = [
   { number: '1111222233334444', amount: 75 },
   { number: '5555666677778888', amount: 25 },
 ];
+
+function genId(prefix: string): string {
+  return `${prefix}_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`;
+}
 
 export default async function handler(
   req: NextApiRequest,
@@ -81,29 +86,48 @@ export default async function handler(
       });
     }
 
-    // البحث عن المحفظة المحلية أو إنشاؤها
-    let wallet = await prisma.wallets.findFirst({
-      where: {
-        userId: userId,
-        currency: 'LYD',
-      },
+    const now = new Date();
+
+    let wallet = await prisma.wallets.findUnique({
+      where: { userId },
+      include: { local_wallets: true },
     });
 
     if (!wallet) {
       wallet = await prisma.wallets.create({
         data: {
-          userId: userId,
-          balance: 0,
-          currency: 'LYD',
+          id: genId('wallet'),
+          userId,
+          local_wallets: {
+            create: { id: genId('local'), balance: 0, currency: 'LYD', updatedAt: now },
+          },
+          global_wallets: {
+            create: { id: genId('global'), balance: 0, currency: 'USD', updatedAt: now },
+          },
+          crypto_wallets: {
+            create: { id: genId('crypto'), balance: 0, currency: 'USDT-TRC20', network: 'TRC20', updatedAt: now },
+          },
+          updatedAt: now,
         },
+        include: { local_wallets: true },
       });
     }
 
-    // تحديث رصيد المحفظة
-    const newBalance = wallet.balance + cardData.amount;
+    if (!wallet.local_wallets) {
+      await prisma.local_wallets.create({
+        data: { id: genId('local'), walletId: wallet.id, balance: 0, currency: 'LYD', updatedAt: now },
+      });
+      wallet = await prisma.wallets.findUnique({
+        where: { id: wallet.id },
+        include: { local_wallets: true },
+      });
+    }
 
-    await prisma.wallets.update({
-      where: { id: wallet.id },
+    const currentBalance = wallet!.local_wallets?.balance || 0;
+    const newBalance = currentBalance + cardData.amount;
+
+    await prisma.local_wallets.update({
+      where: { walletId: wallet!.id },
       data: { balance: newBalance },
     });
 
@@ -113,10 +137,11 @@ export default async function handler(
     await prisma.transactions.create({
       data: {
         id: transactionId,
-        userId: userId,
-        type: 'TOPUP',
+        walletId: wallet!.id,
+        type: 'DEPOSIT',
         amount: cardData.amount,
         currency: 'LYD',
+        walletType: 'LOCAL',
         status: 'COMPLETED',
         description: `تعبئة من كرت المدار`,
         metadata: {
@@ -124,8 +149,7 @@ export default async function handler(
           cardLastFour: cleanCardNumber.slice(-4),
           processingTime: 'instant',
         },
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        updatedAt: now,
       },
     });
 
@@ -133,12 +157,13 @@ export default async function handler(
     try {
       await prisma.notifications.create({
         data: {
-          userId: userId,
+          id: genId('notif'),
+          userId,
           title: 'تم شحن المحفظة بنجاح',
           message: `تم إضافة ${cardData.amount} د.ل إلى محفظتك المحلية من كرت المدار`,
-          type: 'WALLET_TOPUP',
+          type: 'DEPOSIT_COMPLETED',
           isRead: false,
-          createdAt: new Date(),
+          createdAt: now,
         },
       });
     } catch (notificationError) {
@@ -162,9 +187,7 @@ export default async function handler(
       message: 'خطأ في الخادم',
       error: 'حدث خطأ غير متوقع أثناء معالجة الطلب',
     });
-  } finally {
-    await prisma.$disconnect();
-  }
+  } finally {}
 }
 
 // دالة مساعدة للتحقق من صحة رقم الكرت

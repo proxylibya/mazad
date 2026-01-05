@@ -12,6 +12,8 @@ import UnifiedActionsColumn, {
   ActionPresets,
 } from '../../../components/tables/UnifiedActionsColumn';
 import {
+  AnimatedPresence,
+  AnimatedSection,
   CommonFilters,
   SERVICE_TYPE_LABELS,
   SimpleToast,
@@ -38,9 +40,6 @@ interface TransportService {
   createdAt: string;
   images?: string[];
 }
-
-// URL تطبيق الويب
-const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL || 'http://localhost:3021';
 
 export default function TransportManagement() {
   const router = useRouter();
@@ -197,67 +196,16 @@ export default function TransportManagement() {
       id: 'images',
       header: 'الصور',
       accessor: 'images',
-      type: 'custom',
-      render: (_, row) => {
-        const images = row.images || [];
-        if (images.length === 0) {
-          return (
-            <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-slate-700">
-              <TruckIcon className="h-8 w-8 text-slate-500" />
-            </div>
-          );
-        }
-        return (
-          <div className="flex items-center gap-1">
-            {images.slice(0, 3).map((img: string, idx: number) => (
-              <div
-                key={idx}
-                className="relative h-14 w-14 overflow-hidden rounded-lg border border-slate-600"
-              >
-                <img
-                  src={
-                    img.startsWith('http')
-                      ? img
-                      : `${WEB_URL}${img.startsWith('/') ? '' : '/'}${img}`
-                  }
-                  alt={`صورة ${idx + 1}`}
-                  className="h-full w-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    // إظهار أيقونة بديلة
-                    const parent = target.parentElement;
-                    if (parent) {
-                      parent.innerHTML =
-                        '<div class="flex h-full w-full items-center justify-center bg-slate-700"><svg class="h-6 w-6 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H18.375m-17.25 4.5V6.75a3 3 0 013-3h1.5m13.5 9V6.75a3 3 0 00-3-3h-1.5m-1.5 0h-6m6 0a3 3 0 013 3V9m-6-3a3 3 0 00-3 3V9m6 0v3m-6-3v3m0 0h6m-6 0H9m6 0a3 3 0 00-3-3H9a3 3 0 00-3 3m6 0h6" /></svg></div>';
-                    }
-                  }}
-                />
-              </div>
-            ))}
-            {images.length > 3 && (
-              <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-slate-700 text-sm font-medium text-slate-300">
-                +{images.length - 3}
-              </div>
-            )}
-          </div>
-        );
-      },
+      type: 'image',
+      imageConfig: { size: 'md', rounded: 'lg', showCount: true, fallbackIcon: 'truck' },
     },
     {
       id: 'service',
       header: 'معلومات الخدمة',
       accessor: 'title',
       type: 'custom',
-      render: (_, row) => {
-        // تقصير العنوان إلى أول 3 كلمات فقط
-        const truncateToWords = (text: string, wordCount: number = 3): string => {
-          const words = text.split(/[\s,،-]+/).filter(Boolean);
-          if (words.length <= wordCount) return text;
-          return words.slice(0, wordCount).join(' ') + '...';
-        };
-        const shortTitle = truncateToWords(row.title, 3);
-
+      render: (value, row) => {
+        const shortTitle = String(value || '');
         return (
           <div>
             <p className="font-medium text-white" title={row.title}>
@@ -350,78 +298,82 @@ export default function TransportManagement() {
 
   return (
     <AdminLayout title="إدارة خدمات النقل">
-      {/* Toast */}
-      <SimpleToast
-        message={toast?.text || null}
-        type={toast?.type}
-        onClose={() => setToast(null)}
-      />
+      <AnimatedSection delay={60}>
+        <SimpleToast
+          message={toast?.text || null}
+          type={toast?.type}
+          onClose={() => setToast(null)}
+        />
+      </AnimatedSection>
 
-      {/* Stats - النظام الموحد */}
-      <UnifiedStats stats={stats} columns={4} className="mb-6" />
+      <AnimatedSection delay={120}>
+        <UnifiedStats stats={stats} columns={4} className="mb-6" />
+      </AnimatedSection>
 
-      {/* Header with Add Button */}
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h2 className="text-lg font-semibold text-white">قائمة خدمات النقل</h2>
-          {selectedServices.length > 0 && (
-            <span className="rounded-full bg-blue-500/20 px-3 py-1 text-sm text-blue-400">
-              {selectedServices.length} محدد
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-3">
-          {selectedServices.length > 0 && (
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-white transition-colors hover:bg-red-700"
+      <AnimatedSection delay={180}>
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h2 className="text-lg font-semibold text-white">قائمة خدمات النقل</h2>
+            {selectedServices.length > 0 && (
+              <span className="rounded-full bg-blue-500/20 px-3 py-1 text-sm text-blue-400">
+                {selectedServices.length} محدد
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            {selectedServices.length > 0 && (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-white transition-colors hover:bg-red-700"
+              >
+                <TrashIcon className="h-5 w-5" />
+                حذف المحدد ({selectedServices.length})
+              </button>
+            )}
+            <Link
+              href="/admin/transport/add"
+              className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
             >
-              <TrashIcon className="h-5 w-5" />
-              حذف المحدد ({selectedServices.length})
-            </button>
-          )}
-          <Link
-            href="/admin/transport/add"
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
-          >
-            <PlusIcon className="h-5 w-5" />
-            إضافة خدمة
-          </Link>
+              <PlusIcon className="h-5 w-5" />
+              إضافة خدمة
+            </Link>
+          </div>
         </div>
-      </div>
+      </AnimatedSection>
 
-      {/* Search & Filter - النظام الموحد */}
-      <UnifiedSearch
-        searchValue={searchValue}
-        onSearchChange={setSearchValue}
-        searchPlaceholder="البحث في خدمات النقل..."
-        filters={[
-          {
-            id: 'status',
-            label: 'الحالة',
-            value: filters.status || 'all',
-            onChange: (v) => setFilter('status', v),
-            options: CommonFilters.status,
-          },
-        ]}
-        onRefresh={fetchServices}
-        className="mb-6"
-      />
+      <AnimatedSection delay={220}>
+        <UnifiedSearch
+          searchValue={searchValue}
+          onSearchChange={setSearchValue}
+          searchPlaceholder="البحث في خدمات النقل..."
+          filters={[
+            {
+              id: 'status',
+              label: 'الحالة',
+              value: filters.status || 'all',
+              onChange: (v) => setFilter('status', v),
+              options: CommonFilters.status,
+            },
+          ]}
+          onRefresh={fetchServices}
+          className="mb-6"
+        />
+      </AnimatedSection>
 
-      {/* Table - النظام الموحد */}
-      <UnifiedTable
-        columns={columns}
-        data={filteredData}
-        loading={loading}
-        emptyMessage="لا توجد خدمات نقل"
-        sortable={true}
-        selectable={true}
-        selectedRows={selectedServices}
-        onSelectionChange={setSelectedServices}
-      />
+      <AnimatedSection delay={260}>
+        <UnifiedTable
+          columns={columns}
+          data={filteredData}
+          loading={loading}
+          emptyMessage="لا توجد خدمات نقل"
+          sortable={true}
+          selectable={true}
+          selectedRows={selectedServices}
+          onSelectionChange={setSelectedServices}
+        />
+      </AnimatedSection>
 
-      {/* Modal تأكيد الحذف المتعدد */}
-      {showDeleteConfirm && (
+      <AnimatedPresence show={showDeleteConfirm}>
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="w-full max-w-md rounded-xl bg-slate-800 p-6">
             <h3 className="mb-4 text-lg font-semibold text-white">تأكيد حذف الخدمات</h3>
@@ -460,7 +412,7 @@ export default function TransportManagement() {
             </div>
           </div>
         </div>
-      )}
+      </AnimatedPresence>
     </AdminLayout>
   );
 }

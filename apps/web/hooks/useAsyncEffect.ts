@@ -1,5 +1,5 @@
-import { useEffect, useRef, DependencyList } from 'react';
-import { log } from '../lib/utils/logger';
+import { DependencyList, useEffect, useRef } from 'react';
+import logger from '../lib/utils/logger';
 
 /**
  * Hook مخصص لإدارة العمليات الغير متزامنة بشكل آمن
@@ -45,16 +45,16 @@ export function useAsyncEffect(
       }
 
       try {
-        log.debug(`${name}: بدء العملية`);
+        logger.debug(`${name}: بدء العملية`);
         await effect(signal);
 
         if (!signal.aborted) {
-          log.debug(`${name}: اكتمال العملية بنجاح`);
+          logger.debug(`${name}: اكتمال العملية بنجاح`);
         }
       } catch (error) {
         // تجاهل أخطاء الإلغاء
         if (error instanceof Error && error.name === 'AbortError') {
-          log.debug(`${name}: تم إلغاء العملية`);
+          logger.debug(`${name}: تم إلغاء العملية`);
           return;
         }
 
@@ -63,7 +63,7 @@ export function useAsyncEffect(
           return;
         }
 
-        log.error(`${name}: خطأ في العملية`, error);
+        logger.error(`${name}: خطأ في العملية`, { error });
       }
     };
 

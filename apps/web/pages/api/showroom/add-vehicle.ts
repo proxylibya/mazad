@@ -149,7 +149,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         category: 'showroom',
       }));
 
-      await prisma.carImage.createMany({
+      await prisma.car_images.createMany({
         data: imageRecords,
       });
     }
@@ -158,7 +158,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const carWithDetails = await prisma.cars.findUnique({
       where: { id: newCar.id },
       include: {
-        carImages: {
+        car_images: {
           select: {
             id: true,
             fileName: true,
@@ -167,7 +167,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           },
           orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
         },
-        showroom: {
+        showrooms: {
           select: {
             id: true,
             name: true,
@@ -175,7 +175,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             area: true,
           },
         },
-        seller: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -184,6 +184,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       },
     });
+
+    const normalizedCar = carWithDetails
+      ? {
+        ...carWithDetails,
+        carImages: carWithDetails.car_images,
+        showroom: carWithDetails.showrooms,
+        seller: carWithDetails.users,
+      }
+      : null;
 
     console.log('تم بنجاح تم إنشاء مركبة جديدة للمعرض:', {
       carId: newCar.id,
@@ -195,7 +204,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(201).json({
       success: true,
       message: 'تم إضافة المركبة للمعرض بنجاح',
-      car: carWithDetails,
+      car: normalizedCar,
     });
   } catch (error) {
     console.error('فشل خطأ في إضافة المركبة للمعرض:', error);
@@ -227,7 +236,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
           : undefined,
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }

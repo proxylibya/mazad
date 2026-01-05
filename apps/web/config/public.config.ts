@@ -23,7 +23,7 @@ export interface PublicConfig {
 // Validate and export public configuration
 export const publicConfig: PublicConfig = {
   // API Configuration
-  API_URL: (process as any).env.NEXT_PUBLIC_API_URL || 'http://localhost:3020/api',
+  API_URL: (process as any).env.NEXT_PUBLIC_API_URL || '/api',
   WS_URL: (process as any).env.NEXT_PUBLIC_WS_URL || 'http://localhost:3021',
   SITE_URL: (process as any).env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3021',
 

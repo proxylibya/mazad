@@ -1,11 +1,13 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { IncomingForm, File as FormidableFile } from 'formidable';
+import { File as FormidableFile, IncomingForm } from 'formidable';
 import fs from 'fs';
+import { NextApiRequest, NextApiResponse } from 'next';
+import os from 'os';
 import path from 'path';
+import { uploadBufferToBlob } from '../../../lib/blob';
 import {
   DocumentType,
-  VerificationStatus,
   VerificationHistoryItem,
+  VerificationStatus,
 } from '../../../types/verification';
 
 // تعطيل body parser الافتراضي لـ Next.js
@@ -107,9 +109,9 @@ export default async function handler(
 }
 
 // دالة لمعالجة النموذج والملفات
-async function parseForm(req: NextApiRequest): Promise<{ fields: any; files: any }> {
+async function parseForm(req: NextApiRequest): Promise<{ fields: any; files: any; }> {
   return new Promise((resolve, reject) => {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'verification');
+    const uploadDir = path.join(os.tmpdir(), 'sooq-mazad', 'verification');
 
     // إنشاء مجلد الرفع إذا لم يكن موجوداً
     if (!fs.existsSync(uploadDir)) {
@@ -156,16 +158,24 @@ async function processUploadedDocuments(files: any, fields: any): Promise<Proces
       const timestamp = Date.now();
       const extension = path.extname(formidableFile.originalFilename || '');
       const fileName = `${documentType}_${timestamp}${extension}`;
-      const newPath = path.join(path.dirname(formidableFile.filepath), fileName);
+      const folder = `uploads/verification/${documentType}`;
 
-      // نقل الملف إلى المسار الجديد
-      fs.renameSync(formidableFile.filepath, newPath);
+      const buffer = await fs.promises.readFile(formidableFile.filepath);
+      const contentType = formidableFile.mimetype || 'application/octet-stream';
+      const uploaded = await uploadBufferToBlob({
+        buffer,
+        filename: fileName,
+        contentType,
+        folder,
+      });
+
+      await fs.promises.unlink(formidableFile.filepath).catch(() => { });
 
       processedDocuments.push({
         type: documentType as DocumentType,
         originalName: formidableFile.originalFilename || '',
         fileName,
-        filePath: newPath,
+        filePath: uploaded.url,
         fileSize: formidableFile.size,
         mimeType: formidableFile.mimetype || '',
       });

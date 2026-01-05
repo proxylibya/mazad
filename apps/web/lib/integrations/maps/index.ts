@@ -4,9 +4,6 @@
  * يدير جميع عمليات الخرائط والمواقع
  */
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
 
 interface MapConfig {
   provider: 'leaflet' | 'google' | 'mapbox';
@@ -52,7 +49,7 @@ const LIBYAN_CITIES: Record<string, [number, number]> = {
 
 export class MapsManager {
   private config: MapConfig;
-  
+
   constructor() {
     this.config = {
       provider: (process.env.MAPS_PROVIDER || 'leaflet') as any,
@@ -61,7 +58,7 @@ export class MapsManager {
       defaultZoom: 12
     };
   }
-  
+
   /**
    * Get map configuration for frontend
    */
@@ -75,7 +72,7 @@ export class MapsManager {
       attribution: this.getAttribution()
     };
   }
-  
+
   /**
    * Get tile URL based on provider
    */
@@ -89,7 +86,7 @@ export class MapsManager {
         return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
     }
   }
-  
+
   /**
    * Get attribution text
    */
@@ -103,7 +100,7 @@ export class MapsManager {
         return '© OpenStreetMap contributors';
     }
   }
-  
+
   /**
    * Geocode address to coordinates
    */
@@ -111,10 +108,10 @@ export class MapsManager {
     try {
       // Check if it's a known Libyan city
       const cityName = city || address;
-      const knownCity = Object.keys(LIBYAN_CITIES).find(c => 
+      const knownCity = Object.keys(LIBYAN_CITIES).find(c =>
         cityName.includes(c) || c.includes(cityName)
       );
-      
+
       if (knownCity) {
         return {
           success: true,
@@ -127,12 +124,12 @@ export class MapsManager {
           }
         };
       }
-      
+
       // If using external service
       if (this.config.provider === 'google' && this.config.apiKey) {
         return await this.geocodeWithGoogle(address);
       }
-      
+
       // Default to Tripoli if unknown
       return {
         success: true,
@@ -152,7 +149,7 @@ export class MapsManager {
       };
     }
   }
-  
+
   /**
    * Reverse geocode coordinates to address
    */
@@ -161,7 +158,7 @@ export class MapsManager {
       // Find nearest Libyan city
       let nearestCity = '';
       let minDistance = Infinity;
-      
+
       for (const [city, coords] of Object.entries(LIBYAN_CITIES)) {
         const distance = this.calculateDistance(lat, lng, coords[0], coords[1]);
         if (distance < minDistance) {
@@ -169,7 +166,7 @@ export class MapsManager {
           nearestCity = city;
         }
       }
-      
+
       return {
         success: true,
         location: {
@@ -188,7 +185,7 @@ export class MapsManager {
       };
     }
   }
-  
+
   /**
    * Calculate distance between two points
    */
@@ -196,24 +193,24 @@ export class MapsManager {
     const R = 6371; // Earth's radius in kilometers
     const dLat = this.toRad(lat2 - lat1);
     const dLng = this.toRad(lng2 - lng1);
-    const a = 
+    const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(this.toRad(lat1)) * Math.cos(this.toRad(lat2)) *
       Math.sin(dLng / 2) * Math.sin(dLng / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }
-  
+
   /**
    * Get distance and duration between two locations
    */
   async getDistance(from: Location, to: Location): Promise<DistanceResult> {
     try {
       const distance = this.calculateDistance(from.lat, from.lng, to.lat, to.lng);
-      
+
       // Estimate duration (assuming 60 km/h average speed)
       const duration = (distance / 60) * 60; // in minutes
-      
+
       return {
         success: true,
         distance: Math.round(distance * 10) / 10,
@@ -227,7 +224,7 @@ export class MapsManager {
       };
     }
   }
-  
+
   /**
    * Validate coordinates
    */
@@ -235,14 +232,14 @@ export class MapsManager {
     // Check if coordinates are within Libya's bounds
     return lat >= 19.5 && lat <= 33.2 && lng >= 9.3 && lng <= 25.2;
   }
-  
+
   /**
    * Get nearby locations
    */
   async getNearbyLocations(lat: number, lng: number, radius: number = 50): Promise<any[]> {
     try {
       const nearby = [];
-      
+
       for (const [city, coords] of Object.entries(LIBYAN_CITIES)) {
         const distance = this.calculateDistance(lat, lng, coords[0], coords[1]);
         if (distance <= radius) {
@@ -253,21 +250,21 @@ export class MapsManager {
           });
         }
       }
-      
+
       return nearby.sort((a, b) => a.distance - b.distance);
     } catch (error: any) {
       console.error('[MapsManager] Get nearby locations error:', error);
       return [];
     }
   }
-  
+
   /**
    * Convert degrees to radians
    */
   private toRad(degrees: number): number {
     return degrees * (Math.PI / 180);
   }
-  
+
   /**
    * Geocode with Google Maps API
    */
@@ -279,7 +276,7 @@ export class MapsManager {
       error: 'Google Maps geocoding not implemented'
     };
   }
-  
+
   /**
    * Generate static map URL
    */
@@ -293,14 +290,14 @@ export class MapsManager {
         return `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=${zoom}&size=${size}`;
     }
   }
-  
+
   /**
    * Get all Libyan cities
    */
   getLibyanCities(): string[] {
     return Object.keys(LIBYAN_CITIES);
   }
-  
+
   /**
    * Get city coordinates
    */

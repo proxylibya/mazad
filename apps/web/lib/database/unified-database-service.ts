@@ -7,23 +7,10 @@
  */
 
 import { keydb } from '@/lib/cache/keydb-unified';
-import { Prisma, PrismaClient } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
-// Singleton Prisma Client
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
-const prismaClient = globalForPrisma.prisma ?? new PrismaClient({
-  log: process.env.NODE_ENV === 'development'
-    ? ['query', 'error', 'warn']
-    : ['error'],
-  errorFormat: 'pretty',
-});
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prismaClient;
-}
+import prismaClient from '@/lib/prisma';
 
 /**
  * فئة خدمة قاعدة البيانات الموحدة

@@ -1,15 +1,12 @@
-import React, { useState } from 'react';
-import FunnelIcon from '@heroicons/react/24/outline/FunnelIcon';
-import MagnifyingGlassIcon from '@heroicons/react/24/outline/MagnifyingGlassIcon';
-import XMarkIcon from '@heroicons/react/24/outline/XMarkIcon';
-import MapPinIcon from '@heroicons/react/24/outline/MapPinIcon';
-import TruckIcon from '@heroicons/react/24/outline/TruckIcon';
-import StarIcon from '@heroicons/react/24/outline/StarIcon';
+import AdjustmentsHorizontalIcon from '@heroicons/react/24/outline/AdjustmentsHorizontalIcon';
 import CheckCircleIcon from '@heroicons/react/24/outline/CheckCircleIcon';
 import ClockIcon from '@heroicons/react/24/outline/ClockIcon';
-import UserIcon from '@heroicons/react/24/outline/UserIcon';
-import ChevronDownIcon from '@heroicons/react/24/outline/ChevronDownIcon';
-import AdjustmentsHorizontalIcon from '@heroicons/react/24/outline/AdjustmentsHorizontalIcon';
+import MagnifyingGlassIcon from '@heroicons/react/24/outline/MagnifyingGlassIcon';
+import MapPinIcon from '@heroicons/react/24/outline/MapPinIcon';
+import StarIcon from '@heroicons/react/24/outline/StarIcon';
+import TruckIcon from '@heroicons/react/24/outline/TruckIcon';
+import XMarkIcon from '@heroicons/react/24/outline/XMarkIcon';
+import React from 'react';
 import UniversalDropdown, { DropdownOption } from '../ui/UniversalDropdown';
 
 interface TransportAdvancedFilterProps {
@@ -206,11 +203,11 @@ const TransportAdvancedFilter: React.FC<TransportAdvancedFilterProps> = ({
           <UniversalDropdown
             options={serviceTypeOptions}
             value={filters.serviceType}
-            onChange={(value) => onFilterChange('serviceType', value)}
+            onChange={(value) =>
+              onFilterChange('serviceType', Array.isArray(value) ? value[0] || '' : value || '')
+            }
             placeholder="اختر نوع الخدمة"
-            showSearch={true}
-            size="sm"
-            variant="default"
+            searchable={true}
           />
         </div>
 
@@ -223,11 +220,11 @@ const TransportAdvancedFilter: React.FC<TransportAdvancedFilterProps> = ({
           <UniversalDropdown
             options={truckTypeOptions}
             value={filters.truckType}
-            onChange={(value) => onFilterChange('truckType', value)}
+            onChange={(value) =>
+              onFilterChange('truckType', Array.isArray(value) ? value[0] || '' : value || '')
+            }
             placeholder="اختر نوع الساحبة"
-            showSearch={true}
-            size="sm"
-            variant="default"
+            searchable={true}
           />
         </div>
       </div>
@@ -243,11 +240,11 @@ const TransportAdvancedFilter: React.FC<TransportAdvancedFilterProps> = ({
           <UniversalDropdown
             options={ratingOptions}
             value={filters.rating}
-            onChange={(value) => onFilterChange('rating', value)}
+            onChange={(value) =>
+              onFilterChange('rating', Array.isArray(value) ? value[0] || '' : value || '')
+            }
             placeholder="اختر التقييم"
-            showSearch={false}
-            size="sm"
-            variant="default"
+            searchable={false}
           />
         </div>
 
@@ -260,11 +257,11 @@ const TransportAdvancedFilter: React.FC<TransportAdvancedFilterProps> = ({
           <UniversalDropdown
             options={responseTimeOptions}
             value={filters.responseTime}
-            onChange={(value) => onFilterChange('responseTime', value)}
+            onChange={(value) =>
+              onFilterChange('responseTime', Array.isArray(value) ? value[0] || '' : value || '')
+            }
             placeholder="اختر وقت الاستجابة"
-            showSearch={false}
-            size="sm"
-            variant="default"
+            searchable={false}
           />
         </div>
 

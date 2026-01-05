@@ -1,6 +1,6 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import jwt from 'jsonwebtoken';
 import { prisma } from '@/lib/prisma';
+import jwt from 'jsonwebtoken';
+import { NextApiRequest, NextApiResponse } from 'next';
 
 // استخدام singleton pattern لـ Prisma
 
@@ -99,7 +99,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       success: false,
       error: 'خطأ في الخادم',
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }

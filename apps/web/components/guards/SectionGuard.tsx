@@ -124,7 +124,7 @@ export default function SectionGuard({
   redirectTo,
 }: SectionGuardProps) {
   const router = useRouter();
-  const { getSection, getSectionStatus, getSectionMessage, loading } = useSiteSections();
+  const { getSection, getSectionStatus, getSectionMessage, isLoading } = useSiteSections();
 
   const sectionData = getSection(section);
   const status = getSectionStatus(section);
@@ -132,13 +132,13 @@ export default function SectionGuard({
 
   // إعادة التوجيه إذا كان مطلوباً
   useEffect(() => {
-    if (!loading && status === 'DISABLED' && redirectTo) {
+    if (!isLoading && status === 'DISABLED' && redirectTo) {
       router.replace(redirectTo);
     }
-  }, [loading, status, redirectTo, router]);
+  }, [isLoading, status, redirectTo, router]);
 
   // حالة التحميل
-  if (loading) {
+  if (isLoading) {
     return null; // أو يمكن إظهار spinner
   }
 

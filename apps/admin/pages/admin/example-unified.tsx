@@ -142,7 +142,7 @@ export default function ExampleUnifiedPage() {
       header: 'المنتج',
       accessor: 'title',
       type: 'custom',
-      render: (_, row) => (
+      render: (value, row) => (
         <div className="flex items-center gap-3">
           <UnifiedImage
             src={row}
@@ -153,7 +153,9 @@ export default function ExampleUnifiedPage() {
             }
           />
           <div>
-            <p className="font-medium text-white">{row.title}</p>
+            <p className="font-medium text-white" title={row.title}>
+              {String(value || '')}
+            </p>
             <p className="text-xs text-slate-400">{row.views} مشاهدة</p>
           </div>
         </div>

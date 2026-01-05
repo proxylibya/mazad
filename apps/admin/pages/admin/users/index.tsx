@@ -7,6 +7,7 @@ import { PlusIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '../../../components/AdminLayout';
+import ConfirmDialog from '../../../components/ui/ConfirmDialog';
 import UnifiedActionsColumn, {
   ActionPresets,
 } from '../../../components/tables/UnifiedActionsColumn';
@@ -244,31 +245,16 @@ export default function UsersManagement() {
         sortable={true}
       />
 
-      {/* Delete Confirmation Modal */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-800 p-6">
-            <h3 className="mb-4 text-lg font-bold text-white">تأكيد الحذف</h3>
-            <p className="mb-6 text-slate-300">
-              هل أنت متأكد من حذف هذا المستخدم؟ لا يمكن التراجع عن هذا الإجراء.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="rounded-lg bg-slate-700 px-4 py-2 text-white transition-colors hover:bg-slate-600"
-              >
-                إلغاء
-              </button>
-              <button
-                onClick={() => handleDelete(deleteConfirm)}
-                className="rounded-lg bg-red-600 px-4 py-2 text-white transition-colors hover:bg-red-700"
-              >
-                حذف
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!deleteConfirm}
+        title="تأكيد الحذف"
+        message="هل أنت متأكد من حذف هذا المستخدم؟ لا يمكن التراجع عن هذا الإجراء."
+        variant="danger"
+        confirmLabel="حذف"
+        cancelLabel="إلغاء"
+        onCancel={() => setDeleteConfirm(null)}
+        onConfirm={() => deleteConfirm && handleDelete(deleteConfirm)}
+      />
     </AdminLayout>
   );
 }

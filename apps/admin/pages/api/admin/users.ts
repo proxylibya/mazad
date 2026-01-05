@@ -13,26 +13,12 @@
  * @date 2025-01-28
  */
 
-import { AccountType, PrismaClient, Role, UserStatus } from '@prisma/client';
+import { AccountType, Role, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-// ============================================
-// PRISMA CLIENT - Singleton with error handling
-// ============================================
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined; };
-let prisma: PrismaClient;
-
-try {
-    prisma = globalForPrisma.prisma ?? new PrismaClient({
-        log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-    });
-    if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
-} catch (err) {
-    console.error('[Users API] Failed to initialize Prisma:', err);
-    prisma = new PrismaClient();
-}
+import { prisma } from '@/lib/prisma';
 
 // ============================================
 // CONFIGURATION

@@ -18,16 +18,18 @@ import {
 } from '@heroicons/react/24/outline';
 import React, { useState } from 'react';
 import {
+  DEFAULT_TABLE_TEXT_MAX_LENGTH,
   formatDate,
   formatNumber,
   formatPhoneNumber,
   formatPrice,
   getStatusClasses,
   getStatusConfig,
+  truncateText,
   type ImageableEntity,
   type TableColumn,
 } from '../../lib/unified-admin-system';
-import UnifiedImage, { ProductImage, UserAvatar } from './UnifiedImage';
+import UnifiedImage, { UserAvatar } from './UnifiedImage';
 
 interface UnifiedTableProps<T> {
   /** أعمدة الجدول */
@@ -147,9 +149,30 @@ export default function UnifiedTable<T extends object>({
     const accessor = column.accessor;
     const value = typeof accessor === 'function' ? accessor(row) : row[accessor];
 
+    const shouldTruncate = (() => {
+      if (column.truncate === true) return true;
+      if (column.truncate === false) return false;
+      if (
+        column.type &&
+        ['image', 'status', 'date', 'price', 'phone', 'badge', 'actions'].includes(column.type)
+      ) {
+        return false;
+      }
+      if (typeof accessor === 'string') {
+        const key = accessor.toLowerCase();
+        return key === 'title' || key === 'name';
+      }
+      return false;
+    })();
+
+    const truncatedValue =
+      typeof value === 'string' && shouldTruncate
+        ? truncateText(value, column.maxLength ?? DEFAULT_TABLE_TEXT_MAX_LENGTH)
+        : value;
+
     // استخدام render مخصص إذا وجد
     if (column.render) {
-      return column.render(value, row);
+      return column.render(truncatedValue, row);
     }
 
     // عرض حسب نوع العمود
@@ -164,11 +187,15 @@ export default function UnifiedTable<T extends object>({
             />
           );
         }
+        const resolvedImageConfig = { ...column.imageConfig };
+        if (resolvedImageConfig.showCount === undefined) {
+          resolvedImageConfig.showCount = true;
+        }
         const rowAny = row as Record<string, unknown>;
         return (
           <UnifiedImage
             src={row as unknown as ImageableEntity}
-            config={column.imageConfig}
+            config={resolvedImageConfig}
             alt={String(rowAny.title || rowAny.name || 'صورة')}
           />
         );
@@ -205,6 +232,14 @@ export default function UnifiedTable<T extends object>({
       default:
         if (typeof value === 'number') {
           return <span className="text-slate-300">{formatNumber(value)}</span>;
+        }
+        if (typeof value === 'string' && shouldTruncate) {
+          const maxLength = column.maxLength ?? DEFAULT_TABLE_TEXT_MAX_LENGTH;
+          return (
+            <span className="text-slate-300" title={value}>
+              {truncateText(value, maxLength)}
+            </span>
+          );
         }
         return <span className="text-slate-300">{String(value ?? '-')}</span>;
     }
@@ -350,18 +385,44 @@ export const ColumnPresets = {
     header,
     accessor: 'name' as keyof T,
     type: 'custom',
-    render: (_, row) => <UserAvatar user={row} size="sm" showName={true} />,
+    render: (value, row) => (
+      <div className="flex items-center gap-3">
+        <UnifiedImage
+          src={row as unknown as ImageableEntity}
+          alt={String(row.name || 'مستخدم')}
+          config={{ fallbackIcon: 'user', size: 'sm', rounded: 'full' }}
+        />
+        <div>
+          <p className="font-medium text-white" title={String(row.name || '')}>
+            {String(value || row.name || 'بدون اسم')}
+          </p>
+        </div>
+      </div>
+    ),
   }),
 
   /** عمود صورة المنتج مع العنوان */
-  productWithImage: <T extends ImageableEntity & { title?: string }>(
+  productWithImage: <T extends ImageableEntity & { title?: string; name?: string }>(
     header = 'المنتج',
   ): TableColumn<T> => ({
     id: 'product',
     header,
     accessor: 'title' as keyof T,
     type: 'custom',
-    render: (_, row) => <ProductImage product={row} size="sm" showTitle={true} />,
+    render: (value, row) => (
+      <div className="flex items-center gap-3">
+        <UnifiedImage
+          src={row as unknown as ImageableEntity}
+          alt={String(row.title || row.name || 'منتج')}
+          config={{ size: 'sm', rounded: 'lg', fallbackIcon: 'car', showCount: true }}
+        />
+        <div>
+          <p className="font-medium text-white" title={String(row.title || '')}>
+            {String(value || row.title || row.name || 'بدون عنوان')}
+          </p>
+        </div>
+      </div>
+    ),
   }),
 
   /** عمود الصور فقط */

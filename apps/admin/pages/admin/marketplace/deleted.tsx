@@ -2,15 +2,11 @@
  * صفحة الإعلانات المحذوفة - السوق الفوري
  * Deleted Marketplace Listings Page
  */
-import {
-  ArrowPathIcon,
-  ExclamationTriangleIcon,
-  EyeIcon,
-  TrashIcon,
-} from '@heroicons/react/24/outline';
+import { ArrowPathIcon, EyeIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '../../../components/AdminLayout';
+import ConfirmDialog from '../../../components/ui/ConfirmDialog';
 import {
   SimpleToast,
   UnifiedImage,
@@ -214,7 +210,7 @@ export default function DeletedMarketplacePage() {
       header: 'الإعلان',
       accessor: 'title',
       type: 'custom',
-      render: (_, row) => (
+      render: (value, row) => (
         <div className="flex items-center gap-3">
           <UnifiedImage
             src={row.images?.[0] || null}
@@ -223,7 +219,9 @@ export default function DeletedMarketplacePage() {
             showExtraCount={row.images && row.images.length > 1 ? row.images.length - 1 : undefined}
           />
           <div>
-            <p className="font-medium text-white">{row.title}</p>
+            <p className="font-medium text-white" title={row.title}>
+              {String(value || '')}
+            </p>
             <p className="text-xs text-slate-400">{row.category}</p>
           </div>
         </div>
@@ -338,93 +336,52 @@ export default function DeletedMarketplacePage() {
         sortable={true}
       />
 
-      {/* Restore Confirmation Modal */}
-      {restoreModal.open && restoreModal.listing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="mx-4 w-full max-w-md rounded-xl border border-slate-700 bg-slate-800 p-6 shadow-2xl">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="rounded-full bg-green-500/20 p-3">
-                <ArrowPathIcon className="h-6 w-6 text-green-400" />
+      <ConfirmDialog
+        open={restoreModal.open && !!restoreModal.listing}
+        title="تأكيد الاستعادة"
+        message={
+          restoreModal.listing && (
+            <div className="space-y-3">
+              <p>هل تريد استعادة هذا الإعلان؟</p>
+              <p className="rounded-lg bg-slate-700/50 p-3 text-sm text-white">
+                {restoreModal.listing.title}
+              </p>
+            </div>
+          )
+        }
+        variant="primary"
+        confirmLabel="استعادة"
+        cancelLabel="إلغاء"
+        loading={!!restoreModal.listing && actionLoading === restoreModal.listing.id}
+        onCancel={() => setRestoreModal({ open: false, listing: null })}
+        onConfirm={handleRestore}
+      />
+
+      <ConfirmDialog
+        open={permanentDeleteModal.open && !!permanentDeleteModal.listing}
+        title="تأكيد الحذف النهائي"
+        message={
+          permanentDeleteModal.listing && (
+            <div className="space-y-3">
+              <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3">
+                <p className="text-sm text-red-400">⚠️ تحذير: هذا الإجراء لا يمكن التراجع عنه!</p>
               </div>
-              <h3 className="text-lg font-semibold text-white">تأكيد الاستعادة</h3>
+              <p>
+                هل أنت متأكد من الحذف النهائي لهذا الإعلان؟{' '}
+                <span className="font-medium text-white">{permanentDeleteModal.listing.title}</span>
+              </p>
             </div>
-
-            <p className="mb-2 text-slate-300">هل تريد استعادة هذا الإعلان؟</p>
-            <p className="mb-6 rounded-lg bg-slate-700/50 p-3 text-sm text-white">
-              {restoreModal.listing.title}
-            </p>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setRestoreModal({ open: false, listing: null })}
-                className="flex-1 rounded-lg border border-slate-600 bg-slate-700 px-4 py-2.5 text-white transition-colors hover:bg-slate-600"
-              >
-                إلغاء
-              </button>
-              <button
-                onClick={handleRestore}
-                disabled={actionLoading === restoreModal.listing.id}
-                className="flex-1 rounded-lg bg-green-600 px-4 py-2.5 text-white transition-colors hover:bg-green-700 disabled:opacity-50"
-              >
-                {actionLoading === restoreModal.listing.id ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-                    جاري الاستعادة...
-                  </span>
-                ) : (
-                  'استعادة'
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Permanent Delete Confirmation Modal */}
-      {permanentDeleteModal.open && permanentDeleteModal.listing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="mx-4 w-full max-w-md rounded-xl border border-slate-700 bg-slate-800 p-6 shadow-2xl">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="rounded-full bg-red-500/20 p-3">
-                <ExclamationTriangleIcon className="h-6 w-6 text-red-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-white">تأكيد الحذف النهائي</h3>
-            </div>
-
-            <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3">
-              <p className="text-sm text-red-400">⚠️ تحذير: هذا الإجراء لا يمكن التراجع عنه!</p>
-            </div>
-
-            <p className="mb-2 text-slate-300">هل أنت متأكد من الحذف النهائي لهذا الإعلان؟</p>
-            <p className="mb-6 rounded-lg bg-slate-700/50 p-3 text-sm text-white">
-              {permanentDeleteModal.listing.title}
-            </p>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setPermanentDeleteModal({ open: false, listing: null })}
-                className="flex-1 rounded-lg border border-slate-600 bg-slate-700 px-4 py-2.5 text-white transition-colors hover:bg-slate-600"
-              >
-                إلغاء
-              </button>
-              <button
-                onClick={handlePermanentDelete}
-                disabled={actionLoading === permanentDeleteModal.listing.id}
-                className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-white transition-colors hover:bg-red-700 disabled:opacity-50"
-              >
-                {actionLoading === permanentDeleteModal.listing.id ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-                    جاري الحذف...
-                  </span>
-                ) : (
-                  'حذف نهائي'
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          )
+        }
+        variant="danger"
+        confirmLabel="حذف نهائي"
+        cancelLabel="إلغاء"
+        loading={
+          !!permanentDeleteModal.listing && actionLoading === permanentDeleteModal.listing.id
+        }
+        onCancel={() => setPermanentDeleteModal({ open: false, listing: null })}
+        onConfirm={handlePermanentDelete}
+      />
     </AdminLayout>
   );
 }

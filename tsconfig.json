@@ -23,34 +23,40 @@
     "baseUrl": ".",
     "paths": {
       "@/*": [
-        "./*"
+        "./apps/web/*"
       ],
       "@/components/*": [
-        "components/*"
+        "./apps/web/components/*"
       ],
       "@/lib/*": [
-        "lib/*"
+        "./apps/web/lib/*"
       ],
       "@/utils/*": [
-        "utils/*"
+        "./apps/web/utils/*"
       ],
       "@/pages/*": [
-        "pages/*"
+        "./apps/web/pages/*"
       ],
       "@/styles/*": [
-        "styles/*"
+        "./apps/web/styles/*"
       ],
       "@/types/*": [
-        "types/*"
+        "./apps/web/types/*"
       ],
       "@/hooks/*": [
-        "hooks/*"
+        "./apps/web/hooks/*"
       ],
       "@/contexts/*": [
-        "contexts/*"
+        "./apps/web/contexts/*"
       ],
       "@/services/*": [
-        "services/*"
+        "./apps/web/services/*"
+      ],
+      "@/config/*": [
+        "./apps/web/config/*"
+      ],
+      "@/data/*": [
+        "./apps/web/data/*"
       ]
     },
     "tsBuildInfoFile": ".tsbuildinfo",
@@ -74,7 +80,6 @@
     "**/*.test.ts",
     "**/*.spec.ts",
     "**/*.test.tsx",
-    "**/*.spec.tsx",
-    "apps/web/pages/api/**"
+    "**/*.spec.tsx"
   ]
 }

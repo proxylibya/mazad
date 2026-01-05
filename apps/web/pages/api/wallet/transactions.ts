@@ -2,6 +2,11 @@ import { verifyToken } from '@/lib/auth/jwtUtils';
 import { prisma } from '@/lib/prisma';
 import { NextApiRequest, NextApiResponse } from 'next';
 
+interface AuthTokenPayload {
+  userId: string;
+  [key: string]: unknown;
+}
+
 // محاولة استيراد keydb بشكل آمن
 let keydb: any = null;
 try {
@@ -25,7 +30,7 @@ export default async function handler(
       return res.status(401).json({ success: false, error: 'غير مصرح - سجل الدخول أولاً' });
     }
 
-    const decoded = verifyToken(token);
+    const decoded = verifyToken<AuthTokenPayload>(token);
     if (!decoded || !decoded.userId) {
       return res.status(401).json({ success: false, error: 'توكن غير صالح' });
     }
@@ -49,29 +54,39 @@ export default async function handler(
     }
 
     // بناء شروط البحث
-    const where: any = { userId };
+    const where: any = {};
+
+    // الحصول على المعاملات من قاعدة البيانات
+    const wallet = await prisma.wallets.findUnique({
+      where: { userId },
+      include: {
+        users: {
+          select: {
+            id: true,
+            name: true,
+            publicId: true,
+          },
+        },
+      },
+    });
+
+    if (!wallet) {
+      return res.status(404).json({ success: false, error: 'المحفظة غير موجودة' });
+    }
+
+    where.walletId = wallet.id;
     if (walletType) {
       where.walletType = walletType;
     }
 
-    // الحصول على المعاملات من قاعدة البيانات
     const [transactions, total] = await Promise.all([
       prisma.transactions.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         skip,
         take: Number(limit),
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              publicId: true
-            }
-          }
-        }
       }),
-      prisma.transactions.count({ where })
+      prisma.transactions.count({ where }),
     ]);
 
     const result = {
@@ -85,10 +100,7 @@ export default async function handler(
         description: t.description,
         reference: t.reference,
         createdAt: t.createdAt,
-        user: {
-          name: t.user.name,
-          publicId: t.user.publicId
-        }
+        user: wallet.users
       })),
       pagination: {
         page: Number(page),

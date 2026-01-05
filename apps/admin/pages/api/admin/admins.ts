@@ -12,15 +12,11 @@
  * NOTE: Run `npx prisma generate` after stopping server to fix type errors
  */
 
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-// Prisma client singleton
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined; };
-const prisma = globalForPrisma.prisma ?? new PrismaClient();
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+import { prisma } from '@/lib/prisma';
 
 const JWT_SECRET = process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET || 'sooq-mazad-admin-secret-key-min-32-chars!';
 const COOKIE_NAME = 'admin_session';
@@ -116,18 +112,6 @@ async function verifyAuth(req: NextApiRequest): Promise<{ adminId: string; role:
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     try {
-        // Test database connection first
-        try {
-            await prisma.$connect();
-        } catch (dbError) {
-            console.error('Database connection error:', dbError);
-            return res.status(500).json({
-                success: false,
-                message: 'خطأ في الاتصال بقاعدة البيانات',
-                error: dbError instanceof Error ? dbError.message : 'Unknown DB error',
-            });
-        }
-
         // Verify authentication
         const auth = await verifyAuth(req);
 

@@ -170,7 +170,7 @@ export default function AuctionsManagement() {
       header: 'المزاد',
       accessor: 'title',
       type: 'custom',
-      render: (_, row) => (
+      render: (value, row) => (
         <div className="flex items-center gap-3">
           <UnifiedImage
             src={row.images?.[0] || null}
@@ -179,7 +179,9 @@ export default function AuctionsManagement() {
             showExtraCount={row.images.length > 1 ? row.images.length - 1 : undefined}
           />
           <div>
-            <p className="font-medium text-white">{row.title}</p>
+            <p className="font-medium text-white" title={row.title}>
+              {String(value || '')}
+            </p>
             <p className="text-xs text-slate-400">{row.bidsCount} مزايدة</p>
           </div>
         </div>

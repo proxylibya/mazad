@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 interface UseAdminSidebarScrollReturn {
   ref: React.RefObject<HTMLElement>;
@@ -36,7 +36,7 @@ export const useAdminSidebarScroll = (storageKey: string): UseAdminSidebarScroll
 
       // إصلاح السكرول على أجهزة اللمس
       element.style.overflowY = 'auto';
-      element.style.WebkitOverflowScrolling = 'touch';
+      (element.style as any).WebkitOverflowScrolling = 'touch';
       element.style.overscrollBehavior = 'contain';
 
       return () => {

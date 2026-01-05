@@ -461,8 +461,9 @@ const AuctionsPage: React.FC<AuctionsPageProps> = React.memo(
           const timestamp = Date.now();
           log.debug('إرسال طلب API', { timestamp });
 
+          // طلب عدد كبير لضمان جلب كل المزادات للفلترة المحلية
           const response = await fetch(
-            `/api/auctions?page=${pagination.currentPage}&limit=${pagination.itemsPerPage}&sortBy=createdAt&sortOrder=desc&_t=${timestamp}`,
+            `/api/auctions?page=1&limit=1000&sortBy=createdAt&sortOrder=desc&_t=${timestamp}`,
             {
               cache: 'no-cache',
               headers: {
@@ -492,7 +493,7 @@ const AuctionsPage: React.FC<AuctionsPageProps> = React.memo(
               // يمكن تحديث معلومات الترقيم فقط إذا لزم الأمر دون مسح القائمة
               if (result.data.pagination && typeof result.data.pagination.total === 'number') {
                 setTotalAuctions(result.data.pagination.total);
-                pagination.setTotalItems(result.data.pagination.total);
+                // pagination.setTotalItems(result.data.pagination.total);
               }
               return;
             }
@@ -510,7 +511,8 @@ const AuctionsPage: React.FC<AuctionsPageProps> = React.memo(
               // تحديث معلومات الترقيم
               if (result.data.pagination) {
                 setTotalAuctions(result.data.pagination.total);
-                pagination.setTotalItems(result.data.pagination.total);
+                // تم تعطيل تحديث الترقيم من الخادم لأننا نستخدم ترقيم محلي (client-side pagination)
+                // pagination.setTotalItems(result.data.pagination.total);
               }
 
               log.info(`تم تحديث المزادات: ${newAuctions.length} مزاد`);
@@ -571,13 +573,13 @@ const AuctionsPage: React.FC<AuctionsPageProps> = React.memo(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // تحديث البيانات عند تغيير الصفحة
-    useEffect(() => {
-      if (pagination.currentPage > 1) {
-        refreshAuctions(true);
-      }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pagination.currentPage]);
+    // تحديث البيانات عند تغيير الصفحة - معطل لأننا نستخدم ترقيم محلي
+    // useEffect(() => {
+    //   if (pagination.currentPage > 1) {
+    //     refreshAuctions(true);
+    //   }
+    //   // eslint-disable-next-line react-hooks/exhaustive-deps
+    // }, [pagination.currentPage]);
 
     // تحديث البيانات عند العودة إلى الصفحة (للتأكد من ظهور المزادات الجديدة)
     useEffect(() => {
@@ -886,16 +888,16 @@ const AuctionsPage: React.FC<AuctionsPageProps> = React.memo(
             if (Array.isArray(car.car?.images) && car.car.images.length > 0) return car.car.images;
             return [];
           })(),
-          condition: translateToArabic(car.condition || car.car?.condition || 'مستعمل'),
+          condition: translateToArabic(car.condition || car.car?.condition),
           brand: car.brand || car.car?.brand || '',
           model: car.model || car.car?.model || '',
-          year: car.year || car.car?.year || new Date().getFullYear().toString(),
+          year: car.year || car.car?.year || '',
           mileage: formatMileage(car.mileage || car.car?.mileage) || 'غير محدد',
-          fuelType: translateToArabic(car.fuelType || car.car?.fuelType || 'بنزين'),
-          transmission: translateToArabic(car.transmission || car.car?.transmission || 'أوتوماتيك'),
-          bodyType: translateToArabic(car.bodyType || car.car?.bodyType || 'سيدان'),
-          color: translateToArabic(car.color || car.car?.color || 'أبيض'),
-          doors: car.doors || car.car?.doors || 4,
+          fuelType: translateToArabic(car.fuelType || car.car?.fuelType),
+          transmission: translateToArabic(car.transmission || car.car?.transmission),
+          bodyType: translateToArabic(car.bodyType || car.car?.bodyType),
+          color: translateToArabic(car.color || car.car?.color),
+          doors: car.doors || car.car?.doors || null,
           type: 'auction',
           phone: car.phone || car.seller?.phone || car.user?.phone || '0912345678',
           isAuction: true,
@@ -1745,6 +1747,22 @@ const AuctionsPage: React.FC<AuctionsPageProps> = React.memo(
 
     const filteredCars = getFilteredCars;
 
+    // تحديث عدد العناصر الكلي للترقيم عند تغيير الفلترة
+    useEffect(() => {
+      pagination.setTotalItems(filteredCars.length);
+      // العودة للصفحة الأولى عند تغيير الفلاتر
+      if (pagination.currentPage > Math.ceil(filteredCars.length / pagination.itemsPerPage)) {
+        pagination.setPage(1);
+      }
+    }, [filteredCars.length, pagination]);
+
+    // تطبيق الترقيم على النتائج المفلترة
+    const paginatedCars = useMemo(() => {
+      const startIndex = (pagination.currentPage - 1) * pagination.itemsPerPage;
+      const endIndex = startIndex + pagination.itemsPerPage;
+      return filteredCars.slice(startIndex, endIndex);
+    }, [filteredCars, pagination.currentPage, pagination.itemsPerPage]);
+
     // تم إزالة console.log للتشخيص
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1884,7 +1902,7 @@ const AuctionsPage: React.FC<AuctionsPageProps> = React.memo(
     return (
       <>
         <Head>
-          <title>سوق المزاد | موقع مزاد السيارات</title>
+          <title>سوق المزاد | المزادات</title>
           <meta
             name="description"
             content="اكتشف أفضل السيارات في سوق المزاد مع أسعار تنافسية وجودة عالية"
@@ -1899,7 +1917,7 @@ const AuctionsPage: React.FC<AuctionsPageProps> = React.memo(
 
           {/* Mobile Sidebar Toggle */}
           <div className="border-b bg-white auction-lg:hidden">
-            <div className="mx-auto max-w-7xl px-4 py-2">
+            <div className="w-full px-3 py-2 auction-lg:mx-auto auction-lg:max-w-7xl auction-lg:px-4">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="flex items-center gap-2 text-gray-600 hover:text-blue-600"
@@ -1918,7 +1936,7 @@ const AuctionsPage: React.FC<AuctionsPageProps> = React.memo(
 
           {/* Sub Navigation */}
           <div className="border-b bg-gray-100">
-            <div className="mx-auto max-w-7xl px-4">
+            <div className="w-full px-3 auction-lg:mx-auto auction-lg:max-w-7xl auction-lg:px-4">
               {/* مؤشر تحميل خفيف */}
               {isRefreshing && (
                 <div className="absolute left-0 top-0 z-50 h-0.5 w-full bg-blue-200">
@@ -1929,7 +1947,7 @@ const AuctionsPage: React.FC<AuctionsPageProps> = React.memo(
                 {/* التبويبات العادية للشاشات الكبيرة والصغيرة جداً - محدثة للنظام الموحد */}
                 {!isMobileTabsView && (
                   <div
-                    className={`flex items-center gap-1 overflow-x-auto ${screenWidth <= 800 ? 'compact-tabs' : ''}`}
+                    className={`flex w-full max-w-full items-center gap-1 overflow-x-auto ${screenWidth <= 800 ? 'compact-tabs' : ''}`}
                   >
                     {subTabs.map((tab) => {
                       const TabIcon = tab.icon;
@@ -2024,7 +2042,7 @@ const AuctionsPage: React.FC<AuctionsPageProps> = React.memo(
 
           {/* Mobile Filters - يظهر فقط في الشاشات الصغيرة */}
           <div className="mobile-filters-container block border-b border-gray-200 bg-white auction-lg:hidden">
-            <div className="mx-auto max-w-7xl px-4">
+            <div className="w-full px-3 auction-lg:mx-auto auction-lg:max-w-7xl auction-lg:px-4">
               <button
                 onClick={() => setShowMobileFilters(!showMobileFilters)}
                 className="mobile-filters-button flex w-full items-center justify-between py-3 text-left"
@@ -2245,7 +2263,7 @@ const AuctionsPage: React.FC<AuctionsPageProps> = React.memo(
           </div>
 
           {/* Main Content */}
-          <div className="mx-auto max-w-7xl px-4 py-6">
+          <div className="w-full px-3 py-6 auction-lg:mx-auto auction-lg:max-w-7xl auction-lg:px-4">
             <div className="flex items-start justify-start gap-3">
               {/* Sidebar - Fixed height to match content - مخفي في الشاشات الصغيرة */}
               <div
@@ -2578,11 +2596,11 @@ const AuctionsPage: React.FC<AuctionsPageProps> = React.memo(
                 <div
                   className={
                     viewMode === 'grid'
-                      ? `auction-grid-view grid auto-rows-fr grid-cols-1 gap-4 md:grid-cols-2 md:gap-6`
-                      : 'auction-list-view space-y-6'
+                      ? `auction-grid-view grid auto-rows-fr grid-cols-1 gap-x-4 gap-y-8 md:grid-cols-2 md:gap-x-6 md:gap-y-10`
+                      : 'auction-list-view space-y-8'
                   }
                 >
-                  {filteredCars.map((car) => {
+                  {paginatedCars.map((car) => {
                     const transformedCar = transformCarData(car);
                     const idStr = String(car.id);
                     const carIdNumber =
@@ -2732,6 +2750,7 @@ export const getServerSideProps: GetServerSideProps<AuctionsPageProps> = async (
           yardId: null, // ✅ استبعاد مزادات الساحات - هذا الفلتر مهم جداً!
           status: { not: 'CANCELLED' },
         },
+        take: 1000, // ✅ تحديد الحد الأقصى للأداء (يتطابق مع client-side fetching)
         select: {
           id: true,
           title: true,
@@ -2763,6 +2782,9 @@ export const getServerSideProps: GetServerSideProps<AuctionsPageProps> = async (
               description: true,
               images: true,
               status: true,
+              mileage: true,
+              condition: true,
+              doors: true,
               fuelType: true,
               transmission: true,
               bodyType: true,
@@ -2803,7 +2825,6 @@ export const getServerSideProps: GetServerSideProps<AuctionsPageProps> = async (
           { promotionPriority: 'desc' }, // حسب أولوية الترويج
           { createdAt: 'desc' }, // ثم حسب التاريخ
         ],
-        take: 50,
       });
     } catch (dbError) {
       console.error('[🚨 SSR Error] خطأ في استعلام قاعدة البيانات:', dbError);

@@ -110,7 +110,7 @@ const AboutPage = () => {
   return (
     <>
       <Head>
-        <title>عنا - موقع مزاد السيارات</title>
+        <title>عنا | سوق المزاد</title>
         <meta
           name="description"
           content="تعرف على قصتنا ورؤيتنا في تطوير صناعة مزادات السيارات في ليبيا والمنطقة العربية"

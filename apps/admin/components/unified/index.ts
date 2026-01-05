@@ -28,6 +28,8 @@ export {
     CommonFilters, FilterSelect, SearchInput, default as UnifiedSearch, useSearchFilter
 } from './UnifiedSearch';
 
+export { AnimatedPresence, AnimatedSection, PageTransition, RouteProgressBar } from './UnifiedAnimation';
+
 // ================== Re-export Types ==================
 export type {
     BaseEntity, EntityStatus,
@@ -38,6 +40,7 @@ export type {
 // ================== Re-export Utilities ==================
 export {
 
+    DEFAULT_TABLE_TEXT_MAX_LENGTH,
     // Labels
     ENTITY_LABELS, IMAGE_ROUNDED, IMAGE_SIZES, ROLE_LABELS,
     SERVICE_TYPE_LABELS,
@@ -45,13 +48,13 @@ export {
     STATUS_CONFIG,
     // Stats
     STAT_COLORS,
-
     // Toast
     TOAST_CONFIG, formatDate, formatNumber,
     // Formatting
     formatPhoneNumber, formatPrice, getAllEntityImages, getEntityImage,
     getImageUrl, getStatusClasses, getStatusConfig,
     // Images
-    parseImages
+    parseImages,
+    truncateText
 } from '../../lib/unified-admin-system';
 

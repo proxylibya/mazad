@@ -5,11 +5,11 @@
 
 import { io, Socket } from 'socket.io-client';
 import {
-  ServerToClientEvents,
-  ClientToServerEvents,
   AuctionState,
   BidData,
+  ClientToServerEvents,
   ConnectionState,
+  ServerToClientEvents,
 } from '../../types/socket';
 
 // Client-side Socket type
@@ -38,7 +38,7 @@ export enum MessagePriority {
 }
 
 export interface QueuedMessage {
-  event: string;
+  event: keyof ClientToServerEvents;
   data: unknown;
   priority: MessagePriority;
   timestamp: Date;
@@ -180,8 +180,8 @@ export class EnhancedWebSocketManager {
     });
 
     // Auction-specific events
-    this.socket.on('auction:joined', (data: { auction?: { id?: string } }) => {
-      this.currentAuction = data.auction?.id || null;
+    this.socket.on('auction:joined', (data) => {
+      this.currentAuction = data.auction?.auctionId || null;
       this.emit('auction:joined', data);
       this.stats.messagesReceived++;
     });
@@ -345,7 +345,7 @@ export class EnhancedWebSocketManager {
    * Send message with priority queue
    */
   public async sendMessage(
-    event: string,
+    event: keyof ClientToServerEvents,
     data: unknown,
     priority: MessagePriority = MessagePriority.MEDIUM,
   ): Promise<boolean> {
@@ -365,7 +365,7 @@ export class EnhancedWebSocketManager {
         return;
       }
 
-      this.socket.emit(event, data, () => {
+      (this.socket as any).emit(event, data, () => {
         this.stats.messagesSent++;
         resolve(true);
       });

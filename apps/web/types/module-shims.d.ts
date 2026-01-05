@@ -23,30 +23,6 @@ declare module '../contexts/AdminContext' {
     export function AdminProvider(props: { children: React.ReactNode; }): JSX.Element;
 }
 
-declare module '../lib/error-handling/client-error-handler' {
-    export interface ClientError {
-        message: string;
-        code?: string;
-        timestamp: Date;
-    }
-    export function handleClientError(error: unknown): void;
-    export function captureError(error: ClientError): void;
-    export const clientErrorHandler: {
-        captureError: (error: ClientError) => void;
-        getErrors: () => ClientError[];
-        clearErrors: () => void;
-    };
-    export default clientErrorHandler;
-}
-
-declare module '../../lib/error-handling/client-error-handler' {
-    export * from '../lib/error-handling/client-error-handler';
-}
-
-declare module '../../../lib/error-handling/client-error-handler' {
-    export * from '../lib/error-handling/client-error-handler';
-}
-
 declare module '../../lib/core/logging/UnifiedLogger' {
     export const logger: {
         debug: (message: string, context?: Record<string, unknown>) => void;
@@ -57,37 +33,11 @@ declare module '../../lib/core/logging/UnifiedLogger' {
     export default logger;
 }
 
-declare module '../contexts/SimpleLocalizationContext' {
-    export interface LocalizationContextType {
-        locale: string;
-        direction: 'rtl' | 'ltr';
-        t: (key: string) => string;
-    }
-    export function useSimpleLocalization(): LocalizationContextType;
-    export function usePriceFormatter(): (amount: number) => string;
-    export function SimpleLocalizationProvider(props: { children: React.ReactNode; }): JSX.Element;
-}
-
 // === Wallet feature modules ===
 declare module '../features/wallet/utils/numberUtils' {
     export function formatCurrency(amount: number, currency?: string): string;
     export function formatNumber(num: number): string;
     export function parseNumber(value: string): number;
-}
-
-declare module '../features/wallet/contexts/SimpleLocalizationContext' {
-    export * from '../contexts/SimpleLocalizationContext';
-}
-
-// === Component modules ===
-declare module '../components/common/layout/OpensooqNavbar' {
-    const OpensooqNavbar: React.FC<Record<string, unknown>>;
-    export default OpensooqNavbar;
-}
-
-declare module './common/layout/OpensooqNavbar' {
-    const OpensooqNavbar: React.FC<Record<string, unknown>>;
-    export default OpensooqNavbar;
 }
 
 // === Utility modules ===

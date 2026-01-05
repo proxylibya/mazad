@@ -986,7 +986,7 @@ export default function YardAuctionPage() {
                       )}
 
                       {/* عدد المقاعد */}
-                      {car.seatCount && (
+                      {car.seatCount !== undefined && car.seatCount !== null && (
                         <div className="car-spec-card spec-general">
                           <div className="car-spec-label">
                             <UserGroupIcon className="car-spec-icon" />

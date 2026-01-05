@@ -4,27 +4,26 @@
  */
 
 const Redis = require('ioredis');
-;
 // Initialize KeyDB client
 const keydb = new Redis({
   host: process.env.KEYDB_HOST || 'localhost',
   port: parseInt(process.env.KEYDB_PORT || '6379'),
   password: process.env.KEYDB_PASSWORD,
   keyPrefix: 'realtime:',
-  enableReadyCheck: true
+  enableReadyCheck: true,
 });
 
 // Initialize pub/sub clients
 const publisher = new Redis({
   host: process.env.KEYDB_HOST || 'localhost',
   port: parseInt(process.env.KEYDB_PORT || '6379'),
-  password: process.env.KEYDB_PASSWORD
+  password: process.env.KEYDB_PASSWORD,
 });
 
 const subscriber = new Redis({
   host: process.env.KEYDB_HOST || 'localhost',
   port: parseInt(process.env.KEYDB_PORT || '6379'),
-  password: process.env.KEYDB_PASSWORD
+  password: process.env.KEYDB_PASSWORD,
 });
 
 class RealtimeCache {
@@ -50,7 +49,7 @@ class RealtimeCache {
    */
   async updateBid(auctionId, bid) {
     const key = `auction:${auctionId}:state`;
-    
+
     // Get current state
     let state = await this.getAuctionState(auctionId);
     if (!state) {
@@ -58,7 +57,7 @@ class RealtimeCache {
         id: auctionId,
         currentBid: 0,
         bidCount: 0,
-        bids: []
+        bids: [],
       };
     }
 
@@ -67,12 +66,12 @@ class RealtimeCache {
     state.bidCount++;
     state.lastBidder = bid.userId;
     state.lastBidTime = new Date().toISOString();
-    
+
     // Add to bids array (keep last 100)
     state.bids.unshift({
       amount: bid.amount,
       userId: bid.userId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
     if (state.bids.length > 100) {
       state.bids = state.bids.slice(0, 100);
@@ -80,10 +79,10 @@ class RealtimeCache {
 
     // Save state
     await this.saveAuctionState(auctionId, state);
-    
+
     // Publish bid event
     await publisher.publish(`auction:${auctionId}:bids`, JSON.stringify(bid));
-    
+
     return state;
   }
 
@@ -93,14 +92,14 @@ class RealtimeCache {
   async getActiveAuctions() {
     const keys = await keydb.keys('auction:*:state');
     const auctions = [];
-    
+
     for (const key of keys) {
       const state = await keydb.get(key);
       if (state) {
         auctions.push(JSON.parse(state));
       }
     }
-    
+
     return auctions;
   }
 
@@ -110,18 +109,18 @@ class RealtimeCache {
   async joinAuction(auctionId, userId, socketId) {
     const roomKey = `auction:${auctionId}:users`;
     const userKey = `user:${userId}:auctions`;
-    
+
     // Add user to auction room
     await keydb.sadd(roomKey, `${userId}:${socketId}`);
     await keydb.expire(roomKey, 3600); // 1 hour TTL
-    
+
     // Track user's auctions
     await keydb.sadd(userKey, auctionId);
     await keydb.expire(userKey, 3600);
-    
+
     // Get room count
     const count = await keydb.scard(roomKey);
-    
+
     return { count };
   }
 
@@ -131,16 +130,16 @@ class RealtimeCache {
   async leaveAuction(auctionId, userId, socketId) {
     const roomKey = `auction:${auctionId}:users`;
     const userKey = `user:${userId}:auctions`;
-    
+
     // Remove user from auction room
     await keydb.srem(roomKey, `${userId}:${socketId}`);
-    
+
     // Remove auction from user's list
     await keydb.srem(userKey, auctionId);
-    
+
     // Get room count
     const count = await keydb.scard(roomKey);
-    
+
     return { count };
   }
 
@@ -150,8 +149,8 @@ class RealtimeCache {
   async getAuctionParticipants(auctionId) {
     const roomKey = `auction:${auctionId}:users`;
     const participants = await keydb.smembers(roomKey);
-    
-    return participants.map(p => {
+
+    return participants.map((p) => {
       const [userId, socketId] = p.split(':');
       return { userId, socketId };
     });
@@ -162,11 +161,15 @@ class RealtimeCache {
    */
   async saveConnection(socketId, userId, metadata = {}) {
     const key = `connection:${socketId}`;
-    await keydb.setex(key, 3600, JSON.stringify({
-      userId,
-      connectedAt: new Date().toISOString(),
-      ...metadata
-    }));
+    await keydb.setex(
+      key,
+      3600,
+      JSON.stringify({
+        userId,
+        connectedAt: new Date().toISOString(),
+        ...metadata,
+      }),
+    );
   }
 
   /**
@@ -192,9 +195,9 @@ class RealtimeCache {
   async trackOnlineUser(userId) {
     const key = 'users:online';
     await keydb.zadd(key, Date.now(), userId);
-    
+
     // Clean old entries (older than 5 minutes)
-    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
     await keydb.zremrangebyscore(key, 0, fiveMinutesAgo);
   }
 
@@ -203,7 +206,7 @@ class RealtimeCache {
    */
   async getOnlineUsersCount() {
     const key = 'users:online';
-    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
     return await keydb.zcount(key, fiveMinutesAgo, '+inf');
   }
 
@@ -212,16 +215,19 @@ class RealtimeCache {
    */
   async saveChatMessage(auctionId, message) {
     const key = `auction:${auctionId}:chat`;
-    
+
     // Add message to list
-    await keydb.lpush(key, JSON.stringify({
-      ...message,
-      timestamp: new Date().toISOString()
-    }));
-    
+    await keydb.lpush(
+      key,
+      JSON.stringify({
+        ...message,
+        timestamp: new Date().toISOString(),
+      }),
+    );
+
     // Keep only last 100 messages
     await keydb.ltrim(key, 0, 99);
-    
+
     // Set TTL
     await keydb.expire(key, 86400); // 24 hours
   }
@@ -232,7 +238,7 @@ class RealtimeCache {
   async getChatMessages(auctionId, limit = 50) {
     const key = `auction:${auctionId}:chat`;
     const messages = await keydb.lrange(key, 0, limit - 1);
-    return messages.map(m => JSON.parse(m)).reverse();
+    return messages.map((m) => JSON.parse(m)).reverse();
   }
 
   /**
@@ -252,12 +258,12 @@ class RealtimeCache {
     const today = new Date().toISOString().split('T')[0];
     const keys = await keydb.keys(`metrics:${today}:*`);
     const metrics = {};
-    
+
     for (const key of keys) {
       const metric = key.split(':').pop();
       metrics[metric] = parseInt(await keydb.get(key)) || 0;
     }
-    
+
     return metrics;
   }
 }
@@ -272,5 +278,5 @@ module.exports = {
   keydb,
   publisher,
   subscriber,
-  RealtimeCache: new RealtimeCache()
+  RealtimeCache: new RealtimeCache(),
 };
