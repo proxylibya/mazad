@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 export interface AnalyticsEvent {
   event: string;
@@ -141,68 +141,71 @@ export const useAnalytics = () => {
     }
   }, []);
 
-  const trackEvent = (event: Omit<AnalyticsEvent, 'event'> & { event?: string }) => {
+  const trackEvent = useCallback((event: Omit<AnalyticsEvent, 'event'> & { event?: string; }) => {
     analytics.trackEvent({
       event: event.event || 'custom_event',
       ...event,
     });
-  };
+  }, []);
 
-  const trackPageView = (page: string, title?: string) => {
+  const trackPageView = useCallback((page: string, title?: string) => {
     analytics.trackPageView({
       page,
       title: title || document.title,
       referrer: document.referrer,
     });
-  };
+  }, []);
 
-  const trackAuctionView = (
-    auctionId: string,
-    data: { title?: string; status?: string; currentPrice?: number },
-  ) => {
-    trackEvent({
-      event: 'auction_view',
-      category: 'auction',
-      action: 'view',
-      label: `${auctionId}:${data?.title ?? ''}:${data?.status ?? ''}`,
-      value: typeof data?.currentPrice === 'number' ? data.currentPrice : undefined,
-    });
-  };
+  const trackAuctionView = useCallback(
+    (auctionId: string, data: { title?: string; status?: string; currentPrice?: number; }) => {
+      trackEvent({
+        event: 'auction_view',
+        category: 'auction',
+        action: 'view',
+        label: `${auctionId}:${data?.title ?? ''}:${data?.status ?? ''}`,
+        value: typeof data?.currentPrice === 'number' ? data.currentPrice : undefined,
+      });
+    },
+    [trackEvent],
+  );
 
-  const trackShowroomView = (
-    showroomId: string,
-    data: { name?: string; location?: string; type?: string; verified?: boolean },
-  ) => {
-    trackEvent({
-      event: 'showroom_view',
-      category: 'showroom',
-      action: 'view',
-      label: `${showroomId}:${data?.name ?? ''}:${data?.location ?? ''}`,
-      value: data?.verified ? 1 : 0,
-    });
-  };
+  const trackShowroomView = useCallback(
+    (showroomId: string, data: { name?: string; location?: string; type?: string; verified?: boolean; }) => {
+      trackEvent({
+        event: 'showroom_view',
+        category: 'showroom',
+        action: 'view',
+        label: `${showroomId}:${data?.name ?? ''}:${data?.location ?? ''}`,
+        value: data?.verified ? 1 : 0,
+      });
+    },
+    [trackEvent],
+  );
 
-  const trackCarView = (
-    carId: string,
-    data: { title?: string; price?: number; brand?: string },
-  ) => {
-    trackEvent({
-      event: 'car_view',
-      category: 'marketplace',
-      action: 'view',
-      label: `${carId}:${data?.brand ?? ''}:${data?.title ?? ''}`,
-      value: typeof data?.price === 'number' ? data.price : undefined,
-    });
-  };
+  const trackCarView = useCallback(
+    (carId: string, data: { title?: string; price?: number; brand?: string; }) => {
+      trackEvent({
+        event: 'car_view',
+        category: 'marketplace',
+        action: 'view',
+        label: `${carId}:${data?.brand ?? ''}:${data?.title ?? ''}`,
+        value: typeof data?.price === 'number' ? data.price : undefined,
+      });
+    },
+    [trackEvent],
+  );
 
-  const trackSearch = (searchTerm: string, category?: string) => {
-    trackEvent({
-      event: 'search',
-      category: category || 'general',
-      action: 'search',
-      label: searchTerm,
-    });
-  };
+  const trackSearch = useCallback(
+    (searchTerm: string, category?: string) => {
+      trackEvent({
+        event: 'search',
+        category: category || 'general',
+        action: 'search',
+        label: searchTerm,
+      });
+    },
+    [trackEvent],
+  );
 
   return {
     trackEvent,

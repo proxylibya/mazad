@@ -1754,7 +1754,13 @@ const AuctionsPage: React.FC<AuctionsPageProps> = React.memo(
       if (pagination.currentPage > Math.ceil(filteredCars.length / pagination.itemsPerPage)) {
         pagination.setPage(1);
       }
-    }, [filteredCars.length, pagination]);
+    }, [
+      filteredCars.length,
+      pagination.currentPage,
+      pagination.itemsPerPage,
+      pagination.setPage,
+      pagination.setTotalItems,
+    ]);
 
     // تطبيق الترقيم على النتائج المفلترة
     const paginatedCars = useMemo(() => {

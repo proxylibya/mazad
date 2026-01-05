@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 interface UsePaginationOptions {
   initialPage?: number;
@@ -29,7 +29,7 @@ interface PaginationActions {
   reset: () => void;
 }
 
-export interface UsePaginationReturn extends PaginationState, PaginationActions {}
+export interface UsePaginationReturn extends PaginationState, PaginationActions { }
 
 export const usePagination = ({
   initialPage = 1,
@@ -58,7 +58,7 @@ export const usePagination = ({
     if (updateURL && router.query[pageParam]) {
       const pageFromURL = parseInt(router.query[pageParam] as string, 10);
       if (!isNaN(pageFromURL) && pageFromURL > 0) {
-        setCurrentPage(pageFromURL);
+        setCurrentPage((prev) => (prev === pageFromURL ? prev : pageFromURL));
       }
     }
   }, [router.query, pageParam, updateURL]);
@@ -83,76 +83,92 @@ export const usePagination = ({
   }, [currentPage, currentItemsPerPage, currentTotalItems]);
 
   // دالة تغيير الصفحة
-  const setPage = (page: number) => {
-    const newPage = Math.max(1, Math.min(page, paginationState.totalPages));
-    setCurrentPage(newPage);
+  const setPage = useCallback(
+    (page: number) => {
+      const newPage = Math.max(1, Math.min(page, paginationState.totalPages));
+      setCurrentPage((prev) => (prev === newPage ? prev : newPage));
 
-    if (updateURL) {
-      const query = { ...router.query };
-      if (newPage === 1) {
-        delete query[pageParam];
-      } else {
-        query[pageParam] = newPage.toString();
+      if (updateURL) {
+        const query = { ...router.query };
+        if (newPage === 1) {
+          delete query[pageParam];
+        } else {
+          query[pageParam] = newPage.toString();
+        }
+
+        const currentParam = router.query[pageParam];
+        const currentValue = Array.isArray(currentParam) ? currentParam[0] : currentParam;
+        const desiredValue = newPage === 1 ? undefined : newPage.toString();
+        const isSame = desiredValue === undefined ? currentValue === undefined : currentValue === desiredValue;
+
+        if (!isSame) {
+          router.replace(
+            {
+              pathname: router.pathname,
+              query,
+            },
+            undefined,
+            { shallow: true },
+          );
+        }
       }
-
-      router.push(
-        {
-          pathname: router.pathname,
-          query,
-        },
-        undefined,
-        { shallow: true },
-      );
-    }
-  };
+    },
+    [paginationState.totalPages, pageParam, router, updateURL],
+  );
 
   // دالة الانتقال للصفحة التالية
-  const nextPage = () => {
+  const nextPage = useCallback(() => {
     if (paginationState.hasNextPage) {
       setPage(currentPage + 1);
     }
-  };
+  }, [paginationState.hasNextPage, setPage, currentPage]);
 
   // دالة الانتقال للصفحة السابقة
-  const prevPage = () => {
+  const prevPage = useCallback(() => {
     if (paginationState.hasPrevPage) {
       setPage(currentPage - 1);
     }
-  };
+  }, [paginationState.hasPrevPage, setPage, currentPage]);
 
   // دالة تغيير عدد العناصر في الصفحة
-  const setItemsPerPage = (items: number) => {
-    const newItemsPerPage = Math.max(1, items);
-    setCurrentItemsPerPage(newItemsPerPage);
+  const setItemsPerPage = useCallback(
+    (items: number) => {
+      const newItemsPerPage = Math.max(1, items);
+      setCurrentItemsPerPage((prev) => (prev === newItemsPerPage ? prev : newItemsPerPage));
 
-    // إعادة حساب الصفحة الحالية للحفاظ على نفس العنصر الأول تقريباً
-    const currentFirstItem = (currentPage - 1) * currentItemsPerPage;
-    const newPage = Math.max(1, Math.ceil((currentFirstItem + 1) / newItemsPerPage));
-    setPage(newPage);
-  };
+      // إعادة حساب الصفحة الحالية للحفاظ على نفس العنصر الأول تقريباً
+      const currentFirstItem = (currentPage - 1) * currentItemsPerPage;
+      const newPage = Math.max(1, Math.ceil((currentFirstItem + 1) / newItemsPerPage));
+      setPage(newPage);
+    },
+    [setPage, currentItemsPerPage, currentPage],
+  );
 
   // دالة تحديث العدد الإجمالي للعناصر
-  const setTotalItems = (total: number) => {
-    const newTotal = Math.max(0, total);
-    setCurrentTotalItems(newTotal);
+  const setTotalItems = useCallback(
+    (total: number) => {
+      const newTotal = Math.max(0, total);
+      setCurrentTotalItems((prev) => (prev === newTotal ? prev : newTotal));
 
-    // التأكد من أن الصفحة الحالية لا تزال صالحة
-    const newTotalPages = Math.max(1, Math.ceil(newTotal / currentItemsPerPage));
-    if (currentPage > newTotalPages) {
-      setPage(newTotalPages);
-    }
-  };
+      // التأكد من أن الصفحة الحالية لا تزال صالحة
+      const newTotalPages = Math.max(1, Math.ceil(newTotal / currentItemsPerPage));
+      if (paginationState.currentPage > newTotalPages) {
+        setPage(newTotalPages);
+      }
+    },
+    [currentItemsPerPage, paginationState.currentPage, setPage],
+  );
 
   // دالة إعادة التعيين
-  const reset = () => {
-    setCurrentPage(initialPage);
-    setCurrentItemsPerPage(itemsPerPage);
-    setCurrentTotalItems(totalItems);
+  const reset = useCallback(() => {
+    setCurrentPage((prev) => (prev === initialPage ? prev : initialPage));
+    setCurrentItemsPerPage((prev) => (prev === itemsPerPage ? prev : itemsPerPage));
+    setCurrentTotalItems((prev) => (prev === totalItems ? prev : totalItems));
 
     if (updateURL) {
       const query = { ...router.query };
       delete query[pageParam];
-      router.push(
+      router.replace(
         {
           pathname: router.pathname,
           query,
@@ -161,17 +177,20 @@ export const usePagination = ({
         { shallow: true },
       );
     }
-  };
+  }, [initialPage, itemsPerPage, pageParam, router, totalItems, updateURL]);
 
-  return {
-    ...paginationState,
-    setPage,
-    nextPage,
-    prevPage,
-    setItemsPerPage,
-    setTotalItems,
-    reset,
-  };
+  return useMemo(
+    () => ({
+      ...paginationState,
+      setPage,
+      nextPage,
+      prevPage,
+      setItemsPerPage,
+      setTotalItems,
+      reset,
+    }),
+    [paginationState, nextPage, prevPage, reset, setItemsPerPage, setPage, setTotalItems],
+  );
 };
 
 // Hook مبسط للاستخدام مع البيانات المحلية

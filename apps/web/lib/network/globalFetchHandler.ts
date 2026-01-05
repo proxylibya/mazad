@@ -60,6 +60,8 @@ if (typeof window !== 'undefined') {
           // تجاهل أخطاء Socket.IO
           url.includes('/api/socketio') ||
           url.includes('/api/socket') ||
+          // تجاهل أخطاء التحليلات - لا يجب أن تؤثر على تجربة المستخدم
+          url.includes('/api/analytics/track') ||
           // تجاهل أخطاء MetaMask والإضافات الأخرى
           url.includes('chrome-extension://') ||
           url.includes('moz-extension://') ||
@@ -102,7 +104,7 @@ if (typeof window !== 'undefined') {
       // تحسين رسالة الخطأ
       if (error instanceof TypeError && error.message === 'Failed to fetch') {
         // تجاهل أخطاء fetch للـ APIs الداخلية التي لها fallback
-        const silentUrls = ['/api/site-sections', '/api/page-settings'];
+        const silentUrls = ['/api/site-sections', '/api/page-settings', '/api/analytics/track'];
         const shouldBeSilent = typeof url === 'string' && silentUrls.some(u => url.includes(u));
 
         if (!shouldBeSilent) {
@@ -136,3 +138,4 @@ if (typeof window !== 'undefined') {
 }
 
 export { };
+

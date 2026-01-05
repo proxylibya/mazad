@@ -117,7 +117,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   } catch (error) {
     console.error('Analytics tracking error:', error);
-    return res.status(500).json({
+    return res.status(200).json({
       success: false,
       error: 'Failed to track event',
     });
