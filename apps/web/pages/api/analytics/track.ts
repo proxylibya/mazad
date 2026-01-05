@@ -92,7 +92,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         category: trackingData.category,
         label: trackingData.label,
         value: trackingData.value,
-        properties: trackingData.properties ? JSON.stringify(trackingData.properties) : null,
+        properties: trackingData.properties ?? null,
         page: trackingData.page,
         referrer: trackingData.referrer,
         browser,
