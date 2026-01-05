@@ -6,19 +6,10 @@ const ADMIN_APP_URL = process.env.ADMIN_APP_URL || 'http://localhost:3022';
 
 const OUTPUT_TRACE_ROOT = path.join(__dirname, '../../');
 const NEXT_VENDORED_AMP_CONTEXT_GLOBS = [
-  path.join(
-    __dirname,
-    'node_modules/next/dist/server/future/route-modules/**/vendored/contexts/amp-context.js',
-  ),
-  path.join(
-    OUTPUT_TRACE_ROOT,
-    'node_modules/next/dist/server/future/route-modules/**/vendored/contexts/amp-context.js',
-  ),
-  path.join(__dirname, 'node_modules/next/dist/server/future/route-modules/**/module.compiled.*'),
-  path.join(
-    OUTPUT_TRACE_ROOT,
-    'node_modules/next/dist/server/future/route-modules/**/module.compiled.*',
-  ),
+  'node_modules/next/dist/server/future/route-modules/**/vendored/contexts/amp-context.js',
+  'node_modules/next/dist/server/future/route-modules/**/module.compiled.*',
+  '../../node_modules/next/dist/server/future/route-modules/**/vendored/contexts/amp-context.js',
+  '../../node_modules/next/dist/server/future/route-modules/**/module.compiled.*',
 ];
 
 const nextConfig = {
