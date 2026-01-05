@@ -2,7 +2,7 @@
  * API المزادات - جلب جميع المزادات من قاعدة البيانات
  * تم تنظيف البيانات الوهمية - يعرض فقط البيانات الحقيقية
  */
-import { prisma } from '@/lib/prisma';
+import { prisma, validateQueryLimit } from '@/lib/prisma';
 import { formatMileage } from '@/utils/carTranslations';
 import { translateToArabic } from '@/utils/formatters';
 import type { NextApiRequest, NextApiResponse } from 'next';
@@ -15,7 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const status = req.query.status as string;
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
+    const limit = validateQueryLimit(parseInt(req.query.limit as string));
     const skip = (page - 1) * limit;
 
     // بناء شرط البحث
