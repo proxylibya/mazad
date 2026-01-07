@@ -12,22 +12,34 @@ dotenv.config();
 const app = express();
 const httpServer = createServer(app);
 
-const PORT = process.env.REALTIME_PORT || 3024;
+const PORT = process.env.PORT || process.env.REALTIME_PORT || 3024;
+
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
 
 // Configure Socket.IO with CORS
 const io = new Server(httpServer, {
+  path: '/api/socketio',
   cors: {
-    origin: ['http://localhost:3021', 'http://localhost:3022', 'http://localhost:3000'],
-    credentials: true
+    origin: allowedOrigins.length
+      ? allowedOrigins
+      : ['http://localhost:3021', 'http://localhost:3022', 'http://localhost:3000'],
+    credentials: true,
   },
-  transports: ['websocket', 'polling']
+  transports: ['websocket', 'polling'],
 });
 
 // Middleware
-app.use(cors({
-  origin: ['http://localhost:3021', 'http://localhost:3022', 'http://localhost:3000'],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: allowedOrigins.length
+      ? allowedOrigins
+      : ['http://localhost:3021', 'http://localhost:3022', 'http://localhost:3000'],
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 // In-memory storage for demo purposes
@@ -37,59 +49,59 @@ const connectedUsers = new Map();
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   console.log(`✅ User connected: ${socket.id}`);
-  
+
   // Join auction room
   socket.on('join_auction', (auctionId) => {
     socket.join(`auction_${auctionId}`);
     console.log(`User ${socket.id} joined auction ${auctionId}`);
-    
+
     // Send current auction state
     const auctionState = activeAuctions.get(auctionId);
     if (auctionState) {
       socket.emit('auction_state', auctionState);
     }
   });
-  
+
   // Leave auction room
   socket.on('leave_auction', (auctionId) => {
     socket.leave(`auction_${auctionId}`);
     console.log(`User ${socket.id} left auction ${auctionId}`);
   });
-  
+
   // Place bid
   socket.on('place_bid', (data) => {
     const { auctionId, bidAmount, userId } = data;
     console.log(`Bid placed: ${bidAmount} LYD on auction ${auctionId} by user ${userId}`);
-    
+
     // Update auction state
     const auctionState = activeAuctions.get(auctionId) || {
       id: auctionId,
       currentBid: 0,
       bidCount: 0,
-      bids: []
+      bids: [],
     };
-  
+
     auctionState.currentBid = bidAmount;
     auctionState.bidCount++;
     auctionState.lastBidder = userId;
     auctionState.bids.unshift({
       amount: bidAmount,
       userId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-  
+
     activeAuctions.set(auctionId, auctionState);
-    
+
     // Broadcast to all users in the auction room
     io.to(`auction_${auctionId}`).emit('new_bid', {
       auctionId,
       currentBid: bidAmount,
       bidCount: auctionState.bidCount,
       lastBidder: userId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   });
-  
+
   // Handle disconnect
   socket.on('disconnect', () => {
     console.log(`❌ User disconnected: ${socket.id}`);
@@ -106,7 +118,7 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     service: 'realtime',
     connections: connectedUsers.size,
-    activeAuctions: activeAuctions.size
+    activeAuctions: activeAuctions.size,
   });
 });
 
@@ -116,12 +128,12 @@ app.get('/api/auctions/:id/state', (req, res) => {
   if (auctionState) {
     res.json({
       success: true,
-      data: auctionState
+      data: auctionState,
     });
   } else {
     res.status(404).json({
       success: false,
-      error: 'Auction not found'
+      error: 'Auction not found',
     });
   }
 });
@@ -130,18 +142,18 @@ app.get('/api/auctions/:id/state', (req, res) => {
 app.post('/api/auctions/:id/initialize', (req, res) => {
   const { id } = req.params;
   const { startingBid } = req.body;
-  
+
   activeAuctions.set(id, {
     id,
     currentBid: startingBid || 0,
     bidCount: 0,
     bids: [],
-    startedAt: new Date().toISOString()
+    startedAt: new Date().toISOString(),
   });
-  
+
   res.json({
     success: true,
-    message: 'Auction initialized'
+    message: 'Auction initialized',
   });
 });
 
@@ -150,7 +162,7 @@ app.use((err, req, res, _next) => {
   console.error('Error:', err);
   res.status(err.status || 500).json({
     success: false,
-    error: err.message || 'Internal server error'
+    error: err.message || 'Internal server error',
   });
 });
 
@@ -159,7 +171,7 @@ app.use((err, req, res, _next) => {
 // const auctionHandler = new AuctionHandler(io);
 
 // Start server
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Realtime Server running on http://localhost:${PORT}`);
   console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔌 WebSocket server ready for connections`);
