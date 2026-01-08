@@ -1,7 +1,6 @@
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
+dockerfilePath = "services/realtime/Dockerfile"
 
 [deploy]
-startCommand = "npm run start"
 healthcheckPath = "/health"
