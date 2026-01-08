@@ -39,12 +39,26 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+function buildPrismaDatabaseUrl(databaseUrl: string): string {
+  try {
+    const parsed = new URL(databaseUrl);
+    const params = new URLSearchParams(parsed.search);
+    if (params.has('options')) {
+      return databaseUrl;
+    }
+  } catch (_) {
+    // ignore
+  }
+
+  const separator = databaseUrl.includes('?') ? '&' : '?';
+  return databaseUrl + separator + 'options=-c%20client_encoding=UTF8';
+}
+
 const rawDatabaseUrl = (process.env.DATABASE_URL || '').trim();
 const normalizedDatabaseUrl = rawDatabaseUrl.replace(/^\s*['"]|['"]\s*$/g, '').trim();
 if (!normalizedDatabaseUrl || (!normalizedDatabaseUrl.startsWith('postgresql://') && !normalizedDatabaseUrl.startsWith('postgres://'))) {
   throw new Error('Invalid DATABASE_URL. It must start with postgresql:// or postgres://');
 }
-const databaseUrlSeparator = normalizedDatabaseUrl.includes('?') ? '&' : '?';
 
 const basePrisma =
   globalForPrisma.prisma ??
@@ -52,7 +66,7 @@ const basePrisma =
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
     datasources: {
       db: {
-        url: normalizedDatabaseUrl + databaseUrlSeparator + 'options=-c%20client_encoding=UTF8',
+        url: buildPrismaDatabaseUrl(normalizedDatabaseUrl),
       },
     },
   });
