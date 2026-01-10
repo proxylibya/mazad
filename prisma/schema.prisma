@@ -164,41 +164,40 @@ model announcements {
 }
 
 model auctions {
-  id                 String          @id
-  title              String
-  description        String?
-  carId              String?
-  sellerId           String
-  yardId             String? // ربط بالساحة (اختياري - null يعني مزاد أونلاين فقط)
-  currentPrice       Float
-  status             AuctionStatus   @default(PENDING)
-  featured           Boolean         @default(false)
-  views              Int             @default(0)
-  totalBids          Int             @default(0)
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime
-  endDate            DateTime        @map("endTime")
-  location           String?
-  maxBidders         Int?
-  minimumBid         Float           @default(500)
-  startDate          DateTime        @map("startTime")
-  startPrice         Float           @map("startingPrice")
-  type               AuctionType     @default(PUBLIC)
-  promotionPackage   String?         @default("free")
-  promotionDays      Int             @default(0)
-  promotionStartDate DateTime?
-  promotionEndDate   DateTime?
-  promotionPriority  Int             @default(0)
-  cars               cars?           @relation(fields: [carId], references: [id])
-  users              users           @relation(fields: [sellerId], references: [id])
-  yard               yards?          @relation("YardAuctions", fields: [yardId], references: [id])
-  bids               bids[]
-  conversations      conversations[]
-  deposits           deposits[]
-  favorites          favorites[]
-  notifications      notifications[]
-  reviews            reviews[]
-  transactions       transactions[]
+  id                  String          @id
+  title               String
+  description         String?
+  carId               String
+  sellerId            String
+  yardId              String? // ربط بالساحة (اختياري - null يعني مزاد أونلاين فقط)
+  startPrice          Float           @map("startingPrice")
+  currentPrice        Float
+  status              AuctionStatus   @default(UPCOMING)
+  featured            Boolean         @default(false)
+  views               Int             @default(0)
+  totalBids           Int             @default(0)
+  highestBidderId     String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime
+  endDate             DateTime        @map("endTime")
+  startDate           DateTime        @map("startTime")
+  minimumBidIncrement Float?
+  reservePrice        Float?
+  promotionPackage    String?         @default("free")
+  promotionDays       Int             @default(0)
+  promotionStartDate  DateTime?
+  promotionEndDate    DateTime?
+  promotionPriority   Int             @default(0)
+  cars                cars?           @relation(fields: [carId], references: [id])
+  users               users           @relation(fields: [sellerId], references: [id])
+  yard                yards?          @relation("YardAuctions", fields: [yardId], references: [id])
+  bids                bids[]
+  conversations       conversations[]
+  deposits            deposits[]
+  favorites           favorites[]
+  notifications       notifications[]
+  reviews             reviews[]
+  transactions        transactions[]
 
   @@index([carId])
   @@index([createdAt])
@@ -1610,12 +1609,11 @@ enum AnnouncementType {
 }
 
 enum AuctionStatus {
-  PENDING
   UPCOMING
   ACTIVE
   ENDED
+  SOLD
   CANCELLED
-  SUSPENDED
 }
 
 enum AuctionType {
