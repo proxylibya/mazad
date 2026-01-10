@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3021",
-    "build": "next build --no-lint",
+    "build": "npx prisma generate --schema ../../prisma/schema.prisma && next build --no-lint",
     "start": "next start -p 3021",
     "lint": "echo \"Linting disabled\"",
     "type-check": "tsc --noEmit -p tsconfig.json"
