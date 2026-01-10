@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model activity_logs {
@@ -176,12 +177,12 @@ model auctions {
   totalBids          Int             @default(0)
   createdAt          DateTime        @default(now())
   updatedAt          DateTime
-  endDate            DateTime
+  endDate            DateTime        @map("endTime")
   location           String?
   maxBidders         Int?
   minimumBid         Float           @default(500)
-  startDate          DateTime
-  startPrice         Float
+  startDate          DateTime        @map("startTime")
+  startPrice         Float           @map("startingPrice")
   type               AuctionType     @default(PUBLIC)
   promotionPackage   String?         @default("free")
   promotionDays      Int             @default(0)
@@ -1470,21 +1471,21 @@ model promotion_transactions {
 
 // جدول كروت الشحن - لإدارة كروت ليبيانا ومدار
 model recharge_cards {
-  id           String             @id @default(cuid())
-  cardNumber   String             @unique // رقم الكرت (مشفر)
-  cardHash     String             @unique // hash لرقم الكرت للبحث السريع
-  provider     CardProvider       // ليبيانا أو مدار
-  denomination Float              // فئة الكرت (10, 20, 30, 50, 100)
-  value        Float              // القيمة الفعلية بالدينار
-  status       CardStatus         @default(AVAILABLE)
-  batchId      String?            // رقم الدفعة
-  serialNumber String?            // الرقم التسلسلي
-  addedBy      String             // من أضاف الكرت (admin id)
-  usedBy       String?            // من استخدم الكرت (user id)
-  usedAt       DateTime?          // تاريخ الاستخدام
-  expiresAt    DateTime?          // تاريخ انتهاء الصلاحية
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
+  id           String       @id @default(cuid())
+  cardNumber   String       @unique // رقم الكرت (مشفر)
+  cardHash     String       @unique // hash لرقم الكرت للبحث السريع
+  provider     CardProvider // ليبيانا أو مدار
+  denomination Float // فئة الكرت (10, 20, 30, 50, 100)
+  value        Float // القيمة الفعلية بالدينار
+  status       CardStatus   @default(AVAILABLE)
+  batchId      String? // رقم الدفعة
+  serialNumber String? // الرقم التسلسلي
+  addedBy      String // من أضاف الكرت (admin id)
+  usedBy       String? // من استخدم الكرت (user id)
+  usedAt       DateTime? // تاريخ الاستخدام
+  expiresAt    DateTime? // تاريخ انتهاء الصلاحية
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
   metadata     Json?
 
   @@index([provider])
@@ -1515,20 +1516,20 @@ model card_batches {
 
 // جدول طلبات الإيداع بالكروت
 model card_deposit_requests {
-  id            String              @id @default(cuid())
+  id            String            @id @default(cuid())
   userId        String
-  cardNumber    String              // آخر 4 أرقام فقط للعرض
+  cardNumber    String // آخر 4 أرقام فقط للعرض
   provider      CardProvider
   amount        Float
-  status        CardDepositStatus   @default(PENDING)
-  processedBy   String?             // admin الذي عالج الطلب
+  status        CardDepositStatus @default(PENDING)
+  processedBy   String? // admin الذي عالج الطلب
   processedAt   DateTime?
   rejectReason  String?
-  transactionId String?             // معاملة المحفظة
-  depositId     String?             // ربط بجدول deposits
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
-  users         users               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactionId String? // معاملة المحفظة
+  depositId     String? // ربط بجدول deposits
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  users         users             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status])
@@ -2161,28 +2162,28 @@ model site_elements {
 
 enum CardProvider {
   LIBYANA // ليبيانا
-  MADAR   // مدار
+  MADAR // مدار
 }
 
 enum CardStatus {
-  AVAILABLE  // متاح للاستخدام
-  USED       // مستخدم
-  RESERVED   // محجوز (قيد المعالجة)
-  EXPIRED    // منتهي الصلاحية
-  DISABLED   // معطل
+  AVAILABLE // متاح للاستخدام
+  USED // مستخدم
+  RESERVED // محجوز (قيد المعالجة)
+  EXPIRED // منتهي الصلاحية
+  DISABLED // معطل
 }
 
 enum BatchStatus {
-  ACTIVE   // نشط
+  ACTIVE // نشط
   DEPLETED // نفذت الكروت
-  EXPIRED  // منتهي
+  EXPIRED // منتهي
   DISABLED // معطل
 }
 
 enum CardDepositStatus {
-  PENDING    // قيد الانتظار
+  PENDING // قيد الانتظار
   PROCESSING // قيد المعالجة
-  APPROVED   // مقبول
-  REJECTED   // مرفوض
-  FAILED     // فشل
+  APPROVED // مقبول
+  REJECTED // مرفوض
+  FAILED // فشل
 }
